@@ -14,7 +14,6 @@ export default function ApplicationForm({ jobId }: { jobId: string }) {
     lastName: "",
     email: "",
     phone: "",
-    linkedin: "",
   });
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -41,7 +40,6 @@ export default function ApplicationForm({ jobId }: { jobId: string }) {
       submitData.append("lastName", formData.lastName);
       submitData.append("email", formData.email);
       submitData.append("phone", formData.phone);
-      submitData.append("linkedin", formData.linkedin);
       submitData.append("resume", file);
 
       // We'll simulate upload delay then post the JSON (since we don't have real S3)
@@ -66,12 +64,12 @@ export default function ApplicationForm({ jobId }: { jobId: string }) {
 
   if (isSuccess) {
     return (
-      <div className="text-center py-6">
+      <div className="flex flex-col items-center justify-center w-full min-h-[300px] text-center py-6">
         <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
           <CheckCircle2 className="w-8 h-8 text-emerald-600" />
         </div>
         <h4 className="text-xl font-bold text-nuanu-navy mb-2">Application Sent!</h4>
-        <p className="text-sm text-nuanu-gray-500">
+        <p className="text-sm text-nuanu-gray-500 max-w-sm mx-auto">
           Thank you for applying. Our recruitment team will review your profile and get back to you soon.
         </p>
       </div>
@@ -103,10 +101,7 @@ export default function ApplicationForm({ jobId }: { jobId: string }) {
         <input type="tel" className="input-field py-2.5 text-sm" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
       </div>
 
-      <div>
-        <label className="block text-xs font-semibold text-nuanu-gray-600 mb-1">LinkedIn Profile</label>
-        <input type="url" placeholder="https://linkedin.com/in/..." className="input-field py-2.5 text-sm" value={formData.linkedin} onChange={e => setFormData({...formData, linkedin: e.target.value})} />
-      </div>
+
 
       <div>
         <label className="block text-xs font-semibold text-nuanu-gray-600 mb-1">Resume / CV *</label>
