@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { Search, Filter, Eye, Download, Mail, MoreVertical, Users } from "lucide-react";
 import CandidatesTable from "./CandidatesTable";
+import ExportButton from "./ExportButton";
 
 export default async function CandidatesPage() {
   // Pull real applications from the database
@@ -36,6 +37,7 @@ export default async function CandidatesPage() {
       skills: profile?.skills ?? ["Communication", "Problem Solving"],
       coverLetter: app.coverLetter ?? undefined,
       resumeUrl: profile?.resumeUrl ?? undefined,
+      resumeText: profile?.resumeText ?? undefined,
     };
   });
 
@@ -47,9 +49,7 @@ export default async function CandidatesPage() {
           <p className="text-sm text-nuanu-gray-500 mt-1">Manage and evaluate all applicants</p>
         </div>
         <div className="flex gap-3">
-          <button className="btn-secondary">
-            <Download className="w-4 h-4" /> Export
-          </button>
+          <ExportButton candidates={candidates} />
         </div>
       </div>
 

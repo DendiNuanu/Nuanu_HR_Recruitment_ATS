@@ -5,7 +5,7 @@ import { Search, Filter, Eye, Mail, MoreVertical, Users, X, Check, Loader2, Send
 import { motion, AnimatePresence } from "framer-motion";
 import { updateCandidateStage } from "./actions";
 
-type Candidate = {
+export type Candidate = {
   id: string;
   name: string;
   email: string;
@@ -18,6 +18,7 @@ type Candidate = {
   skills?: string[];
   coverLetter?: string;
   resumeUrl?: string;
+  resumeText?: string;
 };
 
 export default function CandidatesTable({ candidates }: { candidates: Candidate[] }) {
