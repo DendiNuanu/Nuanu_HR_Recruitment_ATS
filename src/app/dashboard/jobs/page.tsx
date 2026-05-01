@@ -9,10 +9,25 @@ export default async function JobsPage() {
       department: true,
       _count: {
         select: { applications: true }
+      },
+      applications: {
+        where: { currentStage: "hired" },
+        select: { id: true }
       }
     },
     orderBy: { createdAt: "desc" }
   });
+
+  // Data Synchronization: Ensure filledCount matches actual hired applications
+  for (const vacancy of vacancies) {
+    const actualHiredCount = vacancy.applications.length;
+    if (vacancy.filledCount !== actualHiredCount) {
+      await prisma.vacancy.update({
+        where: { id: vacancy.id },
+        data: { filledCount: actualHiredCount }
+      });
+    }
+  }
 
   return (
     <div className="space-y-6">

@@ -254,7 +254,7 @@ export default function CandidatesTable({ candidates }: { candidates: Candidate[
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden relative z-10 max-h-[90vh] flex flex-col"
+              className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden relative z-10 max-h-[95vh] flex flex-col"
             >
               <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
                 <div className="flex items-center gap-4">
@@ -262,8 +262,8 @@ export default function CandidatesTable({ candidates }: { candidates: Candidate[
                     {selectedProfile.name.split(" ").map(n => n[0]).join("").substring(0,2).toUpperCase()}
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold text-nuanu-navy">{selectedProfile.name}</h2>
-                    <p className="text-sm text-nuanu-gray-500">{selectedProfile.email}</p>
+                    <h2 className="text-3xl font-extrabold text-nuanu-navy leading-tight">{selectedProfile.name}</h2>
+                    <p className="text-base text-nuanu-gray-500 font-medium">{selectedProfile.email}</p>
                   </div>
                 </div>
                 <button 
@@ -275,28 +275,28 @@ export default function CandidatesTable({ candidates }: { candidates: Candidate[
               </div>
               
               <div className="p-6 overflow-y-auto">
-                <div className="grid grid-cols-2 gap-6 mb-8">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
                   <div>
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Applied For</p>
-                    <p className="font-medium text-nuanu-navy">{selectedProfile.vacancyTitle}</p>
+                    <p className="text-[11px] font-bold text-nuanu-gray-400 uppercase tracking-[0.1em] mb-2">Applied For</p>
+                    <p className="text-lg font-bold text-nuanu-navy leading-snug">{selectedProfile.vacancyTitle}</p>
                   </div>
                   <div>
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Current Stage</p>
-                    <span className="badge bg-blue-50 text-blue-700 uppercase tracking-wider text-[10px]">
+                    <p className="text-[11px] font-bold text-nuanu-gray-400 uppercase tracking-[0.1em] mb-2">Current Stage</p>
+                    <span className="badge bg-blue-100 text-blue-700 px-3 py-1.5 text-xs font-bold uppercase tracking-wider">
                       {selectedProfile.stage.replace("_", " ")}
                     </span>
                   </div>
                   <div>
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Applied Date</p>
-                    <p className="text-sm font-medium text-nuanu-navy">{formatDate(selectedProfile.appliedAt)}</p>
+                    <p className="text-[11px] font-bold text-nuanu-gray-400 uppercase tracking-[0.1em] mb-2">Applied Date</p>
+                    <p className="text-lg font-bold text-nuanu-navy">{formatDate(selectedProfile.appliedAt)}</p>
                   </div>
                   <div>
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Location</p>
-                    <p className="text-sm font-medium text-nuanu-navy">{selectedProfile.location}</p>
+                    <p className="text-[11px] font-bold text-nuanu-gray-400 uppercase tracking-[0.1em] mb-2">Location</p>
+                    <p className="text-lg font-bold text-nuanu-navy">{selectedProfile.location}</p>
                   </div>
                   <div>
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Phone Number</p>
-                    <p className="text-sm font-medium text-nuanu-navy">{selectedProfile.phone || "Not provided"}</p>
+                    <p className="text-[11px] font-bold text-nuanu-gray-400 uppercase tracking-[0.1em] mb-2">Phone Number</p>
+                    <p className="text-lg font-bold text-nuanu-navy">{selectedProfile.phone || "Not provided"}</p>
                   </div>
                 </div>
 
@@ -345,20 +345,20 @@ export default function CandidatesTable({ candidates }: { candidates: Candidate[
                 )}
               </div>
               
-              <div className="p-6 border-t border-gray-100 flex justify-end gap-3 bg-gray-50/50">
+              <div className="p-8 border-t border-gray-100 flex justify-end gap-4 bg-gray-50/50">
                 {selectedProfile.resumeUrl && (
                   <a
                     href={selectedProfile.resumeUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="btn-secondary mr-auto flex items-center gap-2"
+                    className="btn-secondary mr-auto flex items-center gap-2 px-6 py-3 text-base"
                   >
                     View Resume / CV
                   </a>
                 )}
                 <button 
                   onClick={() => setSelectedProfile(null)}
-                  className="btn-secondary"
+                  className="btn-secondary px-6 py-3 text-base"
                 >
                   Close
                 </button>
@@ -367,9 +367,9 @@ export default function CandidatesTable({ candidates }: { candidates: Candidate[
                     setSelectedProfile(null);
                     openEmailModal(selectedProfile);
                   }}
-                  className="btn-primary"
+                  className="btn-primary px-6 py-3 text-base shadow-lg shadow-emerald-500/20"
                 >
-                  <Mail className="w-4 h-4" /> Message Candidate
+                  <Mail className="w-5 h-5" /> Message Candidate
                 </button>
               </div>
             </motion.div>
@@ -392,18 +392,18 @@ export default function CandidatesTable({ candidates }: { candidates: Candidate[
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden relative z-10"
+              className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden relative z-10"
             >
-              <div className="p-6 border-b border-gray-100 flex items-center justify-between">
-                <h2 className="text-lg font-bold text-nuanu-navy flex items-center gap-2">
-                  <Mail className="w-5 h-5 text-gray-400" /> New Message
+               <div className="p-8 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+                <h2 className="text-xl font-bold text-nuanu-navy flex items-center gap-2">
+                  <Mail className="w-6 h-6 text-nuanu-emerald" /> New Message
                 </h2>
                 <button 
                   onClick={() => !isSendingEmail && setSelectedEmail(null)}
                   className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
                   disabled={isSendingEmail}
                 >
-                  <X className="w-5 h-5" />
+                  <X className="w-6 h-6" />
                 </button>
               </div>
 
@@ -417,53 +417,53 @@ export default function CandidatesTable({ candidates }: { candidates: Candidate[
                 </div>
               ) : (
                 <>
-                  <div className="p-6 space-y-4">
+                  <div className="p-8 space-y-6">
                     <div>
-                      <label className="block text-xs font-medium text-gray-500 mb-1">To:</label>
-                      <div className="input-field bg-gray-50 text-gray-700 font-medium">
+                      <label className="block text-xs font-bold text-nuanu-gray-400 uppercase tracking-widest mb-2">To:</label>
+                      <div className="input-field bg-gray-50 text-nuanu-navy font-bold text-lg py-3 px-4">
                         {selectedEmail.name} &lt;{selectedEmail.email}&gt;
                       </div>
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-500 mb-1">Subject:</label>
+                      <label className="block text-xs font-bold text-nuanu-gray-400 uppercase tracking-widest mb-2">Subject:</label>
                       <input 
                         type="text" 
                         value={emailSubject}
                         onChange={(e) => setEmailSubject(e.target.value)}
-                        className="input-field"
+                        className="input-field text-lg font-medium py-3 px-4"
                         placeholder="Email subject"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-500 mb-1">Message:</label>
+                      <label className="block text-xs font-bold text-nuanu-gray-400 uppercase tracking-widest mb-2">Message:</label>
                       <textarea 
                         value={emailBody}
                         onChange={(e) => setEmailBody(e.target.value)}
-                        className="input-field min-h-[200px] resize-y"
+                        className="input-field min-h-[250px] resize-y text-base leading-relaxed py-3 px-4"
                         placeholder="Type your message here..."
                       />
                     </div>
                   </div>
-                  <div className="p-6 border-t border-gray-100 flex justify-end gap-3 bg-gray-50/50">
+                  <div className="p-8 border-t border-gray-100 flex justify-end gap-4 bg-gray-50/50">
                     <button 
                       onClick={() => setSelectedEmail(null)}
-                      className="btn-secondary"
+                      className="btn-secondary px-8 py-3 text-base"
                       disabled={isSendingEmail}
                     >
                       Cancel
                     </button>
                     <button 
                       onClick={handleSendEmail}
-                      className="btn-primary"
+                      className="btn-primary px-8 py-3 text-base shadow-lg shadow-emerald-500/20"
                       disabled={isSendingEmail}
                     >
                       {isSendingEmail ? (
                         <>
-                          <Loader2 className="w-4 h-4 animate-spin" /> Sending...
+                          <Loader2 className="w-5 h-5 animate-spin" /> Sending...
                         </>
                       ) : (
                         <>
-                          <Send className="w-4 h-4" /> Send Email
+                          <Send className="w-5 h-5" /> Send Email
                         </>
                       )}
                     </button>

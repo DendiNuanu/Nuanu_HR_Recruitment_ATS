@@ -35,12 +35,27 @@ export async function updateCandidateStage(applicationId: string, action: "next"
       }
     }
 
-    await prisma.application.update({
-      where: { id: applicationId },
-      data: {
-        currentStage: newStage,
-        status: newStage === "rejected" ? "rejected" : newStage === "hired" ? "hired" : "active",
-        ...(newStage === "rejected" ? { rejectedAt: new Date() } : {})
+    await prisma.$transaction(async (tx) => {
+      await tx.application.update({
+        where: { id: applicationId },
+        data: {
+          currentStage: newStage,
+          status: newStage === "rejected" ? "rejected" : newStage === "hired" ? "hired" : "active",
+          ...(newStage === "rejected" ? { rejectedAt: new Date() } : {})
+        }
+      });
+
+      // Synchronize Vacancy filledCount
+      if (newStage === "hired" && application.currentStage !== "hired") {
+        await tx.vacancy.update({
+          where: { id: (await tx.application.findUnique({ where: { id: applicationId }, select: { vacancyId: true } }))?.vacancyId },
+          data: { filledCount: { increment: 1 } }
+        });
+      } else if (application.currentStage === "hired" && newStage !== "hired") {
+        await tx.vacancy.update({
+          where: { id: (await tx.application.findUnique({ where: { id: applicationId }, select: { vacancyId: true } }))?.vacancyId },
+          data: { filledCount: { decrement: 1 } }
+        });
       }
     });
 
