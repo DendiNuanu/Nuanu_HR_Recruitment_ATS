@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { createNotification } from "@/lib/notifications";
 
 const STAGES = [
   "applied",
@@ -69,7 +70,22 @@ export async function updateCandidateStage(applicationId: string, action: "next"
       }
     });
 
+    // Create Real Notification
+    const admin = await prisma.user.findFirst({ where: { userRoles: { some: { role: { slug: 'admin' } } } } });
+    const candidate = await prisma.user.findUnique({ where: { id: application.candidateId } });
+    
+    if (admin && candidate) {
+      await createNotification({
+        userId: admin.id,
+        type: newStage === "hired" ? "system" : "interview",
+        title: `Candidate Stage Updated`,
+        message: `${candidate.name} has been moved to ${newStage.replace("_", " ")}`,
+        link: `/dashboard/candidates`,
+      });
+    }
+
     revalidatePath("/dashboard/candidates");
+    revalidatePath("/dashboard");
     return { success: true, newStage };
   } catch (error) {
     console.error("Failed to update candidate stage:", error);

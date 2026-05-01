@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { Search, Filter, FileText, CheckCircle2, XCircle, Send, MoreVertical, DollarSign } from "lucide-react";
-import { motion } from "framer-motion";
+import { Search, Filter, FileText, CheckCircle2, XCircle, Send, MoreVertical, DollarSign, X, Loader2, Calendar } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { formatDate } from "@/lib/utils";
+import { createOffer, sendOffer } from "./actions";
+
 export type OfferData = {
   id: string;
   candidateName: string;
@@ -14,8 +16,58 @@ export type OfferData = {
   startDate: string | Date;
 };
 
-export default function OffersClient({ offers }: { offers: OfferData[] }) {
+export type ActiveApp = {
+  id: string;
+  candidateName: string;
+  vacancyTitle: string;
+};
+
+export default function OffersClient({ 
+  offers,
+  activeApplications = []
+}: { 
+  offers: OfferData[],
+  activeApplications?: ActiveApp[]
+}) {
   const [search, setSearch] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState({
+    applicationId: "",
+    salary: 50000,
+    bonus: 0,
+    startDate: new Date().toISOString().split('T')[0],
+    notes: ""
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.applicationId) return;
+
+    setIsSubmitting(true);
+    try {
+      const res = await createOffer(formData);
+      if (res.success) {
+        setIsModalOpen(false);
+        setFormData({
+          applicationId: "",
+          salary: 50000,
+          bonus: 0,
+          startDate: new Date().toISOString().split('T')[0],
+          notes: ""
+        });
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleSendOffer = async (id: string) => {
+    if (!confirm("Are you sure you want to send this offer to the candidate?")) return;
+    await sendOffer(id);
+  };
 
   const getStatusBadge = (status: string) => {
     switch(status) {
@@ -34,12 +86,13 @@ export default function OffersClient({ offers }: { offers: OfferData[] }) {
           <h1 className="text-2xl font-bold text-nuanu-navy">Offers & Contracts</h1>
           <p className="text-sm text-nuanu-gray-500 mt-1">Generate, send, and track candidate offer letters</p>
         </div>
-        <button className="btn-primary">
+        <button onClick={() => setIsModalOpen(true)} className="btn-primary">
           <FileText className="w-5 h-5" /> Generate Offer
         </button>
       </div>
 
       <div className="card">
+        {/* ... (keep existing filter and table code) ... */}
         <div className="flex flex-col sm:flex-row gap-4 mb-6 border-b border-nuanu-gray-100 pb-6">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-nuanu-gray-400" />
@@ -110,7 +163,12 @@ export default function OffersClient({ offers }: { offers: OfferData[] }) {
                       <button className="p-1.5 text-nuanu-gray-400 hover:text-blue-600 bg-nuanu-gray-50 hover:bg-blue-50 rounded transition-colors" title="View Document">
                         <FileText className="w-4 h-4" />
                       </button>
-                      <button className="p-1.5 text-nuanu-gray-400 hover:text-emerald-600 bg-nuanu-gray-50 hover:bg-emerald-50 rounded transition-colors" title="Send Offer">
+                      <button 
+                        disabled={offer.status !== "draft"}
+                        onClick={() => handleSendOffer(offer.id)}
+                        className="p-1.5 text-nuanu-gray-400 hover:text-emerald-600 bg-nuanu-gray-50 hover:bg-emerald-50 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed" 
+                        title="Send Offer"
+                      >
                         <Send className="w-4 h-4" />
                       </button>
                       <button className="p-1.5 text-nuanu-gray-400 hover:text-nuanu-navy bg-nuanu-gray-50 hover:bg-nuanu-gray-200 rounded transition-colors">
@@ -131,6 +189,132 @@ export default function OffersClient({ offers }: { offers: OfferData[] }) {
           )}
         </div>
       </div>
+
+      {/* Generate Offer Modal */}
+      <AnimatePresence>
+        {isModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              exit={{ opacity: 0 }} 
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+              onClick={() => !isSubmitting && setIsModalOpen(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden relative z-10"
+            >
+              <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50">
+                <h2 className="text-lg font-bold text-nuanu-navy flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-nuanu-emerald" /> Generate New Offer
+                </h2>
+                <button 
+                  onClick={() => !isSubmitting && setIsModalOpen(false)}
+                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded-full transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Candidate Application *</label>
+                  <select 
+                    required
+                    value={formData.applicationId}
+                    onChange={e => setFormData({...formData, applicationId: e.target.value})}
+                    className="input-field py-2.5"
+                  >
+                    <option value="" disabled>Select a candidate...</option>
+                    {activeApplications.map(app => (
+                      <option key={app.id} value={app.id}>
+                        {app.candidateName} - {app.vacancyTitle}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">Annual Salary ($)</label>
+                    <div className="relative">
+                      <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <input 
+                        type="number" 
+                        required
+                        value={formData.salary}
+                        onChange={e => setFormData({...formData, salary: parseInt(e.target.value)})}
+                        className="input-field py-2.5 pl-9"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">Signing Bonus ($)</label>
+                    <div className="relative">
+                      <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <input 
+                        type="number" 
+                        value={formData.bonus}
+                        onChange={e => setFormData({...formData, bonus: parseInt(e.target.value)})}
+                        className="input-field py-2.5 pl-9"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Proposed Start Date</label>
+                  <div className="relative">
+                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <input 
+                      type="date" 
+                      required
+                      value={formData.startDate}
+                      onChange={e => setFormData({...formData, startDate: e.target.value})}
+                      className="input-field py-2.5 pl-9"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Internal Notes</label>
+                  <textarea 
+                    value={formData.notes}
+                    onChange={e => setFormData({...formData, notes: e.target.value})}
+                    className="input-field py-2.5 resize-y"
+                    rows={2}
+                    placeholder="Approvals, special conditions..."
+                  />
+                </div>
+
+                <div className="pt-4 flex justify-end gap-3">
+                  <button 
+                    type="button"
+                    onClick={() => setIsModalOpen(false)}
+                    className="btn-secondary"
+                    disabled={isSubmitting}
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    type="submit"
+                    className="btn-primary px-8"
+                    disabled={isSubmitting || !formData.applicationId}
+                  >
+                    {isSubmitting ? (
+                      <><Loader2 className="w-4 h-4 animate-spin" /> Generating...</>
+                    ) : "Generate Offer"}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
+

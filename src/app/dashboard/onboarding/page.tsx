@@ -43,5 +43,21 @@ export default async function OnboardingPage() {
     overdue: 0,
   };
 
-  return <OnboardingClient onboardings={onboardings} stats={stats} />;
+  const applicationsDb = await prisma.application.findMany({
+    where: { currentStage: { in: ["offer", "hired"] } },
+    include: { candidate: true, vacancy: true },
+    orderBy: { createdAt: "desc" }
+  });
+
+  const activeApplications = applicationsDb.map(app => ({
+    id: app.id,
+    candidateName: app.candidate.name,
+    vacancyTitle: app.vacancy.title
+  }));
+
+  const departments = await prisma.department.findMany({
+    select: { id: true, name: true }
+  });
+
+  return <OnboardingClient onboardings={onboardings} stats={stats} activeApplications={activeApplications} departments={departments} />;
 }

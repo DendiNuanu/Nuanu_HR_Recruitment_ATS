@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { UserPlus, Search, Filter, CheckSquare, Clock, AlertTriangle, ChevronRight } from "lucide-react";
-import { motion } from "framer-motion";
+import { UserPlus, Search, Filter, CheckSquare, Clock, AlertTriangle, ChevronRight, X, Loader2, Users } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { formatDate } from "@/lib/utils";
+import { startOnboarding } from "./actions";
 
 export type OnboardingData = {
   id: string;
@@ -17,8 +18,51 @@ export type OnboardingData = {
   tasksTotal: number;
 };
 
-export default function OnboardingClient({ onboardings, stats }: { onboardings: OnboardingData[], stats: { completed: number, inProgress: number, overdue: number } }) {
+export type ActiveApp = {
+  id: string;
+  candidateName: string;
+  vacancyTitle: string;
+};
+
+export default function OnboardingClient({ 
+  onboardings, 
+  stats,
+  activeApplications = [],
+  departments = []
+}: { 
+  onboardings: OnboardingData[], 
+  stats: { completed: number, inProgress: number, overdue: number },
+  activeApplications?: ActiveApp[],
+  departments?: { id: string, name: true }[]
+}) {
   const [search, setSearch] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState({
+    applicationId: "",
+    departmentId: "",
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.applicationId) return;
+
+    setIsSubmitting(true);
+    try {
+      const res = await startOnboarding(formData);
+      if (res.success) {
+        setIsModalOpen(false);
+        setFormData({
+          applicationId: "",
+          departmentId: "",
+        });
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const getStatusColor = (status: string) => {
     switch(status) {
@@ -36,12 +80,13 @@ export default function OnboardingClient({ onboardings, stats }: { onboardings: 
           <h1 className="text-2xl font-bold text-nuanu-navy">Onboarding</h1>
           <p className="text-sm text-nuanu-gray-500 mt-1">Track new hire progress and checklist completion</p>
         </div>
-        <button className="btn-primary">
+        <button onClick={() => setIsModalOpen(true)} className="btn-primary">
           <UserPlus className="w-5 h-5" /> Start Onboarding
         </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        {/* ... (keep existing stats cards code) ... */}
         <div className="card bg-white p-5 border-l-4 border-l-emerald-500">
           <div className="flex items-center gap-3 mb-2">
             <CheckSquare className="w-5 h-5 text-emerald-500" />
@@ -69,6 +114,7 @@ export default function OnboardingClient({ onboardings, stats }: { onboardings: 
       </div>
 
       <div className="card">
+        {/* ... (keep existing filter and list code) ... */}
         <div className="flex flex-col sm:flex-row gap-4 mb-6 border-b border-nuanu-gray-100 pb-6">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-nuanu-gray-400" />
@@ -138,6 +184,103 @@ export default function OnboardingClient({ onboardings, stats }: { onboardings: 
           ))}
         </div>
       </div>
+
+      {/* Start Onboarding Modal */}
+      <AnimatePresence>
+        {isModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              exit={{ opacity: 0 }} 
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+              onClick={() => !isSubmitting && setIsModalOpen(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden relative z-10"
+            >
+              <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50">
+                <h2 className="text-lg font-bold text-nuanu-navy flex items-center gap-2">
+                  <UserPlus className="w-5 h-5 text-nuanu-emerald" /> Start Onboarding
+                </h2>
+                <button 
+                  onClick={() => !isSubmitting && setIsModalOpen(false)}
+                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded-full transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">New Hire / Candidate *</label>
+                  <select 
+                    required
+                    value={formData.applicationId}
+                    onChange={e => setFormData({...formData, applicationId: e.target.value})}
+                    className="input-field py-2.5"
+                  >
+                    <option value="" disabled>Select a hire...</option>
+                    {activeApplications.map(app => (
+                      <option key={app.id} value={app.id}>
+                        {app.candidateName} - {app.vacancyTitle}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Assigned Department</label>
+                  <select 
+                    value={formData.departmentId}
+                    onChange={e => setFormData({...formData, departmentId: e.target.value})}
+                    className="input-field py-2.5"
+                  >
+                    <option value="">Same as job requisition</option>
+                    {(departments as any[]).map(dept => (
+                      <option key={dept.id} value={dept.id}>{dept.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="p-4 bg-blue-50 rounded-xl flex gap-3">
+                  <div className="p-2 bg-white rounded-lg h-fit">
+                    <CheckSquare className="w-4 h-4 text-blue-500" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-blue-900">Automated Checklist</p>
+                    <p className="text-[10px] text-blue-700 mt-0.5">5 default onboarding tasks will be automatically assigned to this hire.</p>
+                  </div>
+                </div>
+
+                <div className="pt-4 flex justify-end gap-3">
+                  <button 
+                    type="button"
+                    onClick={() => setIsModalOpen(false)}
+                    className="btn-secondary"
+                    disabled={isSubmitting}
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    type="submit"
+                    className="btn-primary px-8"
+                    disabled={isSubmitting || !formData.applicationId}
+                  >
+                    {isSubmitting ? (
+                      <><Loader2 className="w-4 h-4 animate-spin" /> Starting...</>
+                    ) : "Start Onboarding"}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
+

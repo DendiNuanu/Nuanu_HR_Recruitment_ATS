@@ -20,16 +20,18 @@ import {
   Clock,
 } from "lucide-react";
 
+import { getNotifications, markNotificationAsRead, markAllNotificationsAsRead } from "@/app/dashboard/notifications/actions";
+
 const pageTitles: Record<string, string> = {
-  "/dashboard": "Dashboard",
+  "/dashboard": "Dashboard Overview",
   "/dashboard/jobs": "Job Requisitions",
-  "/dashboard/candidates": "Candidates",
+  "/dashboard/candidates": "Candidate Pipeline",
   "/dashboard/pipeline": "Hiring Pipeline",
   "/dashboard/ai-scoring": "AI Match Scoring",
   "/dashboard/interviews": "Interviews",
   "/dashboard/screening": "Screening & Testing",
   "/dashboard/offers": "Offers & Contracts",
-  "/dashboard/onboarding": "Onboarding",
+  "/dashboard/onboarding": "Employee Onboarding",
   "/dashboard/analytics": "Analytics & Reports",
   "/dashboard/settings": "Settings",
 };
@@ -52,18 +54,34 @@ export default function Header() {
   const notifRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    setNotifications(demoNotifications);
-  }, [setNotifications]);
+  const fetchNotifications = async () => {
+    // For demo, we assume the first admin user is logged in
+    const res = await getNotifications("current-user-id"); // We'll need to handle this properly
+    if (res) setNotifications(res);
+  };
 
   useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (notifRef.current && !notifRef.current.contains(e.target as Node)) setShowNotifications(false);
-      if (searchRef.current && !searchRef.current.contains(e.target as Node)) setShowSearch(false);
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+    // In a real app, we'd get the current user ID from the session
+    const syncNotifications = async () => {
+      const data = await getNotifications(""); // Placeholder for all or specific user
+      setNotifications(data);
+    };
+    syncNotifications();
+    
+    // Poll for new notifications every 30 seconds
+    const interval = setInterval(syncNotifications, 30000);
+    return () => clearInterval(interval);
+  }, [setNotifications]);
+
+  const handleMarkRead = async (id: string) => {
+    markAsRead(id);
+    await markNotificationAsRead(id);
+  };
+
+  const handleMarkAllRead = async () => {
+    markAllAsRead();
+    await markAllNotificationsAsRead(""); 
+  };
 
   const breadcrumbs = pathname.split("/").filter(Boolean);
   const pageTitle = pageTitles[pathname] || breadcrumbs[breadcrumbs.length - 1]?.replace(/-/g, " ") || "Dashboard";
@@ -161,7 +179,7 @@ export default function Header() {
                     <div className="flex items-center gap-2">
                       {unreadCount > 0 && (
                         <button
-                          onClick={markAllAsRead}
+                          onClick={handleMarkAllRead}
                           className="text-xs text-nuanu-emerald hover:text-nuanu-emerald-dark font-medium flex items-center gap-1"
                         >
                           <CheckCheck className="w-3.5 h-3.5" /> Mark all read
@@ -176,42 +194,49 @@ export default function Header() {
                     </div>
                   </div>
                   <div className="max-h-80 overflow-y-auto">
-                    {notifications.map((notif) => {
-                      const Icon = notificationIcons[notif.type] || Bell;
-                      return (
-                        <div
-                          key={notif.id}
-                          onClick={() => markAsRead(notif.id)}
-                          className={`flex items-start gap-3 p-4 hover:bg-nuanu-gray-50 cursor-pointer transition-colors border-b border-nuanu-gray-50 ${
-                            !notif.isRead ? "bg-emerald-50/50" : ""
-                          }`}
-                        >
-                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                            !notif.isRead ? "bg-nuanu-emerald/10 text-nuanu-emerald" : "bg-nuanu-gray-100 text-nuanu-gray-400"
-                          }`}>
-                            <Icon className="w-4 h-4" />
+                    {notifications.length > 0 ? (
+                      notifications.map((notif) => {
+                        const Icon = notificationIcons[notif.type] || Bell;
+                        return (
+                          <div
+                            key={notif.id}
+                            onClick={() => handleMarkRead(notif.id)}
+                            className={`flex items-start gap-3 p-4 hover:bg-nuanu-gray-50 cursor-pointer transition-colors border-b border-nuanu-gray-50 ${
+                              !notif.isRead ? "bg-emerald-50/50" : ""
+                            }`}
+                          >
+                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                              !notif.isRead ? "bg-nuanu-emerald/10 text-nuanu-emerald" : "bg-nuanu-gray-100 text-nuanu-gray-400"
+                            }`}>
+                              <Icon className="w-4 h-4" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className={`text-sm ${!notif.isRead ? "font-semibold text-nuanu-navy" : "text-nuanu-gray-600"}`}>
+                                {notif.title}
+                              </p>
+                              <p className="text-xs text-nuanu-gray-400 mt-0.5 truncate">{notif.message}</p>
+                            </div>
+                            {!notif.isRead && (
+                              <div className="w-2 h-2 rounded-full bg-nuanu-emerald flex-shrink-0 mt-2" />
+                            )}
                           </div>
-                          <div className="min-w-0 flex-1">
-                            <p className={`text-sm ${!notif.isRead ? "font-semibold text-nuanu-navy" : "text-nuanu-gray-600"}`}>
-                              {notif.title}
-                            </p>
-                            <p className="text-xs text-nuanu-gray-400 mt-0.5 truncate">{notif.message}</p>
-                          </div>
-                          {!notif.isRead && (
-                            <div className="w-2 h-2 rounded-full bg-nuanu-emerald flex-shrink-0 mt-2" />
-                          )}
-                        </div>
-                      );
-                    })}
+                        );
+                      })
+                    ) : (
+                      <div className="p-8 text-center">
+                        <Bell className="w-8 h-8 text-nuanu-gray-200 mx-auto mb-2" />
+                        <p className="text-sm text-nuanu-gray-400">No notifications yet</p>
+                      </div>
+                    )}
                   </div>
                 </motion.div>
               )}
             </AnimatePresence>
           </div>
-
+ 
           {/* User Avatar */}
           <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-nuanu-emerald to-nuanu-teal flex items-center justify-center text-white text-sm font-bold cursor-pointer hover:shadow-lg hover:shadow-emerald-500/20 transition-all ml-1">
-            SC
+            AD
           </div>
         </div>
       </div>

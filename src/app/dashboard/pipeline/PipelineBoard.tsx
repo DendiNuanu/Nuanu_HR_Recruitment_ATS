@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { usePipelineStore } from "@/stores";
+import { moveApplication } from "./actions";
 import { PIPELINE_STAGES } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { Calendar, MoreHorizontal, User, Brain } from "lucide-react";
@@ -19,7 +20,7 @@ export default function PipelineBoard({ initialCandidates, vacancies }: { initia
     setCandidates(initialCandidates);
   }, [setCandidates, initialCandidates]);
 
-  const onDragEnd = (result: DropResult) => {
+  const onDragEnd = async (result: DropResult) => {
     const { source, destination, draggableId } = result;
 
     if (!destination) return;
@@ -31,10 +32,17 @@ export default function PipelineBoard({ initialCandidates, vacancies }: { initia
       return;
     }
 
-    // Call API to update the stage in DB here if this was a full production system backend
-    // fetch(`/api/applications/${draggableId}`, { method: 'PATCH', body: JSON.stringify({ currentStage: destination.droppableId.toUpperCase() }) });
-
-    moveCandidate(draggableId, source.droppableId, destination.droppableId, destination.index);
+    // Find the candidate object to get the applicationId
+    const stageCandidates = candidates[source.droppableId];
+    const candidate = stageCandidates.find(c => c.id === draggableId);
+    
+    if (candidate) {
+      // Optimistic update in UI
+      moveCandidate(draggableId, source.droppableId, destination.droppableId, destination.index);
+      
+      // Update in DB
+      await moveApplication(candidate.applicationId, destination.droppableId);
+    }
   };
 
   if (!isMounted) return null;

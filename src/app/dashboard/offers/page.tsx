@@ -26,5 +26,17 @@ export default async function OffersPage() {
     startDate: o.startDate || new Date(),
   }));
 
-  return <OffersClient offers={offers} />;
+  const applicationsDb = await prisma.application.findMany({
+    where: { status: { notIn: ["rejected", "hired"] } },
+    include: { candidate: true, vacancy: true },
+    orderBy: { createdAt: "desc" }
+  });
+
+  const activeApplications = applicationsDb.map(app => ({
+    id: app.id,
+    candidateName: app.candidate.name,
+    vacancyTitle: app.vacancy.title
+  }));
+
+  return <OffersClient offers={offers} activeApplications={activeApplications} />;
 }

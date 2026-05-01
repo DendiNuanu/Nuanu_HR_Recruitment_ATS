@@ -161,7 +161,17 @@ export default function ScreeningClient({
                 </div>
               </div>
 
-              <button className="w-full btn-secondary py-2 flex items-center justify-center gap-2 text-sm">
+              <button 
+                onClick={() => {
+                  setFormData({
+                    ...formData,
+                    title: assessment.title,
+                    type: assessment.type,
+                  });
+                  setIsModalOpen(true);
+                }}
+                className="w-full btn-secondary py-2 flex items-center justify-center gap-2 text-sm"
+              >
                 <PlayCircle className="w-4 h-4" /> Send Assessment
               </button>
             </motion.div>
