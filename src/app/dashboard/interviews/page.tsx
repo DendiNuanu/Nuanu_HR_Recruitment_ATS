@@ -30,5 +30,17 @@ export default async function InterviewsPage() {
     meetingUrl: i.meetingUrl || undefined,
   }));
 
-  return <InterviewsClient interviews={interviews} />;
+  const applicationsDb = await prisma.application.findMany({
+    where: { status: { notIn: ["rejected", "hired"] } },
+    include: { candidate: true, vacancy: true },
+    orderBy: { createdAt: "desc" }
+  });
+
+  const activeApplications = applicationsDb.map(app => ({
+    id: app.id,
+    candidateName: app.candidate.name,
+    vacancyTitle: app.vacancy.title
+  }));
+
+  return <InterviewsClient interviews={interviews} activeApplications={activeApplications} />;
 }

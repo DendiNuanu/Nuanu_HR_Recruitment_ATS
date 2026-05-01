@@ -1,8 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { motion } from "framer-motion";
-import { Brain, Upload, FileText, CheckCircle2, AlertCircle, RefreshCw, Sparkles, X, ChevronRight, BarChart3, Target, Briefcase } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Brain, Upload, FileText, CheckCircle2, AlertCircle, RefreshCw, Sparkles, X, ChevronRight, BarChart3, Target, Briefcase, ScanLine, Loader2 } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
+import { scanResumes } from "./actions";
+
 export type TopMatch = {
   id: string;
   name: string;
@@ -15,23 +18,43 @@ export type TopMatch = {
 };
 
 export default function AIScoringClient({ topMatches }: { topMatches: TopMatch[] }) {
+  const [selectedMatch, setSelectedMatch] = useState<TopMatch | null>(null);
   const [isScanning, setIsScanning] = useState(false);
+  const [scanMessage, setScanMessage] = useState("");
   const [scanProgress, setScanProgress] = useState(0);
 
-  const startScan = () => {
+  const handleScan = async () => {
     setIsScanning(true);
     setScanProgress(0);
+    setScanMessage("");
     
+    // Animate progress while the real AI processes
     const interval = setInterval(() => {
       setScanProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          setTimeout(() => setIsScanning(false), 500);
-          return 100;
-        }
-        return prev + 5;
+        if (prev >= 90) return 90; // Hold at 90% until real result
+        return prev + 2;
       });
-    }, 100);
+    }, 300);
+
+    try {
+      const res = await scanResumes();
+      clearInterval(interval);
+      setScanProgress(100);
+      if (res.success) {
+        setScanMessage(res.message || "Scan complete!");
+      } else {
+        setScanMessage(res.error || "Failed to scan");
+      }
+    } catch (error) {
+      clearInterval(interval);
+      setScanMessage("An error occurred while scanning");
+    } finally {
+      setTimeout(() => {
+        setIsScanning(false);
+        setScanProgress(0);
+        setTimeout(() => setScanMessage(""), 5000);
+      }, 1000);
+    }
   };
 
   return (
@@ -43,7 +66,7 @@ export default function AIScoringClient({ topMatches }: { topMatches: TopMatch[]
         </div>
         <button 
           className="btn-primary bg-gradient-to-r from-purple-500 to-indigo-600 hover:shadow-lg hover:shadow-purple-500/25 border-0"
-          onClick={startScan}
+          onClick={handleScan}
           disabled={isScanning}
         >
           {isScanning ? (
@@ -80,6 +103,16 @@ export default function AIScoringClient({ topMatches }: { topMatches: TopMatch[]
               layout
             />
           </div>
+        </motion.div>
+      )}
+
+      {scanMessage && !isScanning && (
+        <motion.div 
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: "auto" }}
+          className="card bg-emerald-50 border-emerald-200 p-4"
+        >
+          <p className="text-sm font-medium text-emerald-700">✅ {scanMessage}</p>
         </motion.div>
       )}
 

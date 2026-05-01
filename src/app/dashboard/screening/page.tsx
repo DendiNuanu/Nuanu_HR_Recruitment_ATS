@@ -24,5 +24,18 @@ export default async function ScreeningPage() {
   });
 
   // If no templates in DB, provide empty array gracefully
-  return <ScreeningClient assessments={assessments} />;
+
+  const applicationsDb = await prisma.application.findMany({
+    where: { status: { notIn: ["rejected", "hired"] } },
+    include: { candidate: true, vacancy: true },
+    orderBy: { createdAt: "desc" }
+  });
+
+  const activeApplications = applicationsDb.map(app => ({
+    id: app.id,
+    candidateName: app.candidate.name,
+    vacancyTitle: app.vacancy.title
+  }));
+
+  return <ScreeningClient assessments={assessments} activeApplications={activeApplications} />;
 }

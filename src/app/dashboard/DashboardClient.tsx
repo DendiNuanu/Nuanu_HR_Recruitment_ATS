@@ -57,6 +57,50 @@ const item = {
   show: { opacity: 1, y: 0 },
 };
 
+const FUNNEL_COLORS = ["#6366F1", "#8B5CF6", "#3B82F6", "#0EA5E9", "#14B8A6", "#F59E0B", "#22C55E"];
+const SOURCE_COLORS = ["#3B82F6", "#6366F1", "#10B981", "#F59E0B", "#EF4444"];
+
+function ScoreCircle({ score, size = 80, strokeWidth = 6 }: { score: number; size?: number; strokeWidth?: number }) {
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (score / 100) * circumference;
+  const color = score >= 80 ? "#10B981" : score >= 60 ? "#F59E0B" : "#EF4444";
+
+  return (
+    <div className="score-circle" style={{ width: size, height: size }}>
+      <svg width={size} height={size}>
+        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="#E2E8F0" strokeWidth={strokeWidth} />
+        <motion.circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke={color}
+          strokeWidth={strokeWidth}
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          initial={{ strokeDashoffset: circumference }}
+          animate={{ strokeDashoffset: offset }}
+          transition={{ duration: 1.2, ease: "easeOut" }}
+        />
+      </svg>
+      <span className="score-value" style={{ color, fontSize: size * 0.22 }}>
+        {score}%
+      </span>
+    </div>
+  );
+}
+
+function ActivityIcon({ type }: { type: string }) {
+  const iconMap: Record<string, { icon: React.ElementType; color: string; bg: string }> = {
+    application: { icon: Users, color: "text-blue-600", bg: "bg-blue-100" },
+    interview: { icon: Calendar, color: "text-purple-600", bg: "bg-purple-100" },
+    offer: { icon: UserCheck, color: "text-emerald-600", bg: "bg-emerald-100" },
+    approval: { icon: Target, color: "text-amber-600", bg: "bg-amber-100" },
+    score: { icon: Brain, color: "text-teal-600", bg: "bg-teal-100" },
+    vacancy: { icon: Briefcase, color: "text-indigo-600", bg: "bg-indigo-100" },
+    pipeline: { icon: Activity, color: "text-cyan-600", bg: "bg-cyan-100" },
+    feedback: { icon: TrendingUp, color: "text-rose-600", bg: "bg-rose-100" },
   };
   const conf = iconMap[type] || iconMap.application;
   return (

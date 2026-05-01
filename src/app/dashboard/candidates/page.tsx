@@ -16,17 +16,28 @@ export default async function CandidatesPage() {
   });
 
   // Map DB records to a flat shape for the client component
-  const candidates = applications.map(app => ({
-    id: app.id,
-    name: app.candidate.name,
-    email: app.candidate.email,
-    vacancyTitle: app.vacancy.title,
-    stage: app.currentStage,
-    score: app.candidateScore?.overallScore ?? 0,
-    experienceYears: 0,
-    location: app.vacancy.location ?? "Remote",
-    appliedAt: app.appliedAt.toISOString(),
-  }));
+  const candidateIds = applications.map(a => a.candidateId);
+  const profiles = await prisma.candidateProfile.findMany({
+    where: { userId: { in: candidateIds } }
+  });
+
+  const candidates: Candidate[] = applications.map(app => {
+    const profile = profiles.find(p => p.userId === app.candidateId);
+    return {
+      id: app.id,
+      name: app.candidate.name,
+      email: app.candidate.email,
+      vacancyTitle: app.vacancy.title,
+      stage: app.currentStage,
+      score: app.candidateScore?.overallScore ?? 0,
+      experienceYears: profile?.experienceYears ?? 0,
+      location: app.vacancy.location ?? "Remote",
+      appliedAt: app.appliedAt.toISOString(),
+      skills: profile?.skills ?? ["Communication", "Problem Solving"],
+      coverLetter: app.coverLetter ?? undefined,
+      resumeUrl: profile?.resumeUrl ?? undefined,
+    };
+  });
 
   return (
     <div className="space-y-6">

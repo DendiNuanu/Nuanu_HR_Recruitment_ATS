@@ -42,14 +42,10 @@ export default function ApplicationForm({ jobId }: { jobId: string }) {
       submitData.append("phone", formData.phone);
       submitData.append("resume", file);
 
-      // We'll simulate upload delay then post the JSON (since we don't have real S3)
-      // Real API route requires JSON, so we will send JSON for now but mock the file upload delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
+      // Real API route handles the actual upload and DB creation
       const res = await fetch("/api/apply", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...formData, jobId, resumeUrl: "https://mock-storage.com/" + file.name }),
+        body: submitData,
       });
 
       if (!res.ok) throw new Error("Failed to submit application");

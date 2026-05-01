@@ -1,13 +1,20 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
+import fs from "fs/promises";
+import path from "path";
 
 export async function POST(request: Request) {
   try {
-    const data = await request.json();
-    const { jobId, firstName, lastName, email, phone, linkedin } = data;
+    const formData = await request.formData();
+    const jobId = formData.get("jobId") as string;
+    const firstName = formData.get("firstName") as string;
+    const lastName = formData.get("lastName") as string;
+    const email = formData.get("email") as string;
+    const phone = formData.get("phone") as string;
+    const resumeFile = formData.get("resume") as File | null;
 
-    if (!jobId || !firstName || !lastName || !email) {
+    if (!jobId || !firstName || !lastName || !email || !resumeFile) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
@@ -15,6 +22,38 @@ export async function POST(request: Request) {
     const vacancy = await prisma.vacancy.findUnique({ where: { id: jobId } });
     if (!vacancy || vacancy.status !== "published") {
       return NextResponse.json({ error: "Invalid or inactive job position" }, { status: 404 });
+    }
+
+    // Handle resume upload
+    const bytes = await resumeFile.arrayBuffer();
+    const buffer = Buffer.from(bytes);
+    
+    // Create uploads directory if it doesn't exist
+    const uploadDir = path.join(process.cwd(), "public/uploads/resumes");
+    try {
+      await fs.access(uploadDir);
+    } catch {
+      await fs.mkdir(uploadDir, { recursive: true });
+    }
+
+    // Save file
+    const safeFilename = `${Date.now()}-${resumeFile.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
+    const filePath = path.join(uploadDir, safeFilename);
+    await fs.writeFile(filePath, buffer);
+
+    const resumeUrl = `/uploads/resumes/${safeFilename}`;
+
+    // Extract text using pdf-parse if it's a PDF
+    let resumeText = "";
+    if (resumeFile.type === "application/pdf" || resumeFile.name.toLowerCase().endsWith(".pdf")) {
+      try {
+        const pdfParse = require("pdf-parse");
+        const parsed = await pdfParse(buffer);
+        resumeText = parsed.text;
+      } catch (parseError) {
+        console.error("PDF Parsing Error:", parseError);
+        resumeText = "Could not extract text from PDF.";
+      }
     }
 
     // Upsert User (applicants don't login to the ATS backend)
@@ -31,6 +70,20 @@ export async function POST(request: Request) {
         password: randomPassword,
         name: `${firstName} ${lastName}`,
         phone: phone || null,
+      }
+    });
+
+    // Upsert CandidateProfile
+    await prisma.candidateProfile.upsert({
+      where: { userId: user.id },
+      update: {
+        resumeUrl,
+        resumeText,
+      },
+      create: {
+        userId: user.id,
+        resumeUrl,
+        resumeText,
       }
     });
 

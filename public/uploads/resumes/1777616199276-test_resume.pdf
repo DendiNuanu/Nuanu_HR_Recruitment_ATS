@@ -1,0 +1,24 @@
+John Doe - Software Engineer Resume
+
+SUMMARY
+Experienced Full Stack Developer with 5+ years building web applications using React, Next.js, Node.js, TypeScript, and PostgreSQL. Strong background in cloud infrastructure (AWS, Docker, Kubernetes).
+
+SKILLS
+- Frontend: React, Next.js, TypeScript, Tailwind CSS, HTML5, CSS3
+- Backend: Node.js, Express, Python, Django, REST APIs, GraphQL
+- Database: PostgreSQL, MongoDB, Redis, Prisma ORM
+- DevOps: Docker, Kubernetes, AWS (EC2, S3, RDS, Lambda), CI/CD
+- Tools: Git, GitHub, Jira, Figma
+
+EXPERIENCE
+Senior Software Engineer | TechCorp Inc. | 2021 - Present
+- Led development of a SaaS platform serving 50,000+ users
+- Implemented microservices architecture using Node.js and Docker
+- Reduced API response times by 40% through query optimization
+
+Software Engineer | StartupXYZ | 2019 - 2021
+- Built React-based dashboards for data visualization
+- Developed RESTful APIs with Express and PostgreSQL
+
+EDUCATION
+B.S. Computer Science | University of Technology | 2019
