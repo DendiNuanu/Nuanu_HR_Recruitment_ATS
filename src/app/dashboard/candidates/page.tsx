@@ -34,6 +34,7 @@ export default async function CandidatesPage() {
       experienceYears: profile?.experienceYears ?? 0,
       location: app.vacancy.location ?? "Remote",
       appliedAt: app.appliedAt.toISOString(),
+      phone: app.candidate.phone ?? undefined,
       skills: profile?.skills ?? ["Communication", "Problem Solving"],
       coverLetter: app.coverLetter ?? undefined,
       resumeUrl: profile?.resumeUrl ?? undefined,

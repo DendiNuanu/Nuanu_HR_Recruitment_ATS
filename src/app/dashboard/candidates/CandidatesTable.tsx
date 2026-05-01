@@ -16,6 +16,7 @@ export type Candidate = {
   experienceYears: number;
   location: string;
   appliedAt: string;
+  phone?: string;
   skills?: string[];
   coverLetter?: string;
   resumeUrl?: string;
@@ -292,6 +293,10 @@ export default function CandidatesTable({ candidates }: { candidates: Candidate[
                   <div>
                     <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Location</p>
                     <p className="text-sm font-medium text-nuanu-navy">{selectedProfile.location}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Phone Number</p>
+                    <p className="text-sm font-medium text-nuanu-navy">{selectedProfile.phone || "Not provided"}</p>
                   </div>
                 </div>
 
