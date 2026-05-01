@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { UserPlus, Search, Filter, CheckSquare, Clock, AlertTriangle, ChevronRight } from "lucide-react";
 import { motion } from "framer-motion";
+import { formatDate } from "@/lib/utils";
 
 export type OnboardingData = {
   id: string;
@@ -125,7 +126,7 @@ export default function OnboardingClient({ onboardings, stats }: { onboardings: 
 
               <div className="flex flex-col md:items-end gap-2 min-w-[150px]">
                 <span className={`badge ${getStatusColor(item.status)}`}>{item.status}</span>
-                <span className="text-xs text-nuanu-gray-500">Starts: {new Date(item.startDate).toLocaleDateString()}</span>
+                <span className="text-xs text-nuanu-gray-500">Starts: {formatDate(item.startDate)}</span>
               </div>
               
               <div>

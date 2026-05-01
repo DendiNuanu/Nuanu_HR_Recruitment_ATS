@@ -60,12 +60,12 @@ export default function ApplicationForm({ jobId }: { jobId: string }) {
 
   if (isSuccess) {
     return (
-      <div className="flex flex-col items-center justify-center w-full min-h-[300px] text-center py-6">
-        <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <CheckCircle2 className="w-8 h-8 text-emerald-600" />
+      <div className="flex flex-col items-center justify-center w-full min-h-[350px] text-center py-10 px-4">
+        <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6">
+          <CheckCircle2 className="w-10 h-10 text-emerald-600" />
         </div>
-        <h4 className="text-xl font-bold text-nuanu-navy mb-2">Application Sent!</h4>
-        <p className="text-sm text-nuanu-gray-500 max-w-sm mx-auto">
+        <h4 className="text-3xl font-extrabold text-nuanu-navy mb-4">Application Sent!</h4>
+        <p className="text-lg text-nuanu-gray-500 max-w-md mx-auto leading-relaxed">
           Thank you for applying. Our recruitment team will review your profile and get back to you soon.
         </p>
       </div>

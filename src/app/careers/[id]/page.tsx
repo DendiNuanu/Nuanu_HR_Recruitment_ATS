@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Briefcase, MapPin, ArrowLeft, Building, Calendar } from "lucide-react";
 import Link from "next/link";
 import ApplicationForm from "./ApplicationForm";
+import { formatDate } from "@/lib/utils";
 
 export default async function JobDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -44,7 +45,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
               <Briefcase style={{ width: '15px', height: '15px', color: '#10B981' }} /> {job.employmentType || "Full-Time"}
             </span>
             <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Calendar style={{ width: '15px', height: '15px', color: '#10B981' }} /> Posted {new Date(job.createdAt).toLocaleDateString()}
+              <Calendar style={{ width: '15px', height: '15px', color: '#10B981' }} /> Posted {formatDate(job.createdAt)}
             </span>
           </div>
         </div>
@@ -72,9 +73,9 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
         </div>
 
         {/* Application Form — full width on all screens */}
-        <div style={{ background: '#FFFFFF', padding: 'clamp(20px, 4vw, 32px)', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 16px rgba(0,0,0,0.08)', maxWidth: '500px' }}>
-          <h3 style={{ fontSize: '20px', fontWeight: 700, color: '#0A1628', marginBottom: '4px' }}>Apply for this position</h3>
-          <p style={{ fontSize: '14px', color: '#64748B', marginBottom: '24px' }}>Fill in your details below to apply.</p>
+        <div style={{ background: '#FFFFFF', padding: 'clamp(20px, 4vw, 32px)', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 16px rgba(0,0,0,0.08)', maxWidth: '500px', margin: '0 auto' }}>
+          <h3 style={{ fontSize: '20px', fontWeight: 700, color: '#0A1628', marginBottom: '4px', textAlign: 'center' }}>Apply for this position</h3>
+          <p style={{ fontSize: '14px', color: '#64748B', marginBottom: '24px', textAlign: 'center' }}>Fill in your details below to apply.</p>
           <ApplicationForm jobId={job.id} />
         </div>
       </main>

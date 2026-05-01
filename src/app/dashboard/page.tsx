@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import DashboardClient, { DashboardMetrics } from "./DashboardClient";
+import { formatDate } from "@/lib/utils";
 
 export default async function DashboardPage() {
   // 1. Stat Cards Data
@@ -102,13 +103,23 @@ export default async function DashboardPage() {
     orderBy: { createdAt: 'desc' }
   });
   
-  const recentActivity = activities.map(a => ({
-    id: a.id,
-    type: a.resource.toLowerCase(), // approximate mapping
-    action: a.action,
-    resource: a.resourceId || a.resource,
-    time: new Date(a.createdAt).toLocaleDateString(), // simplify time
-  }));
+  // To get candidate names for activity logs where resource is 'Application', 'Interview' or 'Assessment'
+  const resourceIds = activities.map(a => a.resourceId).filter(id => id !== null) as string[];
+  const relatedApps = await prisma.application.findMany({
+    where: { id: { in: resourceIds } },
+    include: { candidate: true, vacancy: true }
+  });
+
+  const recentActivity = activities.map(a => {
+    const app = relatedApps.find(app => app.id === a.resourceId);
+    return {
+      id: a.id,
+      type: a.resource.toLowerCase(), 
+      action: a.action,
+      resource: app ? `${app.candidate.name} (${app.vacancy.title})` : (a.resourceId || a.resource),
+      time: formatDate(a.createdAt),
+    };
+  });
 
   // 7. Top Candidates
   const applications = await prisma.application.findMany({

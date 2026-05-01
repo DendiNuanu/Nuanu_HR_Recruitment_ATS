@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Search, Filter, Eye, Mail, MoreVertical, Users, X, Check, Loader2, Send } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { updateCandidateStage } from "./actions";
+import { formatDate } from "@/lib/utils";
 
 export type Candidate = {
   id: string;
@@ -168,7 +169,7 @@ export default function CandidatesTable({ candidates }: { candidates: Candidate[
                   </div>
                 </td>
                 <td>
-                  <span className="text-sm text-nuanu-gray-500">{new Date(candidate.appliedAt).toLocaleDateString()}</span>
+                  <span className="text-sm text-nuanu-gray-500">{formatDate(candidate.appliedAt)}</span>
                 </td>
                 <td>
                   <div className="flex items-center gap-2 relative">
@@ -204,18 +205,18 @@ export default function CandidatesTable({ candidates }: { candidates: Candidate[
                       {activeMenuId === candidate.id && (
                         <>
                           <div className="fixed inset-0 z-10" onClick={() => setActiveMenuId(null)} />
-                          <div className="absolute right-0 mt-1 w-40 bg-white border border-nuanu-gray-200 rounded-lg shadow-lg overflow-hidden z-20">
+                          <div className="absolute right-0 mt-2 w-56 bg-white border border-nuanu-gray-200 rounded-xl shadow-2xl overflow-hidden z-20 animate-in fade-in zoom-in duration-200">
                             <button 
                               onClick={() => handleStageAction(candidate.id, "next")} 
-                              className="w-full text-left px-4 py-2 text-sm text-nuanu-gray-700 hover:bg-nuanu-gray-50 transition-colors"
+                              className="w-full text-left px-5 py-3 text-base font-semibold text-nuanu-navy hover:bg-emerald-50 hover:text-emerald-700 transition-colors flex items-center gap-2"
                             >
-                              Move to Next Stage
+                              <Check className="w-5 h-5" /> Move to Next Stage
                             </button>
                             <button 
                               onClick={() => handleStageAction(candidate.id, "reject")} 
-                              className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors border-t border-nuanu-gray-100"
+                              className="w-full text-left px-5 py-3 text-base font-semibold text-red-600 hover:bg-red-50 transition-colors border-t border-nuanu-gray-100 flex items-center gap-2"
                             >
-                              Reject Candidate
+                              <X className="w-5 h-5" /> Reject Candidate
                             </button>
                           </div>
                         </>
@@ -286,7 +287,7 @@ export default function CandidatesTable({ candidates }: { candidates: Candidate[
                   </div>
                   <div>
                     <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Applied Date</p>
-                    <p className="text-sm font-medium text-nuanu-navy">{new Date(selectedProfile.appliedAt).toLocaleDateString()}</p>
+                    <p className="text-sm font-medium text-nuanu-navy">{formatDate(selectedProfile.appliedAt)}</p>
                   </div>
                   <div>
                     <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Location</p>

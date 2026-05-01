@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Search, Filter, FileText, CheckCircle2, XCircle, Send, MoreVertical, DollarSign } from "lucide-react";
 import { motion } from "framer-motion";
+import { formatDate } from "@/lib/utils";
 export type OfferData = {
   id: string;
   candidateName: string;
@@ -102,7 +103,7 @@ export default function OffersClient({ offers }: { offers: OfferData[] }) {
                   </td>
                   <td>{getStatusBadge(offer.status)}</td>
                   <td>
-                    <span className="text-sm text-nuanu-gray-600">{new Date(offer.startDate).toLocaleDateString()}</span>
+                    <span className="text-sm text-nuanu-gray-600">{formatDate(offer.startDate)}</span>
                   </td>
                   <td>
                     <div className="flex items-center gap-2">

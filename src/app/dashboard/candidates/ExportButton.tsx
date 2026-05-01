@@ -2,6 +2,7 @@
 
 import { Download } from "lucide-react";
 import { Candidate } from "./CandidatesTable";
+import { formatDate } from "@/lib/utils";
 
 export default function ExportButton({ candidates }: { candidates: Candidate[] }) {
   const handleExport = () => {
@@ -47,7 +48,7 @@ export default function ExportButton({ candidates }: { candidates: Candidate[] }
         escapeCsvField(c.score),
         escapeCsvField(c.experienceYears),
         escapeCsvField(c.location),
-        escapeCsvField(new Date(c.appliedAt).toLocaleDateString()),
+        escapeCsvField(formatDate(c.appliedAt)),
         escapeCsvField(c.skills ? c.skills.join(", ") : ""),
         escapeCsvField(c.resumeText || "") // Including the complete resume text!
       ].join(",");
