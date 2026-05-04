@@ -1,0 +1,1113 @@
+<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns:dt="uuid:C2F41010-65B3-11d1-A29F-00AA00C14882" xmlns="http://www.w3.org/TR/REC-html40"><head><meta http-equiv=Content-Type  content="text/html; charset=utf-8" ><meta name=ProgId  content=Word.Document ><meta name=Generator  content="Microsoft Word 14" ><meta name=Originator  content="Microsoft Word 14" ><title></title><!--[if gte mso 9]><xml><o:DocumentProperties><o:Author>dendy</o:Author><o:LastAuthor>dendy</o:LastAuthor><o:Revision>1</o:Revision><o:Pages>1</o:Pages><o:Lines>1</o:Lines><o:Paragraphs>1</o:Paragraphs></o:DocumentProperties><o:CustomDocumentProperties><o:KSOProductBuildVer dt:dt="string" >1033-11.1.0.11723</o:KSOProductBuildVer></o:CustomDocumentProperties></xml><![endif]--><!--[if gte mso 9]><xml><o:OfficeDocumentSettings></o:OfficeDocumentSettings></xml><![endif]--><!--[if gte mso 9]><xml><w:WordDocument><w:BrowserLevel>MicrosoftInternetExplorer4</w:BrowserLevel><w:DisplayHorizontalDrawingGridEvery>0</w:DisplayHorizontalDrawingGridEvery><w:DisplayVerticalDrawingGridEvery>2</w:DisplayVerticalDrawingGridEvery><w:DocumentKind>DocumentNotSpecified</w:DocumentKind><w:DrawingGridVerticalSpacing>7.8 磅</w:DrawingGridVerticalSpacing><w:View>Web</w:View><w:Compatibility></w:Compatibility><w:Zoom>0</w:Zoom></w:WordDocument></xml><![endif]--><!--[if gte mso 9]><xml><w:LatentStyles DefLockedState="false"  DefUnhideWhenUsed="true"  DefSemiHidden="true"  DefQFormat="false"  DefPriority="99"  LatentStyleCount="260" >
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  QFormat="true"  Name="Normal" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  QFormat="true"  Name="heading 1" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  QFormat="true"  Name="heading 2" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  QFormat="true"  Name="heading 3" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  QFormat="true"  Name="heading 4" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  QFormat="true"  Name="heading 5" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  QFormat="true"  Name="heading 6" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  QFormat="true"  Name="heading 7" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  QFormat="true"  Name="heading 8" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  QFormat="true"  Name="heading 9" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="index 1" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="index 2" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="index 3" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="index 4" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="index 5" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="index 6" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="index 7" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="index 8" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="index 9" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="toc 1" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="toc 2" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="toc 3" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="toc 4" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="toc 5" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="toc 6" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="toc 7" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="toc 8" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="toc 9" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Normal Indent" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="footnote text" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="annotation text" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="header" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="footer" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="index heading" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  QFormat="true"  Name="caption" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="table of figures" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="envelope address" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="envelope return" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="footnote reference" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="annotation reference" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="line number" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="page number" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="endnote reference" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="endnote text" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="table of authorities" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="macro" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="toa heading" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="List" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="List Bullet" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="List Number" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="List 2" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="List 3" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="List 4" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="List 5" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="List Bullet 2" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="List Bullet 3" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="List Bullet 4" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="List Bullet 5" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="List Number 2" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="List Number 3" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="List Number 4" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="List Number 5" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  QFormat="true"  Name="Title" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Closing" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Signature" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  UnhideWhenUsed="false"  Name="Default Paragraph Font" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Body Text" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Body Text Indent" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="List Continue" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="List Continue 2" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="List Continue 3" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="List Continue 4" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="List Continue 5" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Message Header" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  QFormat="true"  Name="Subtitle" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Salutation" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Date" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Body Text First Indent" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Body Text First Indent 2" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Note Heading" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Body Text 2" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Body Text 3" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Body Text Indent 2" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Body Text Indent 3" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Block Text" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Hyperlink" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="FollowedHyperlink" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  QFormat="true"  Name="Strong" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  QFormat="true"  Name="Emphasis" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Document Map" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Plain Text" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="E-mail Signature" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Normal (Web)" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="HTML Acronym" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="HTML Address" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="HTML Cite" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="HTML Code" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="HTML Definition" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="HTML Keyboard" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="HTML Preformatted" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="HTML Sample" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="HTML Typewriter" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="HTML Variable" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  UnhideWhenUsed="false"  Name="Normal Table" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="annotation subject" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="99"  SemiHidden="false"  Name="No List" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="99"  SemiHidden="false"  Name="1 / a / i" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="99"  SemiHidden="false"  Name="1 / 1.1 / 1.1.1" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="99"  SemiHidden="false"  Name="Article / Section" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Table Simple 1" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Table Simple 2" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Table Simple 3" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Table Classic 1" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Table Classic 2" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Table Classic 3" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Table Classic 4" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Table Colorful 1" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Table Colorful 2" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Table Colorful 3" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Table Columns 1" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Table Columns 2" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Table Columns 3" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Table Columns 4" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Table Columns 5" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Table Grid 1" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Table Grid 2" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Table Grid 3" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Table Grid 4" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Table Grid 5" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Table Grid 6" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Table Grid 7" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Table Grid 8" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Table List 1" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Table List 2" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Table List 3" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Table List 4" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Table List 5" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Table List 6" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Table List 7" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Table List 8" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Table 3D effects 1" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Table 3D effects 2" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Table 3D effects 3" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Table Contemporary" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Table Elegant" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Table Professional" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Table Subtle 1" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Table Subtle 2" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Table Web 1" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Table Web 2" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Table Web 3" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Balloon Text" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Table Grid" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="0"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Table Theme" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="99"  SemiHidden="false"  Name="Placeholder Text" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="99"  SemiHidden="false"  Name="No Spacing" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="60"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Light Shading" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="61"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Light List" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="62"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Light Grid" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="63"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Medium Shading 1" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="64"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Medium Shading 2" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="65"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Medium List 1" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="66"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Medium List 2" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="67"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Medium Grid 1" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="68"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Medium Grid 2" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="69"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Medium Grid 3" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="70"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Dark List" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="71"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Colorful Shading" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="72"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Colorful List" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="73"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Colorful Grid" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="60"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Light Shading Accent 1" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="61"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Light List Accent 1" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="62"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Light Grid Accent 1" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="63"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Medium Shading 1 Accent 1" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="64"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Medium Shading 2 Accent 1" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="65"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Medium List 1 Accent 1" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="99"  SemiHidden="false"  Name="List Paragraph" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="99"  SemiHidden="false"  Name="Quote" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="99"  SemiHidden="false"  Name="Intense Quote" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="66"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Medium List 2 Accent 1" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="67"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Medium Grid 1 Accent 1" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="68"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Medium Grid 2 Accent 1" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="69"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Medium Grid 3 Accent 1" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="70"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Dark List Accent 1" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="71"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Colorful Shading Accent 1" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="72"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Colorful List Accent 1" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="73"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Colorful Grid Accent 1" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="60"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Light Shading Accent 2" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="61"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Light List Accent 2" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="62"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Light Grid Accent 2" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="63"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Medium Shading 1 Accent 2" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="64"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Medium Shading 2 Accent 2" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="65"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Medium List 1 Accent 2" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="66"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Medium List 2 Accent 2" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="67"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Medium Grid 1 Accent 2" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="68"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Medium Grid 2 Accent 2" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="69"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Medium Grid 3 Accent 2" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="70"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Dark List Accent 2" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="71"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Colorful Shading Accent 2" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="72"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Colorful List Accent 2" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="73"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Colorful Grid Accent 2" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="60"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Light Shading Accent 3" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="61"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Light List Accent 3" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="62"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Light Grid Accent 3" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="63"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Medium Shading 1 Accent 3" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="64"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Medium Shading 2 Accent 3" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="65"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Medium List 1 Accent 3" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="66"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Medium List 2 Accent 3" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="67"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Medium Grid 1 Accent 3" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="68"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Medium Grid 2 Accent 3" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="69"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Medium Grid 3 Accent 3" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="70"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Dark List Accent 3" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="71"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Colorful Shading Accent 3" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="72"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Colorful List Accent 3" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="73"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Colorful Grid Accent 3" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="60"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Light Shading Accent 4" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="61"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Light List Accent 4" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="62"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Light Grid Accent 4" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="63"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Medium Shading 1 Accent 4" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="64"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Medium Shading 2 Accent 4" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="65"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Medium List 1 Accent 4" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="66"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Medium List 2 Accent 4" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="67"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Medium Grid 1 Accent 4" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="68"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Medium Grid 2 Accent 4" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="69"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Medium Grid 3 Accent 4" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="70"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Dark List Accent 4" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="71"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Colorful Shading Accent 4" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="72"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Colorful List Accent 4" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="73"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Colorful Grid Accent 4" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="60"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Light Shading Accent 5" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="61"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Light List Accent 5" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="62"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Light Grid Accent 5" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="63"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Medium Shading 1 Accent 5" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="64"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Medium Shading 2 Accent 5" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="65"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Medium List 1 Accent 5" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="66"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Medium List 2 Accent 5" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="67"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Medium Grid 1 Accent 5" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="68"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Medium Grid 2 Accent 5" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="69"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Medium Grid 3 Accent 5" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="70"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Dark List Accent 5" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="71"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Colorful Shading Accent 5" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="72"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Colorful List Accent 5" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="73"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Colorful Grid Accent 5" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="60"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Light Shading Accent 6" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="61"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Light List Accent 6" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="62"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Light Grid Accent 6" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="63"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Medium Shading 1 Accent 6" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="64"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Medium Shading 2 Accent 6" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="65"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Medium List 1 Accent 6" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="66"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Medium List 2 Accent 6" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="67"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Medium Grid 1 Accent 6" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="68"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Medium Grid 2 Accent 6" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="69"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Medium Grid 3 Accent 6" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="70"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Dark List Accent 6" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="71"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Colorful Shading Accent 6" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="72"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Colorful List Accent 6" ></w:LsdException>
+<w:LsdException Locked="false"  Priority="73"  SemiHidden="false"  UnhideWhenUsed="false"  Name="Colorful Grid Accent 6" ></w:LsdException>
+</w:LatentStyles></xml><![endif]--><style>
+@font-face{
+font-family:"Times New Roman";
+}
+
+@font-face{
+font-family:"宋体";
+}
+
+@font-face{
+font-family:"SimSun";
+}
+
+@font-face{
+font-family:"Wingdings";
+}
+
+@font-face{
+font-family:"Symbol";
+}
+
+@font-face{
+font-family:"Courier New";
+}
+
+@font-face{
+font-family:"Calibri";
+}
+
+@font-face{
+font-family:"SimSun";
+}
+
+@font-face{
+font-family:"Segoe UI";
+}
+
+@list l0:level1{
+mso-level-number-format:bullet;
+mso-level-suffix:tab;
+mso-level-text:"";
+mso-level-tab-stop:36.0000pt;
+mso-level-number-position:left;
+margin-left:36.0000pt;text-indent:-18.0000pt;font-family:Symbol;font-size:10.0000pt;}
+
+@list l0:level2{
+mso-level-number-format:bullet;
+mso-level-suffix:tab;
+mso-level-text:"o";
+mso-level-tab-stop:72.0000pt;
+mso-level-number-position:left;
+margin-left:72.0000pt;text-indent:-18.0000pt;font-family:'Courier New';font-size:10.0000pt;}
+
+@list l0:level3{
+mso-level-number-format:bullet;
+mso-level-suffix:tab;
+mso-level-text:"";
+mso-level-tab-stop:108.0000pt;
+mso-level-number-position:left;
+margin-left:108.0000pt;text-indent:-18.0000pt;font-family:Wingdings;font-size:10.0000pt;}
+
+@list l0:level4{
+mso-level-number-format:bullet;
+mso-level-suffix:tab;
+mso-level-text:"";
+mso-level-tab-stop:144.0000pt;
+mso-level-number-position:left;
+margin-left:144.0000pt;text-indent:-18.0000pt;font-family:Wingdings;font-size:10.0000pt;}
+
+@list l0:level5{
+mso-level-number-format:bullet;
+mso-level-suffix:tab;
+mso-level-text:"";
+mso-level-tab-stop:180.0000pt;
+mso-level-number-position:left;
+margin-left:180.0000pt;text-indent:-18.0000pt;font-family:Wingdings;font-size:10.0000pt;}
+
+@list l0:level6{
+mso-level-number-format:bullet;
+mso-level-suffix:tab;
+mso-level-text:"";
+mso-level-tab-stop:216.0000pt;
+mso-level-number-position:left;
+margin-left:216.0000pt;text-indent:-18.0000pt;font-family:Wingdings;font-size:10.0000pt;}
+
+@list l0:level7{
+mso-level-number-format:bullet;
+mso-level-suffix:tab;
+mso-level-text:"";
+mso-level-tab-stop:252.0000pt;
+mso-level-number-position:left;
+margin-left:252.0000pt;text-indent:-18.0000pt;font-family:Wingdings;font-size:10.0000pt;}
+
+@list l0:level8{
+mso-level-number-format:bullet;
+mso-level-suffix:tab;
+mso-level-text:"";
+mso-level-tab-stop:288.0000pt;
+mso-level-number-position:left;
+margin-left:288.0000pt;text-indent:-18.0000pt;font-family:Wingdings;font-size:10.0000pt;}
+
+@list l0:level9{
+mso-level-number-format:bullet;
+mso-level-suffix:tab;
+mso-level-text:"";
+mso-level-tab-stop:324.0000pt;
+mso-level-number-position:left;
+margin-left:324.0000pt;text-indent:-18.0000pt;font-family:Wingdings;font-size:10.0000pt;}
+
+p.MsoNormal{
+mso-style-name:Normal;
+mso-style-parent:"";
+margin:0pt;
+margin-bottom:.0001pt;
+text-align:left;
+font-family:Calibri;
+mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';
+font-size:12.0000pt;
+}
+
+h1{
+mso-style-name:"Heading 1";
+mso-style-next:Normal;
+margin-top:5.0000pt;
+margin-bottom:5.0000pt;
+mso-margin-top-alt:auto;
+mso-margin-bottom-alt:auto;
+border-bottom:1.5000pt solid rgb(52,152,219);
+mso-border-bottom-alt:1.5000pt solid rgb(52,152,219);
+padding:0pt 0pt 7pt 0pt ;
+page-break-before:always;
+text-align:left;
+font-family:SimSun;
+color:rgb(44,62,80);
+font-weight:bold;
+font-size:24.0000pt;
+mso-font-kerning:22.0000pt;
+}
+
+h2{
+mso-style-name:"Heading 2";
+mso-style-noshow:yes;
+mso-style-next:Normal;
+margin-top:18.7500pt;
+margin-bottom:5.0000pt;
+mso-margin-bottom-alt:auto;
+text-align:left;
+font-family:SimSun;
+color:rgb(41,128,185);
+font-weight:bold;
+font-size:18.0000pt;
+}
+
+h3{
+mso-style-name:"Heading 3";
+mso-style-noshow:yes;
+mso-style-next:Normal;
+margin-top:5.0000pt;
+margin-bottom:5.0000pt;
+mso-margin-top-alt:auto;
+mso-margin-bottom-alt:auto;
+text-align:left;
+font-family:SimSun;
+color:rgb(22,160,133);
+font-weight:bold;
+font-size:13.5000pt;
+}
+
+h4{
+mso-style-name:"Heading 4";
+mso-style-noshow:yes;
+mso-style-next:Normal;
+margin-top:5.0000pt;
+margin-bottom:5.0000pt;
+mso-margin-top-alt:auto;
+mso-margin-bottom-alt:auto;
+text-align:left;
+font-family:SimSun;
+font-weight:bold;
+font-size:12.0000pt;
+}
+
+h5{
+mso-style-name:"Heading 5";
+mso-style-noshow:yes;
+mso-style-next:Normal;
+margin-top:5.0000pt;
+margin-bottom:5.0000pt;
+mso-margin-top-alt:auto;
+mso-margin-bottom-alt:auto;
+text-align:left;
+font-family:SimSun;
+font-weight:bold;
+font-size:10.0000pt;
+}
+
+h6{
+mso-style-name:"Heading 6";
+mso-style-noshow:yes;
+mso-style-next:Normal;
+margin-top:5.0000pt;
+margin-bottom:5.0000pt;
+mso-margin-top-alt:auto;
+mso-margin-bottom-alt:auto;
+text-align:left;
+font-family:SimSun;
+font-weight:bold;
+font-size:7.5000pt;
+}
+
+span.10{
+font-family:'Times New Roman';
+}
+
+p.p{
+mso-style-name:"Normal \(Web\)";
+margin-top:5.0000pt;
+margin-right:0.0000pt;
+margin-bottom:11.2500pt;
+margin-left:0.0000pt;
+mso-margin-top-alt:auto;
+text-align:left;
+font-family:Calibri;
+mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';
+font-size:12.0000pt;
+}
+
+p.pre{
+mso-style-name:"HTML Preformatted";
+margin:0pt;
+margin-bottom:.0001pt;
+text-align:left;
+font-family:'Courier New';
+mso-fareast-font-family:SimSun;
+font-size:10.0000pt;
+}
+
+span.msoIns{
+mso-style-type:export-only;
+mso-style-name:"";
+text-decoration:underline;
+text-underline:single;
+color:blue;
+}
+
+span.msoDel{
+mso-style-type:export-only;
+mso-style-name:"";
+text-decoration:line-through;
+color:red;
+}
+
+table.MsoNormalTable{
+mso-style-name:"Table Normal";
+mso-style-parent:"";
+mso-style-noshow:yes;
+mso-tstyle-rowband-size:0;
+mso-tstyle-colband-size:0;
+mso-padding-alt:0.0000pt 5.4000pt 0.0000pt 5.4000pt;
+mso-para-margin:0pt;
+mso-para-margin-bottom:.0001pt;
+mso-pagination:widow-orphan;
+font-family:'Times New Roman';
+font-size:10.0000pt;
+mso-ansi-language:#0400;
+mso-fareast-language:#0400;
+mso-bidi-language:#0400;
+}
+@page{mso-page-border-surround-header:no;
+	mso-page-border-surround-footer:no;}@page Section0{
+size:595.3000pt 841.9500pt;
+mso-header-margin:42.5500pt;
+mso-footer-margin:49.6000pt;
+}
+div.Section0{page:Section0;}</style></head><body style="tab-interval:21pt;" ><!--StartFragment--><div class="Section0" ><h1 style="mso-pagination:widow-orphan;mso-line-height-alt:12pt;" ><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(44,62,80);
+font-weight:bold;font-size:24.0000pt;mso-font-kerning:22.0000pt;" ><font face="SimSun" >Nuanu HR Recruitment ATS: Primary System Requirements</font></span></b><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(44,62,80);
+font-weight:bold;font-size:24.0000pt;mso-font-kerning:22.0000pt;" ><o:p></o:p></span></b></h1><h2 style="mso-pagination:widow-orphan;mso-line-height-alt:12pt;" ><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(41,128,185);
+font-weight:bold;font-size:18.0000pt;mso-font-kerning:0.0000pt;" ><font face="SimSun" >1. Introduction</font></span></b><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(41,128,185);
+font-weight:bold;font-size:18.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></b></h2><p class=MsoNormal  style="mso-pagination:widow-orphan;text-align:left;" ><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >The </span><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >Nuanu HR Recruitment ATS (Applicant Tracking System)</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >&nbsp;is a comprehensive, enterprise-grade platform designed to streamline the end-to-end recruitment process. From workforce planning and vacancy approvals to candidate sourcing, AI-driven screening, interview management, and onboarding, the system provides a unified solution for modern HR departments.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><h2 style="mso-pagination:widow-orphan;mso-line-height-alt:12pt;" ><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(41,128,185);
+font-weight:bold;font-size:18.0000pt;mso-font-kerning:0.0000pt;" ><font face="SimSun" >2. Functional Specifications</font></span></b><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(41,128,185);
+font-weight:bold;font-size:18.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></b></h2><h3 style="mso-pagination:widow-orphan;mso-line-height-alt:12pt;" ><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(22,160,133);
+font-weight:bold;font-size:13.5000pt;mso-font-kerning:0.0000pt;" ><font face="SimSun" >2.1 Workforce Planning & Vacancy Management</font></span></b><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(22,160,133);
+font-weight:bold;font-size:13.5000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></b></h3><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-weight:bold;
+font-size:10.0000pt;mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >Departmental Budgeting</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: Track and manage recruitment budgets per department and fiscal year.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-weight:bold;
+font-size:10.0000pt;mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >Vacancy Lifecycle</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: Create, review, and approve job vacancies through a multi-level approval workflow.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-weight:bold;
+font-size:10.0000pt;mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >Job Posting</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: Multi-channel job distribution (Internal, External, JobStreet, etc.).</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><h3 style="margin-left:36.0000pt;mso-pagination:widow-orphan;mso-line-height-alt:12pt;" ><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(22,160,133);
+font-weight:bold;font-size:13.5000pt;mso-font-kerning:0.0000pt;" ><font face="SimSun" >2.2 Candidate Sourcing & Application Tracking</font></span></b><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(22,160,133);
+font-weight:bold;font-size:13.5000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></b></h3><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-weight:bold;
+font-size:10.0000pt;mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >Unified Pipeline</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: Visual drag-and-drop recruitment pipeline for managing applicant stages.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-weight:bold;
+font-size:10.0000pt;mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >Resume Parsing</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: Automated extraction of candidate data from uploaded documents.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-weight:bold;
+font-size:10.0000pt;mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >AI Scoring</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: Intelligent candidate ranking based on skill matching, experience, and educational background.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><h3 style="margin-left:36.0000pt;mso-pagination:widow-orphan;mso-line-height-alt:12pt;" ><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(22,160,133);
+font-weight:bold;font-size:13.5000pt;mso-font-kerning:0.0000pt;" ><font face="SimSun" >2.3 Evaluation & Assessment</font></span></b><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(22,160,133);
+font-weight:bold;font-size:13.5000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></b></h3><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-weight:bold;
+font-size:10.0000pt;mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >Interview Scheduling</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: Integration with calendars for scheduling phone, video, and on-site interviews.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-weight:bold;
+font-size:10.0000pt;mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >Feedback Management</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: Structured evaluation forms for interviewers to provide consistent feedback.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-weight:bold;
+font-size:10.0000pt;mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >Skill Assessments</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: Customizable technical and soft skill assessments with automated scoring.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><h3 style="margin-left:36.0000pt;mso-pagination:widow-orphan;mso-line-height-alt:12pt;" ><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(22,160,133);
+font-weight:bold;font-size:13.5000pt;mso-font-kerning:0.0000pt;" ><font face="SimSun" >2.4 Offer & Conversion</font></span></b><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(22,160,133);
+font-weight:bold;font-size:13.5000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></b></h3><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-weight:bold;
+font-size:10.0000pt;mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >Offer Generation</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: Automated generation of offer letters based on vacancy parameters.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-weight:bold;
+font-size:10.0000pt;mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >Contract Management</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: Management of digital employment contracts and e-signatures.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-weight:bold;
+font-size:10.0000pt;mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >Onboarding</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: Transitioning successful hires into an onboarding workflow with assigned tasks.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><h3 style="margin-left:36.0000pt;mso-pagination:widow-orphan;mso-line-height-alt:12pt;" ><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(22,160,133);
+font-weight:bold;font-size:13.5000pt;mso-font-kerning:0.0000pt;" ><font face="SimSun" >2.5 Security & Administration</font></span></b><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(22,160,133);
+font-weight:bold;font-size:13.5000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></b></h3><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-weight:bold;
+font-size:10.0000pt;mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >Role-Based Access Control (RBAC)</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: Granular permissions for Admins, Recruiters, Hiring Managers, and Candidates.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-weight:bold;
+font-size:10.0000pt;mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >Activity Logging</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: Detailed audit trails for all system actions.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-weight:bold;
+font-size:10.0000pt;mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >Notifications</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: Real-time alerts for interview reminders, approval requests, and application updates.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><h2 style="margin-left:36.0000pt;mso-pagination:widow-orphan;mso-line-height-alt:12pt;" ><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(41,128,185);
+font-weight:bold;font-size:18.0000pt;mso-font-kerning:0.0000pt;" ><font face="SimSun" >3. Technical Specifications</font></span></b><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(41,128,185);
+font-weight:bold;font-size:18.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></b></h2><h3 style="margin-left:36.0000pt;mso-pagination:widow-orphan;mso-line-height-alt:12pt;" ><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(22,160,133);
+font-weight:bold;font-size:13.5000pt;mso-font-kerning:0.0000pt;" ><font face="SimSun" >3.1 Technology Stack</font></span></b><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(22,160,133);
+font-weight:bold;font-size:13.5000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></b></h3><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-weight:bold;
+font-size:10.0000pt;mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >Frontend/Backend</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: Next.js 16 (App Router) using React 19.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-weight:bold;
+font-size:10.0000pt;mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >Database</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: PostgreSQL with Prisma ORM.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-weight:bold;
+font-size:10.0000pt;mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >Styling</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: Tailwind CSS for responsive and premium design.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-weight:bold;
+font-size:10.0000pt;mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >State Management</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: Zustand and React Query.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-weight:bold;
+font-size:10.0000pt;mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >Integrations</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: Google Sheets (Export/Sync), JobStreet (Webhooks), and Supabase.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><h3 style="margin-left:36.0000pt;mso-pagination:widow-orphan;mso-line-height-alt:12pt;" ><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(22,160,133);
+font-weight:bold;font-size:13.5000pt;mso-font-kerning:0.0000pt;" ><font face="SimSun" >3.2 System Architecture</font></span></b><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(22,160,133);
+font-weight:bold;font-size:13.5000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></b></h3><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-weight:bold;
+font-size:10.0000pt;mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >Server Actions</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: Implementation of business logic using Next.js Server Actions for secure data mutations.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-weight:bold;
+font-size:10.0000pt;mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >API Routes</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: RESTful endpoints for third-party integrations and webhooks.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-weight:bold;
+font-size:10.0000pt;mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >Middleware</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: Authentication and authorization layer for route protection.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><h2 style="margin-left:36.0000pt;mso-pagination:widow-orphan;mso-line-height-alt:12pt;" ><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(41,128,185);
+font-weight:bold;font-size:18.0000pt;mso-font-kerning:0.0000pt;" ><font face="SimSun" >4. User </font></span></b><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(41,128,185);
+font-weight:bold;font-size:18.0000pt;mso-font-kerning:0.0000pt;" >Settings</span></b><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(41,128,185);
+font-weight:bold;font-size:18.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></b></h2><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-weight:bold;
+font-size:10.0000pt;mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >Administrator</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: Full system control, user management, and global settings.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-weight:bold;
+font-size:10.0000pt;mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >Recruiter</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: Job posting, pipeline management, and candidate sourcing.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-weight:bold;
+font-size:10.0000pt;mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >Hiring Manager</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: Vacancy requests, interview feedback, and candidate selection.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-weight:bold;
+font-size:10.0000pt;mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >Candidate</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: Application submission, assessment completion, and offer acceptance.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><h2 style="margin-left:36.0000pt;mso-pagination:widow-orphan;mso-line-height-alt:12pt;" ><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(41,128,185);
+font-weight:bold;font-size:18.0000pt;mso-font-kerning:0.0000pt;" ><font face="SimSun" >5. Non-Functional Requirements</font></span></b><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(41,128,185);
+font-weight:bold;font-size:18.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></b></h2><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-weight:bold;
+font-size:10.0000pt;mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >Scalability</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: Capable of handling thousands of applications and concurrent users.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-weight:bold;
+font-size:10.0000pt;mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >Security</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: Data encryption at rest and in transit, compliant with privacy standards.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-weight:bold;
+font-size:10.0000pt;mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >Performance</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: Sub-second page loads and responsive UI interactions.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-weight:bold;
+font-size:10.0000pt;mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >Usability</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: Premium, intuitive user experience with minimal training required.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><p class=MsoNormal  style="margin-left:36.0000pt;mso-pagination:widow-orphan;text-align:left;" ><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >---</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><h1 style="margin-left:36.0000pt;mso-pagination:widow-orphan;mso-line-height-alt:12pt;" ><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(44,62,80);
+font-weight:bold;font-size:24.0000pt;mso-font-kerning:22.0000pt;" ><font face="SimSun" >Nuanu HR Recruitment ATS: Database Architecture and Workflow</font></span></b><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(44,62,80);
+font-weight:bold;font-size:24.0000pt;mso-font-kerning:22.0000pt;" ><o:p></o:p></span></b></h1><h2 style="margin-left:36.0000pt;mso-pagination:widow-orphan;mso-line-height-alt:12pt;" ><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(41,128,185);
+font-weight:bold;font-size:18.0000pt;mso-font-kerning:0.0000pt;" ><font face="SimSun" >1. Database Schema Overview</font></span></b><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(41,128,185);
+font-weight:bold;font-size:18.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></b></h2><p class=MsoNormal  style="margin-left:36.0000pt;mso-pagination:widow-orphan;text-align:left;" ><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >The Nuanu HR ATS utilizes a PostgreSQL database managed via Prisma ORM. The schema is designed for high relational integrity and supports complex recruitment workflows.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><h3 style="margin-left:36.0000pt;mso-pagination:widow-orphan;mso-line-height-alt:12pt;" ><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(22,160,133);
+font-weight:bold;font-size:13.5000pt;mso-font-kerning:0.0000pt;" ><font face="SimSun" >1.1 Core Entities</font></span></b><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(22,160,133);
+font-weight:bold;font-size:13.5000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></b></h3><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-weight:bold;
+font-size:10.0000pt;mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >User</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: Central identity management (Admins, Recruiters, Managers, Candidates).</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-weight:bold;
+font-size:10.0000pt;mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >Role & Permission</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: Granular RBAC system with resource-action mapping.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-weight:bold;
+font-size:10.0000pt;mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >Department</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: Organizational structure including budget tracking.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><h3 style="margin-left:36.0000pt;mso-pagination:widow-orphan;mso-line-height-alt:12pt;" ><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(22,160,133);
+font-weight:bold;font-size:13.5000pt;mso-font-kerning:0.0000pt;" ><font face="SimSun" >1.2 Recruitment Entities</font></span></b><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(22,160,133);
+font-weight:bold;font-size:13.5000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></b></h3><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-weight:bold;
+font-size:10.0000pt;mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >Vacancy</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: The central job entity containing requirements, salary info, and status.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-weight:bold;
+font-size:10.0000pt;mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >Approval</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: Multi-level workflow for vacancy and offer authorization.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-weight:bold;
+font-size:10.0000pt;mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >JobPosting</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: External distribution records across various channels.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><h3 style="margin-left:36.0000pt;mso-pagination:widow-orphan;mso-line-height-alt:12pt;" ><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(22,160,133);
+font-weight:bold;font-size:13.5000pt;mso-font-kerning:0.0000pt;" ><font face="SimSun" >1.3 Applicant Entities</font></span></b><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(22,160,133);
+font-weight:bold;font-size:13.5000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></b></h3><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-weight:bold;
+font-size:10.0000pt;mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >Application</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: Links candidates to vacancies with pipeline stage tracking.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-weight:bold;
+font-size:10.0000pt;mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >CandidateProfile</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: Detailed candidate data including parsed resume text and skills.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-weight:bold;
+font-size:10.0000pt;mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >CandidateScore</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: AI-calculated metrics for skill and experience matching.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-weight:bold;
+font-size:10.0000pt;mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >Document</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: Storage for resumes, portfolios, and certificates.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><h3 style="margin-left:36.0000pt;mso-pagination:widow-orphan;mso-line-height-alt:12pt;" ><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(22,160,133);
+font-weight:bold;font-size:13.5000pt;mso-font-kerning:0.0000pt;" ><font face="SimSun" >1.4 Evaluation Entities</font></span></b><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(22,160,133);
+font-weight:bold;font-size:13.5000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></b></h3><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-weight:bold;
+font-size:10.0000pt;mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >Interview</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: Scheduling data, type, and status.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-weight:bold;
+font-size:10.0000pt;mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >InterviewFeedback</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: Detailed ratings and notes from interviewers.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-weight:bold;
+font-size:10.0000pt;mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >Assessment</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: Technical tests and personality quizzes linked to applications.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><h3 style="margin-left:36.0000pt;mso-pagination:widow-orphan;mso-line-height-alt:12pt;" ><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(22,160,133);
+font-weight:bold;font-size:13.5000pt;mso-font-kerning:0.0000pt;" ><font face="SimSun" >1.5 Conversion Entities</font></span></b><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(22,160,133);
+font-weight:bold;font-size:13.5000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></b></h3><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-weight:bold;
+font-size:10.0000pt;mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >Offer</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: Financial terms, benefits, and status of the job offer.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-weight:bold;
+font-size:10.0000pt;mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >Contract</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: Employment agreement tracking and signature status.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-weight:bold;
+font-size:10.0000pt;mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >OnboardingTask</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: Post-hire checklist for successful candidates.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><h2 style="margin-left:36.0000pt;mso-pagination:widow-orphan;mso-line-height-alt:12pt;" ><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(41,128,185);
+font-weight:bold;font-size:18.0000pt;mso-font-kerning:0.0000pt;" ><font face="SimSun" >2. Process Mapping & Workflows</font></span></b><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(41,128,185);
+font-weight:bold;font-size:18.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></b></h2><h3 style="margin-left:36.0000pt;mso-pagination:widow-orphan;mso-line-height-alt:12pt;" ><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(22,160,133);
+font-weight:bold;font-size:13.5000pt;mso-font-kerning:0.0000pt;" ><font face="SimSun" >2.1 Vacancy Fulfillment Workflow</font></span></b><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(22,160,133);
+font-weight:bold;font-size:13.5000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></b></h3><p class=MsoNormal  style="margin-left:36.0000pt;mso-pagination:widow-orphan;text-align:left;" ><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >1. </span><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >Request</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: Hiring Manager creates a `Vacancy` draft. 2. </span><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >Approval</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: `Approval` records are created for designated approvers. 3. </span><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >Publishing</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: Once approved, `JobPosting` records are generated for active channels. 4. </span><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >Sourcing</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: Candidates apply, creating `Application` and `CandidateProfile` records.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><h3 style="margin-left:36.0000pt;mso-pagination:widow-orphan;mso-line-height-alt:12pt;" ><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(22,160,133);
+font-weight:bold;font-size:13.5000pt;mso-font-kerning:0.0000pt;" ><font face="SimSun" >2.2 Candidate Evaluation Workflow</font></span></b><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(22,160,133);
+font-weight:bold;font-size:13.5000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></b></h3><p class=MsoNormal  style="margin-left:36.0000pt;mso-pagination:widow-orphan;text-align:left;" ><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >1. </span><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >Screening</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: AI calculates `CandidateScore` based on the `Vacancy` requirements. 2. </span><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >Interviewing</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: `Interview` sessions are scheduled; `InterviewFeedback` is collected. 3. </span><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >Assessment</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: Candidates complete `Assessment` tasks. 4. </span><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >Pipeline Progression</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: `PipelineStage` records track the movement through the funnel.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><h3 style="margin-left:36.0000pt;mso-pagination:widow-orphan;mso-line-height-alt:12pt;" ><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(22,160,133);
+font-weight:bold;font-size:13.5000pt;mso-font-kerning:0.0000pt;" ><font face="SimSun" >2.3 Offer & Onboarding Workflow</font></span></b><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(22,160,133);
+font-weight:bold;font-size:13.5000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></b></h3><p class=MsoNormal  style="margin-left:36.0000pt;mso-pagination:widow-orphan;text-align:left;" ><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >1. </span><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >Selection</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: Top candidate is selected; `Offer` is generated. 2. </span><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >Offer Approval</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: Financial terms are reviewed and approved. 3. </span><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >Signing</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: `Contract` is generated and signed by the candidate. 4. </span><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >Onboarding</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: `OnboardingTask` list is triggered for the new hire.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><h2 style="margin-left:36.0000pt;mso-pagination:widow-orphan;mso-line-height-alt:12pt;" ><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(41,128,185);
+font-weight:bold;font-size:18.0000pt;mso-font-kerning:0.0000pt;" ><font face="SimSun" >3. Data Integrity & Relationships</font></span></b><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(41,128,185);
+font-weight:bold;font-size:18.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></b></h2><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-weight:bold;
+font-size:10.0000pt;mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >Cascading Deletes</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: Controlled cleanup of related data (e.g., deleting an application removes its feedback and scores).</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-weight:bold;
+font-size:10.0000pt;mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >Indexing</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: Optimized queries for `status`, `userId`, `vacancyId`, and `createdAt` fields.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-weight:bold;
+font-size:10.0000pt;mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >Soft Deletes</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: Use of `deletedAt` timestamps for audit-sensitive entities like Users and Vacancies.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><p class=MsoNormal  style="margin-left:36.0000pt;mso-pagination:widow-orphan;text-align:left;" ><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p>&nbsp;</o:p></span></p><h1 style="margin-left:36.0000pt;mso-pagination:widow-orphan;mso-line-height-alt:12pt;" ><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(44,62,80);
+font-weight:bold;font-size:24.0000pt;mso-font-kerning:22.0000pt;" ><font face="SimSun" >Nuanu HR Recruitment ATS: Backend Development Phase Documentation</font></span></b><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(44,62,80);
+font-weight:bold;font-size:24.0000pt;mso-font-kerning:22.0000pt;" ><o:p></o:p></span></b></h1><h2 style="margin-left:36.0000pt;mso-pagination:widow-orphan;mso-line-height-alt:12pt;" ><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(41,128,185);
+font-weight:bold;font-size:18.0000pt;mso-font-kerning:0.0000pt;" ><font face="SimSun" >1. Project Structure</font></span></b><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(41,128,185);
+font-weight:bold;font-size:18.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></b></h2><p class=MsoNormal  style="margin-left:36.0000pt;mso-pagination:widow-orphan;text-align:left;" ><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >The project follows the Next.js App Router architecture, emphasizing separation of concerns between UI components and business logic.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><h3 style="margin-left:36.0000pt;mso-pagination:widow-orphan;mso-line-height-alt:12pt;" ><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(22,160,133);
+font-weight:bold;font-size:13.5000pt;mso-font-kerning:0.0000pt;" ><font face="SimSun" >1.1 Directory Organization</font></span></b><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(22,160,133);
+font-weight:bold;font-size:13.5000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></b></h3><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-weight:bold;
+font-size:10.0000pt;mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >`/src/app/api`</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: REST API endpoints for external integrations (e.g., JobStreet webhooks) and client-side fetches.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-weight:bold;
+font-size:10.0000pt;mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >`/src/app/actions`</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: Secure Server Actions handling core business logic, database mutations, and form submissions.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-weight:bold;
+font-size:10.0000pt;mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >`/src/lib`</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >:</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><p class=MsoNormal  style="margin-left:36.0000pt;mso-pagination:widow-orphan;text-align:left;" ><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >- `prisma.ts`: Shared Prisma client instance. - `auth.ts`: Authentication configuration and utility functions. - `notifications.ts`: Centralized logic for system alerts and emails. - `integrations/`: Dedicated modules for third-party services (Google Sheets, etc.). </span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-weight:bold;
+font-size:10.0000pt;mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >`/prisma`</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: Database schema definitions and migration files.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><h2 style="margin-left:36.0000pt;mso-pagination:widow-orphan;mso-line-height-alt:12pt;" ><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(41,128,185);
+font-weight:bold;font-size:18.0000pt;mso-font-kerning:0.0000pt;" ><font face="SimSun" >2. Core Backend Modules</font></span></b><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(41,128,185);
+font-weight:bold;font-size:18.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></b></h2><h3 style="margin-left:36.0000pt;mso-pagination:widow-orphan;mso-line-height-alt:12pt;" ><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(22,160,133);
+font-weight:bold;font-size:13.5000pt;mso-font-kerning:0.0000pt;" ><font face="SimSun" >2.1 Authentication & Authorization</font></span></b><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(22,160,133);
+font-weight:bold;font-size:13.5000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></b></h3><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-weight:bold;
+font-size:10.0000pt;mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >Implementation</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: custom auth logic using `jose` and `bcryptjs`.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-weight:bold;
+font-size:10.0000pt;mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >RBAC</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: Middleware-level checks for user permissions based on the `RolePermission` mapping.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><h3 style="margin-left:36.0000pt;mso-pagination:widow-orphan;mso-line-height-alt:12pt;" ><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(22,160,133);
+font-weight:bold;font-size:13.5000pt;mso-font-kerning:0.0000pt;" ><font face="SimSun" >2.2 Integration Layer</font></span></b><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(22,160,133);
+font-weight:bold;font-size:13.5000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></b></h3><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-weight:bold;
+font-size:10.0000pt;mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >Google Sheets Integration</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: Synchronizing vacancy and application data for external reporting.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-weight:bold;
+font-size:10.0000pt;mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >Webhook System</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: Handling inbound notifications from job boards (JobStreet) to automate candidate imports.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><h3 style="margin-left:36.0000pt;mso-pagination:widow-orphan;mso-line-height-alt:12pt;" ><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(22,160,133);
+font-weight:bold;font-size:13.5000pt;mso-font-kerning:0.0000pt;" ><font face="SimSun" >2.3 Notification Engine</font></span></b><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(22,160,133);
+font-weight:bold;font-size:13.5000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></b></h3><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-weight:bold;
+font-size:10.0000pt;mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >Types</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: In-app notifications and background email processing.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-weight:bold;
+font-size:10.0000pt;mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >Trigger Points</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: Status changes, interview scheduling, and approval requests.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><h3 style="margin-left:36.0000pt;mso-pagination:widow-orphan;mso-line-height-alt:12pt;" ><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(22,160,133);
+font-weight:bold;font-size:13.5000pt;mso-font-kerning:0.0000pt;" ><font face="SimSun" >2.4 AI & Data Processing</font></span></b><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(22,160,133);
+font-weight:bold;font-size:13.5000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></b></h3><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-weight:bold;
+font-size:10.0000pt;mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >Resume Parsing</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: Utilizing `pdf-parse` and custom logic to extract structured data from PDF resumes.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-weight:bold;
+font-size:10.0000pt;mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >Scoring Algorithm</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: Backend logic for calculating candidate-vacancy match percentages.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><h2 style="margin-left:36.0000pt;mso-pagination:widow-orphan;mso-line-height-alt:12pt;" ><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(41,128,185);
+font-weight:bold;font-size:18.0000pt;mso-font-kerning:0.0000pt;" ><font face="SimSun" >3. Implementation Patterns</font></span></b><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(41,128,185);
+font-weight:bold;font-size:18.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></b></h2><h3 style="margin-left:36.0000pt;mso-pagination:widow-orphan;mso-line-height-alt:12pt;" ><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(22,160,133);
+font-weight:bold;font-size:13.5000pt;mso-font-kerning:0.0000pt;" ><font face="SimSun" >3.1 Server-Side Logic</font></span></b><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(22,160,133);
+font-weight:bold;font-size:13.5000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></b></h3><p class=MsoNormal  style="margin-left:36.0000pt;mso-pagination:widow-orphan;text-align:left;" ><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >The system prioritizes </span><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >Server Actions</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >&nbsp;over traditional API routes for internal mutations, ensuring: </span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-size:10.0000pt;
+mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >Type safety across the stack.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-size:10.0000pt;
+mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >Automatic CSRF protection.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-size:10.0000pt;
+mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >Reduced client-side JavaScript.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><h3 style="margin-left:36.0000pt;mso-pagination:widow-orphan;mso-line-height-alt:12pt;" ><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(22,160,133);
+font-weight:bold;font-size:13.5000pt;mso-font-kerning:0.0000pt;" ><font face="SimSun" >3.2 Data Validation</font></span></b><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(22,160,133);
+font-weight:bold;font-size:13.5000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></b></h3><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-weight:bold;
+font-size:10.0000pt;mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >Zod</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: Used extensively for validating input schemas in both API routes and Server Actions.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-weight:bold;
+font-size:10.0000pt;mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-weight:bold;
+font-size:12.0000pt;mso-font-kerning:0.0000pt;" >Prisma Middlewares</span></b><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >: (Where applicable) for handling audit logs and soft deletes.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><h2 style="margin-left:36.0000pt;mso-pagination:widow-orphan;mso-line-height-alt:12pt;" ><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(41,128,185);
+font-weight:bold;font-size:18.0000pt;mso-font-kerning:0.0000pt;" ><font face="SimSun" >4. Current Progress & Roadmap</font></span></b><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(41,128,185);
+font-weight:bold;font-size:18.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></b></h2><h3 style="margin-left:36.0000pt;mso-pagination:widow-orphan;mso-line-height-alt:12pt;" ><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(22,160,133);
+font-weight:bold;font-size:13.5000pt;mso-font-kerning:0.0000pt;" ><font face="SimSun" >Phase 1: Foundation (Completed)</font></span></b><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(22,160,133);
+font-weight:bold;font-size:13.5000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></b></h3><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-size:10.0000pt;
+mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >[&#9989;] Database schema design and migration.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-size:10.0000pt;
+mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >[&#9989;] Basic project structure and configuration.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-size:10.0000pt;
+mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >[&#9989;] Authentication and RBAC foundation.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><h3 style="margin-left:36.0000pt;mso-pagination:widow-orphan;mso-line-height-alt:12pt;" ><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(22,160,133);
+font-weight:bold;font-size:13.5000pt;mso-font-kerning:0.0000pt;" ><font face="SimSun" >Phase 2: Core Recruitment Logic (In Progress)</font></span></b><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(22,160,133);
+font-weight:bold;font-size:13.5000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></b></h3><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-size:10.0000pt;
+mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >[</span><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >&nbsp;</span><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >] Vacancy approval workflow.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-size:10.0000pt;
+mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >[</span><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >&nbsp;</span><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >] Candidate pipeline management.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-size:10.0000pt;
+mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >[</span><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >&nbsp;</span><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >] Interview scheduling integration.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><h3 style="margin-left:36.0000pt;mso-pagination:widow-orphan;mso-line-height-alt:12pt;" ><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(22,160,133);
+font-weight:bold;font-size:13.5000pt;mso-font-kerning:0.0000pt;" ><font face="SimSun" >Phase 3: Advanced Features (Planned)</font></span></b><b><span style="mso-spacerun:'yes';font-family:SimSun;color:rgb(22,160,133);
+font-weight:bold;font-size:13.5000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></b></h3><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-size:10.0000pt;
+mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >[ ] AI-driven resume ranking.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-size:10.0000pt;
+mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >[ ] Automated contract generation.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p><p class=MsoNormal  style="margin-top:5.0000pt;margin-bottom:3.7500pt;margin-left:36.0000pt;
+mso-margin-top-alt:auto;text-indent:-18.0000pt;mso-pagination:widow-orphan;
+mso-line-height-alt:12pt;mso-list:l0 level1 lfo1;" ><![if !supportLists]><span style="font-family:Symbol;mso-fareast-font-family:'Segoe UI';font-size:10.0000pt;
+mso-font-kerning:0.0000pt;" ><span style='mso-list:Ignore;' >&#183;<span>&nbsp;</span></span></span><![endif]><span style="mso-spacerun:'yes';font-family:'Segoe UI';font-size:12.0000pt;
+mso-font-kerning:0.0000pt;" >[ ] Advanced analytics dashboard.</span><span style="mso-spacerun:'yes';font-family:Calibri;mso-fareast-font-family:SimSun;
+mso-bidi-font-family:'Times New Roman';font-size:12.0000pt;mso-font-kerning:0.0000pt;" ><o:p></o:p></span></p></div><!--EndFragment--></body></html>
