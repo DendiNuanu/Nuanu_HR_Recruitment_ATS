@@ -164,8 +164,8 @@ export default function DashboardClient({ metrics }: { metrics: DashboardMetrics
     },
     {
       label: "Cost per Hire",
-      value: `$${metrics.averageCostPerHire.toLocaleString()}`,
-      change: "-$350",
+      value: `Rp ${metrics.averageCostPerHire.toLocaleString("id-ID")}`,
+      change: "Rp -500k",
       up: false,
       icon: DollarSign,
       color: "red",

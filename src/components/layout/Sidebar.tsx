@@ -151,7 +151,7 @@ export default function Sidebar() {
       <motion.aside
         animate={{ width: isCollapsed ? 72 : 256 }}
         transition={{ duration: 0.3, ease: "easeInOut" }}
-        className="hidden lg:flex flex-col h-screen bg-nuanu-navy sticky top-0 z-40 border-r border-white/[0.06]"
+        className="hidden lg:flex flex-col h-screen bg-gradient-to-b from-nuanu-navy to-nuanu-navy-dark sticky top-0 z-40 border-r border-white/5 shadow-[4px_0_24px_rgba(0,0,0,0.15)]"
       >
         {sidebarContent}
       </motion.aside>

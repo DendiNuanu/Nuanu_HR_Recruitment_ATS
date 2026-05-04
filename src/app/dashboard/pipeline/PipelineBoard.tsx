@@ -6,10 +6,11 @@ import { usePipelineStore } from "@/stores";
 import { moveApplication } from "./actions";
 import { PIPELINE_STAGES } from "@/lib/utils";
 import { motion } from "framer-motion";
-import { Calendar, MoreHorizontal, User, Brain } from "lucide-react";
+import { Calendar, MoreHorizontal, User, Brain, Search } from "lucide-react";
 
 export default function PipelineBoard({ initialCandidates, vacancies }: { initialCandidates: Record<string, any[]>, vacancies: any[] }) {
   const { candidates, setCandidates, moveCandidate } = usePipelineStore();
+  const [search, setSearch] = useState("");
   const [selectedVacancy, setSelectedVacancy] = useState("all");
   const [isMounted, setIsMounted] = useState(false);
 
@@ -47,32 +48,52 @@ export default function PipelineBoard({ initialCandidates, vacancies }: { initia
 
   if (!isMounted) return null;
 
-  // Filter candidates by selected vacancy
+  // Filter candidates by search and selected vacancy
   const filteredCandidates = Object.keys(candidates).reduce((acc, stageId) => {
-    acc[stageId] = candidates[stageId]?.filter(c => selectedVacancy === "all" || c.vacancyId === selectedVacancy) || [];
+    acc[stageId] = candidates[stageId]?.filter(c => {
+      const matchSearch = c.name.toLowerCase().includes(search.toLowerCase());
+      const matchVacancy = selectedVacancy === "all" || c.vacancyId === selectedVacancy;
+      return matchSearch && matchVacancy;
+    }) || [];
     return acc;
   }, {} as Record<string, any[]>);
 
   return (
     <div className="h-[calc(100vh-8rem)] flex flex-col">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 flex-shrink-0">
-        <div>
-          <h1 className="text-2xl font-bold text-nuanu-navy">Hiring Pipeline</h1>
-          <p className="text-sm text-nuanu-gray-500 mt-1">Manage candidates through the recruitment process</p>
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6 flex-shrink-0">
+        <div className="flex-1 max-w-2xl flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+          <div className="relative flex-1 group">
+            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-nuanu-gray-400 group-focus-within:text-emerald-500 transition-colors pointer-events-none">
+              <Search className="w-5 h-5" />
+            </div>
+            <input 
+              type="text" 
+              placeholder="Search candidates..." 
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="input-field pl-12 h-12"
+            />
+          </div>
+          
+          <div className="relative min-w-[200px]">
+            <select 
+              value={selectedVacancy}
+              onChange={(e) => setSelectedVacancy(e.target.value)}
+              className="input-field h-12 pl-10 appearance-none bg-white font-medium"
+            >
+              <option value="all">All Vacancies</option>
+              {vacancies.map(v => (
+                <option key={v.id} value={v.id}>{v.title}</option>
+              ))}
+            </select>
+            <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-nuanu-gray-400 pointer-events-none" />
+          </div>
         </div>
-        
-        <div className="flex items-center gap-3">
-          <label className="text-sm font-medium text-nuanu-gray-600">Vacancy:</label>
-          <select 
-            value={selectedVacancy}
-            onChange={(e) => setSelectedVacancy(e.target.value)}
-            className="input-field py-2 bg-white"
-          >
-            <option value="all">All Vacancies</option>
-            {vacancies.map(v => (
-              <option key={v.id} value={v.id}>{v.title}</option>
-            ))}
-          </select>
+
+        <div className="flex items-center justify-end gap-3 text-xs font-semibold text-nuanu-gray-400 uppercase tracking-widest">
+          <div className="flex items-center gap-1.5">
+            <div className="w-2 h-2 rounded-full bg-emerald-500" /> Live Updates
+          </div>
         </div>
       </div>
 

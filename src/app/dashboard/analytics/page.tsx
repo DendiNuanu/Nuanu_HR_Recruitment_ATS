@@ -20,7 +20,7 @@ export default async function AnalyticsPage() {
 
   const overview = [
     { label: "Time to Hire", value: "32 Days", change: "-12%", color: "emerald" }, // Mocked
-    { label: "Cost per Hire", value: "$4,250", change: "-5%", color: "blue" }, // Mocked
+    { label: "Cost per Hire", value: "Rp 3.500.000", change: "-5%", color: "blue" }, // Mocked
     { label: "Offer Acceptance", value: `${offerAcceptanceRate}%`, change: "+3%", color: "purple" },
     { label: "Retention Rate", value: "95%", change: "+1%", color: "amber" }, // Mocked
   ];

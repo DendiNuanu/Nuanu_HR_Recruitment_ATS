@@ -83,14 +83,16 @@ export default function CandidatesTable({ candidates }: { candidates: Candidate[
     <div className="card pb-32">
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4 mb-6 border-b border-nuanu-gray-100 pb-6">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-nuanu-gray-400" />
+        <div className="relative flex-1 group">
+          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-nuanu-gray-400 group-focus-within:text-emerald-500 transition-colors pointer-events-none z-10">
+            <Search className="w-5 h-5" />
+          </div>
           <input
             type="text"
             placeholder="Search by name, email, or role..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="input-field pl-10"
+            className="input-field !pl-14 h-12 transition-all"
           />
         </div>
         <div className="relative min-w-[200px]">

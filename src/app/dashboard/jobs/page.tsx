@@ -1,22 +1,27 @@
 import { prisma } from "@/lib/prisma";
-import { Plus, Search, Filter, Briefcase, Users, Eye, Edit, MoreVertical } from "lucide-react";
+import { Plus } from "lucide-react";
 import Link from "next/link";
-import JobCard from "./JobCard";
+import JobsClient from "./JobsClient";
 
 export default async function JobsPage() {
-  const vacancies = await prisma.vacancy.findMany({
-    include: {
-      department: true,
-      _count: {
-        select: { applications: true }
+  const [vacancies, departments] = await Promise.all([
+    prisma.vacancy.findMany({
+      include: {
+        department: true,
+        _count: {
+          select: { applications: true }
+        },
+        applications: {
+          where: { currentStage: "hired" },
+          select: { id: true }
+        }
       },
-      applications: {
-        where: { currentStage: "hired" },
-        select: { id: true }
-      }
-    },
-    orderBy: { createdAt: "desc" }
-  });
+      orderBy: { createdAt: "desc" }
+    }),
+    prisma.department.findMany({
+      orderBy: { name: "asc" }
+    })
+  ]);
 
   // Data Synchronization: Ensure filledCount matches actual hired applications
   for (const vacancy of vacancies) {
@@ -41,40 +46,7 @@ export default async function JobsPage() {
         </Link>
       </div>
 
-      <div className="card">
-        <div className="flex flex-col sm:flex-row items-center gap-4 mb-6">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-nuanu-gray-400" />
-            <input 
-              type="text" 
-              placeholder="Search jobs..." 
-              className="w-full pl-10 pr-4 py-2 bg-nuanu-gray-50 border border-nuanu-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
-            />
-          </div>
-          <div className="flex gap-2 w-full sm:w-auto">
-            <button className="btn-secondary px-3 py-2 text-sm flex-1 sm:flex-none justify-center">
-              All Departments <Filter className="w-3.5 h-3.5 ml-1" />
-            </button>
-            <button className="btn-secondary px-3 py-2 text-sm flex-1 sm:flex-none justify-center">
-              All Statuses <Filter className="w-3.5 h-3.5 ml-1" />
-            </button>
-          </div>
-        </div>
-
-        {vacancies.length === 0 ? (
-          <div className="text-center py-12">
-            <Briefcase className="w-12 h-12 text-nuanu-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-nuanu-navy">No vacancies found</h3>
-            <p className="text-nuanu-gray-500 mt-1">Click the button above to create your first job requisition.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {vacancies.map((job) => (
-              <JobCard key={job.id} job={job} />
-            ))}
-          </div>
-        )}
-      </div>
+      <JobsClient initialVacancies={vacancies} departments={departments} />
     </div>
   );
 }

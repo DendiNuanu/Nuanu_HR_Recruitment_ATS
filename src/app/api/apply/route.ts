@@ -98,6 +98,27 @@ export async function POST(request: Request) {
       }
     });
 
+    // 4. Background Sync to Google Sheets
+    // We do this in a non-blocking way to ensure candidate UX is fast
+    try {
+      const { appendCandidateToSheet } = require("@/lib/integrations/google-sheets");
+      const candidateData = [
+        new Date().toISOString(),
+        vacancy.title,
+        `${firstName} ${lastName}`,
+        email,
+        phone || "-",
+        `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/candidates`, // Link to ATS profile
+        "applied"
+      ];
+      
+      // Attempt sync (it will check both Env and DB settings internally)
+      await appendCandidateToSheet(null, candidateData);
+    } catch (sheetError) {
+      console.error("Google Sheets Sync Failed:", sheetError);
+      // We don't fail the request if sync fails
+    }
+
     return NextResponse.json({ success: true, applicationId: application.id }, { status: 201 });
   } catch (error: any) {
     // Handle unique constraint violation (user already applied to this job)

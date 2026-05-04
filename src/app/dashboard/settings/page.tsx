@@ -1,11 +1,66 @@
 "use client";
 
-import { useState } from "react";
-import { Save, Building, Users, Bell, Shield, Database, Webhook, Plus, UserPlus, Key } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Save, Building, Users, Bell, Shield, Database, Webhook, Plus, UserPlus, Key, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { getIntegrationSettings, updateIntegrationSettings } from "@/app/actions/settings";
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState("general");
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<"idle" | "success" | "error">("idle");
+
+  // Google Sheets State
+  const [sheetsConfig, setSheetsConfig] = useState({
+    serviceAccount: "",
+    spreadsheetId: "1-7L1O7Qf7UB0eFSx5VCdPvEh-6xWebHtY1Q7Zo0Z0jU",
+    isActive: false
+  });
+
+  useEffect(() => {
+    async function loadSettings() {
+      const googleSettings = await getIntegrationSettings("google_sheets");
+      if (googleSettings) {
+        setSheetsConfig({
+          serviceAccount: JSON.stringify(googleSettings.config, null, 2),
+          spreadsheetId: (googleSettings.config as any)?.spreadsheetId || "1-7L1O7Qf7UB0eFSx5VCdPvEh-6xWebHtY1Q7Zo0Z0jU",
+          isActive: googleSettings.isActive
+        });
+      }
+    }
+    loadSettings();
+  }, []);
+
+  const handleSaveIntegrations = async () => {
+    setIsSaving(true);
+    setSaveStatus("idle");
+    try {
+      let configObj = {};
+      try {
+        configObj = JSON.parse(sheetsConfig.serviceAccount);
+      } catch (e) {
+        // If not valid JSON, we still store it as an object if possible or handle error
+      }
+      
+      const res = await updateIntegrationSettings(
+        "google_sheets", 
+        "spreadsheet", 
+        { ...configObj, spreadsheetId: sheetsConfig.spreadsheetId },
+        sheetsConfig.isActive
+      );
+      
+      if (res.success) {
+        setSaveStatus("success");
+        setTimeout(() => setSaveStatus("idle"), 3000);
+      } else {
+        setSaveStatus("error");
+      }
+    } catch (error) {
+      setSaveStatus("error");
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const tabs = [
     { id: "general", label: "General Information", icon: Building },
@@ -23,8 +78,13 @@ export default function SettingsPage() {
           <h1 className="text-2xl font-bold text-nuanu-navy">Settings</h1>
           <p className="text-sm text-nuanu-gray-500 mt-1">Configure your Nuanu ATS instance</p>
         </div>
-        <button className="btn-primary">
-          <Save className="w-4 h-4" /> Save Changes
+        <button 
+          onClick={activeTab === "integrations" ? handleSaveIntegrations : undefined}
+          disabled={isSaving}
+          className="btn-primary"
+        >
+          {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+          {saveStatus === "success" ? "Saved!" : "Save Changes"}
         </button>
       </div>
 
@@ -220,54 +280,71 @@ export default function SettingsPage() {
 
             {activeTab === "integrations" && (
               <motion.div key="integrations" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="card space-y-6">
-                <div className="border-b border-nuanu-gray-100 pb-4">
-                  <h2 className="text-lg font-bold text-nuanu-navy flex items-center gap-2">
-                    <Webhook className="w-5 h-5 text-emerald-600" /> External API Integrations
-                  </h2>
-                  <p className="text-sm text-nuanu-gray-500">Configure Webhooks for LinkedIn, JobStreet, and Google Sheets</p>
+                <div className="border-b border-nuanu-gray-100 pb-4 flex items-center justify-between">
+                  <div>
+                    <h2 className="text-lg font-bold text-nuanu-navy flex items-center gap-2">
+                      <Webhook className="w-5 h-5 text-emerald-600" /> External API Integrations
+                    </h2>
+                    <p className="text-sm text-nuanu-gray-500">Configure Webhooks for LinkedIn, JobStreet, and Google Sheets</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold text-nuanu-gray-400">Enabled</span>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        className="sr-only peer" 
+                        checked={sheetsConfig.isActive}
+                        onChange={e => setSheetsConfig({...sheetsConfig, isActive: e.target.checked})}
+                      />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                    </label>
+                  </div>
                 </div>
                 <div className="space-y-6 max-w-2xl">
-                  {/* LinkedIn */}
-                  <div className="p-4 bg-nuanu-gray-50 rounded-xl border border-nuanu-gray-200">
-                    <h3 className="font-semibold text-nuanu-navy mb-3 text-sm">LinkedIn Talent Solutions API</h3>
-                    <div className="space-y-3">
-                      <div>
-                        <label className="block text-xs font-medium text-nuanu-gray-600 mb-1">Webhook Secret Key</label>
-                        <input type="password" placeholder="Paste your LinkedIn Webhook Secret here" className="input-field text-sm" />
-                      </div>
-                      <div className="text-xs text-nuanu-gray-500 bg-white p-2 rounded border border-nuanu-gray-200 font-mono overflow-x-auto">
-                        Webhook URL: https://yourdomain.com/api/webhooks/linkedin
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* JobStreet */}
-                  <div className="p-4 bg-nuanu-gray-50 rounded-xl border border-nuanu-gray-200">
-                    <h3 className="font-semibold text-nuanu-navy mb-3 text-sm">SEEK / JobStreet API</h3>
-                    <div className="space-y-3">
-                      <div>
-                        <label className="block text-xs font-medium text-nuanu-gray-600 mb-1">Authorization Bearer Token</label>
-                        <input type="password" placeholder="Paste your SEEK API Token here" className="input-field text-sm" />
-                      </div>
-                      <div className="text-xs text-nuanu-gray-500 bg-white p-2 rounded border border-nuanu-gray-200 font-mono overflow-x-auto">
-                        Webhook URL: https://yourdomain.com/api/webhooks/jobstreet
-                      </div>
+                  {/* LinkedIn & JobStreet (Keep static for now) */}
+                  <div className="opacity-50 pointer-events-none grayscale">
+                    <div className="p-4 bg-nuanu-gray-50 rounded-xl border border-nuanu-gray-200 mb-4">
+                      <h3 className="font-semibold text-nuanu-navy mb-1 text-sm">LinkedIn Talent Solutions API</h3>
+                      <p className="text-[10px] text-nuanu-gray-400 mb-3">Enterprise license required</p>
                     </div>
                   </div>
 
                   {/* Google Sheets */}
-                  <div className="p-4 bg-nuanu-gray-50 rounded-xl border border-nuanu-gray-200">
-                    <h3 className="font-semibold text-nuanu-navy mb-3 text-sm">Google Sheets Integration</h3>
-                    <div className="space-y-3">
+                  <div className="p-6 bg-white rounded-2xl border-2 border-emerald-100 shadow-sm relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-4 opacity-10">
+                      <Database className="w-16 h-16 text-emerald-600" />
+                    </div>
+                    <h3 className="font-bold text-nuanu-navy mb-4 flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
+                      Google Sheets Live Tracking
+                    </h3>
+                    <div className="space-y-4 relative z-10">
                       <div>
-                        <label className="block text-xs font-medium text-nuanu-gray-600 mb-1">Service Account JSON (Google Cloud)</label>
-                        <textarea rows={3} placeholder='{"type": "service_account", "project_id": "..."}' className="input-field text-sm font-mono"></textarea>
+                        <label className="block text-xs font-bold text-nuanu-gray-500 uppercase tracking-widest mb-1.5">Service Account JSON (Google Cloud)</label>
+                        <textarea 
+                          rows={5} 
+                          value={sheetsConfig.serviceAccount}
+                          onChange={e => setSheetsConfig({...sheetsConfig, serviceAccount: e.target.value})}
+                          placeholder='{"type": "service_account", "project_id": "...", "private_key": "..."}' 
+                          className="input-field text-xs font-mono bg-nuanu-gray-50 focus:bg-white"
+                        ></textarea>
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-nuanu-gray-600 mb-1">Target Spreadsheet ID</label>
-                        <input type="text" placeholder="1-7L1O7Qf7UB0eFSx5VCdPvEh-6xWebHtY..." className="input-field text-sm" />
+                        <label className="block text-xs font-bold text-nuanu-gray-500 uppercase tracking-widest mb-1.5">Target Spreadsheet ID</label>
+                        <input 
+                          type="text" 
+                          value={sheetsConfig.spreadsheetId}
+                          onChange={e => setSheetsConfig({...sheetsConfig, spreadsheetId: e.target.value})}
+                          placeholder="1-7L1O7Qf7UB0eFSx5VCdPvEh-6xWebHtY..." 
+                          className="input-field text-sm bg-nuanu-gray-50 focus:bg-white" 
+                        />
                       </div>
-                      <p className="text-xs text-amber-600 font-medium">Remember to invite your Service Account email as an Editor to the Google Sheet.</p>
+                      <div className="flex items-center gap-2 text-amber-600 bg-amber-50 p-3 rounded-xl border border-amber-100">
+                        <AlertCircle className="w-4 h-4 shrink-0" />
+                        <p className="text-[11px] font-medium leading-relaxed">
+                          Important: Grant <span className="font-bold underline italic">Editor</span> access to your Service Account email in the Google Sheet sharing settings.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>

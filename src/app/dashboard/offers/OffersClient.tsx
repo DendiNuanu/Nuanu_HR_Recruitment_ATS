@@ -5,6 +5,7 @@ import { Search, Filter, FileText, CheckCircle2, XCircle, Send, MoreVertical, Do
 import { motion, AnimatePresence } from "framer-motion";
 import { formatDate } from "@/lib/utils";
 import { createOffer, sendOffer } from "./actions";
+import ConfirmModal from "@/components/ui/ConfirmModal";
 
 export type OfferData = {
   id: string;
@@ -32,9 +33,12 @@ export default function OffersClient({
   const [search, setSearch] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showConfirmSend, setShowConfirmSend] = useState(false);
+  const [selectedOfferId, setSelectedOfferId] = useState<string | null>(null);
+
   const [formData, setFormData] = useState({
     applicationId: "",
-    salary: 50000,
+    salary: 15000000,
     bonus: 0,
     startDate: new Date().toISOString().split('T')[0],
     notes: ""
@@ -51,7 +55,7 @@ export default function OffersClient({
         setIsModalOpen(false);
         setFormData({
           applicationId: "",
-          salary: 50000,
+          salary: 15000000,
           bonus: 0,
           startDate: new Date().toISOString().split('T')[0],
           notes: ""
@@ -64,10 +68,20 @@ export default function OffersClient({
     }
   };
 
-  const handleSendOffer = async (id: string) => {
-    if (!confirm("Are you sure you want to send this offer to the candidate?")) return;
-    await sendOffer(id);
+  const handleSendOffer = async () => {
+    if (!selectedOfferId) return;
+    setIsSubmitting(true);
+    try {
+      await sendOffer(selectedOfferId);
+      setShowConfirmSend(false);
+      setSelectedOfferId(null);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
 
   const getStatusBadge = (status: string) => {
     switch(status) {
@@ -150,9 +164,9 @@ export default function OffersClient({
                   <td>
                     <div className="flex items-center gap-1.5 text-sm font-medium text-nuanu-navy">
                       <DollarSign className="w-4 h-4 text-nuanu-emerald" />
-                      {offer.salary.toLocaleString()} / yr
+                      Rp {offer.salary.toLocaleString("id-ID")}
                     </div>
-                    {offer.bonus && <div className="text-xs text-nuanu-gray-500 mt-0.5">+ ${(offer.bonus).toLocaleString()} bonus</div>}
+                    {offer.bonus && <div className="text-xs text-nuanu-gray-500 mt-0.5">+ Rp {(offer.bonus).toLocaleString("id-ID")} bonus</div>}
                   </td>
                   <td>{getStatusBadge(offer.status)}</td>
                   <td>
@@ -165,7 +179,10 @@ export default function OffersClient({
                       </button>
                       <button 
                         disabled={offer.status !== "draft"}
-                        onClick={() => handleSendOffer(offer.id)}
+                        onClick={() => {
+                          setSelectedOfferId(offer.id);
+                          setShowConfirmSend(true);
+                        }}
                         className="p-1.5 text-nuanu-gray-400 hover:text-emerald-600 bg-nuanu-gray-50 hover:bg-emerald-50 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed" 
                         title="Send Offer"
                       >
@@ -189,6 +206,21 @@ export default function OffersClient({
           )}
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={showConfirmSend}
+        onClose={() => {
+          setShowConfirmSend(false);
+          setSelectedOfferId(null);
+        }}
+        onConfirm={handleSendOffer}
+        isLoading={isSubmitting}
+        title="Send Offer Letter"
+        message="Are you sure you want to send this official offer letter to the candidate? This will notify them via email and portal."
+        confirmText="Send Offer"
+        type="info"
+      />
+
 
       {/* Generate Offer Modal */}
       <AnimatePresence>
@@ -239,7 +271,7 @@ export default function OffersClient({
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">Annual Salary ($)</label>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">Monthly Salary (Rp)</label>
                     <div className="relative">
                       <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                       <input 
@@ -248,11 +280,12 @@ export default function OffersClient({
                         value={formData.salary}
                         onChange={e => setFormData({...formData, salary: parseInt(e.target.value)})}
                         className="input-field py-2.5 pl-9"
+                        placeholder="e.g. 15000000"
                       />
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">Signing Bonus ($)</label>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">Signing Bonus (Rp)</label>
                     <div className="relative">
                       <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                       <input 
@@ -260,6 +293,7 @@ export default function OffersClient({
                         value={formData.bonus}
                         onChange={e => setFormData({...formData, bonus: parseInt(e.target.value)})}
                         className="input-field py-2.5 pl-9"
+                        placeholder="e.g. 5000000"
                       />
                     </div>
                   </div>

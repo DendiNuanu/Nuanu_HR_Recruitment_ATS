@@ -2,6 +2,8 @@ import { prisma } from "@/lib/prisma";
 import { ArrowLeft, Save, Webhook, LayoutTemplate } from "lucide-react";
 import Link from "next/link";
 import { createVacancy } from "@/app/actions/jobs";
+import DepartmentCombobox from "./DepartmentCombobox";
+
 
 export default async function CreateVacancyPage() {
   const departments = await prisma.department.findMany({
@@ -34,13 +36,9 @@ export default async function CreateVacancyPage() {
               
               <div>
                 <label className="block text-sm font-medium text-nuanu-gray-700 mb-1.5">Department <span className="text-red-500">*</span></label>
-                <select required name="departmentId" className="input-field">
-                  <option value="">Select Department</option>
-                  {departments.map(dept => (
-                    <option key={dept.id} value={dept.id}>{dept.name}</option>
-                  ))}
-                </select>
+                <DepartmentCombobox departments={departments} />
               </div>
+
 
               <div>
                 <label className="block text-sm font-medium text-nuanu-gray-700 mb-1.5">Location <span className="text-red-500">*</span></label>

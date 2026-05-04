@@ -8,6 +8,14 @@ const nextConfig: NextConfig = {
     // !! WARN !!
     ignoreBuildErrors: true,
   },
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'www.nuanu.com',
+      },
+    ],
+  },
   experimental: {
     // Add any experimental features here if needed
   }

@@ -13,34 +13,42 @@ export default async function CareersPage() {
   return (
     <div style={{ minHeight: '100vh', background: '#EFF3F8' }}>
       {/* Hero Header */}
-      <header className="bg-nuanu-navy relative overflow-hidden">
-        <div className="absolute inset-0 z-0 pointer-events-none">
-          <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-gradient-to-br from-emerald-500/15 to-transparent blur-[100px] rounded-full translate-x-1/3 -translate-y-1/3"></div>
-          <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-gradient-to-tr from-teal-500/10 to-transparent blur-[100px] rounded-full -translate-x-1/3 translate-y-1/3"></div>
+      <header className="relative h-[500px] flex items-center justify-center overflow-hidden">
+        {/* Background Image */}
+        <div className="absolute inset-0 z-0">
+          <Image
+            src="https://www.nuanu.com/_next/image?url=https%3A%2F%2Fadmin.cockpit.nuanu.com%2Fassets%2F0aa79909-46c6-4e29-a2ec-7bde786960ab.webp&w=1920&q=75"
+            alt="Nuanu Background"
+            fill
+            className="object-cover"
+            priority
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-nuanu-navy/80 via-nuanu-navy/70 to-nuanu-navy/90"></div>
         </div>
         
-        <div style={{ maxWidth: '960px', margin: '0 auto', padding: '80px 24px' }} className="relative z-10">
+        <div style={{ maxWidth: '960px', margin: '0 auto', padding: '0 24px' }} className="relative z-10 w-full">
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-            <Image
-              src="/nuanu-logo.png"
-              alt="Nuanu"
-              width={72}
-              height={72}
-              className="rounded-2xl"
-              style={{ boxShadow: '0 20px 40px rgba(0,0,0,0.3)', marginBottom: '32px' }}
-            />
-            <h1 className="text-nuanu-white" style={{ fontSize: '48px', fontWeight: 800, letterSpacing: '-0.02em', marginBottom: '16px' }}>
+            <div className="mb-8 p-3 bg-white/10 backdrop-blur-md rounded-3xl border border-white/20 shadow-2xl">
+              <Image
+                src="/nuanu-logo.png"
+                alt="Nuanu"
+                width={72}
+                height={72}
+                className="rounded-2xl"
+              />
+            </div>
+            <h1 className="text-nuanu-white leading-tight" style={{ fontSize: '56px', fontWeight: 900, letterSpacing: '-0.03em', marginBottom: '16px', textShadow: '0 10px 30px rgba(0,0,0,0.5)' }}>
               Join Our Team
             </h1>
-            <p className="text-nuanu-emerald" style={{ fontSize: '18px', maxWidth: '540px', opacity: 0.8, lineHeight: 1.6 }}>
+            <p className="text-nuanu-emerald font-semibold" style={{ fontSize: '20px', maxWidth: '600px', lineHeight: 1.6, textShadow: '0 2px 10px rgba(0,0,0,0.3)' }}>
               We are looking for the best talent to build a better future together
             </p>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '24px', marginTop: '32px', color: 'rgba(255,255,255,0.4)', fontSize: '14px', fontWeight: 500 }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Briefcase style={{ width: '16px', height: '16px' }} /> {vacancies.length} Open Positions
+            <div style={{ display: 'flex', alignItems: 'center', gap: '24px', marginTop: '40px', color: 'rgba(255,255,255,0.7)', fontSize: '15px', fontWeight: 600 }}>
+              <span className="flex items-center gap-2 bg-white/10 px-4 py-2 rounded-full backdrop-blur-sm border border-white/10">
+                <Briefcase style={{ width: '18px', height: '18px' }} /> {vacancies.length} Open Positions
               </span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <MapPin style={{ width: '16px', height: '16px' }} /> Remote & On-site
+              <span className="flex items-center gap-2 bg-white/10 px-4 py-2 rounded-full backdrop-blur-sm border border-white/10">
+                <MapPin style={{ width: '18px', height: '18px' }} /> Remote & On-site
               </span>
             </div>
           </div>

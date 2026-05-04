@@ -5,14 +5,18 @@ export default async function OnboardingPage() {
   // Mock OnboardingData from employees (Users) for demonstration, 
   // normally this would tie to a true Employee/Onboarding table
   const users = await prisma.user.findMany({
+    where: {
+      onboardingTasks: {
+        some: {}
+      }
+    },
     include: {
       department: true,
       onboardingTasks: true,
     },
-    // For demo purposes, we treat some users as "new hires"
-    take: 10,
     orderBy: { createdAt: "desc" }
   });
+
 
   const onboardings: OnboardingData[] = users.map(u => {
     const total = u.onboardingTasks.length;

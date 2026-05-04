@@ -88,7 +88,7 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-xl border-b border-nuanu-gray-200">
-      <div className="flex items-center justify-between h-16 px-4 md:px-6">
+      <div className="flex items-center justify-between h-16 px-12">
         {/* Left */}
         <div className="flex items-center gap-4">
           <button

@@ -4,29 +4,47 @@ import { useState } from "react";
 import { Briefcase, Users, Eye, Edit, MoreVertical, Trash2, Copy } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { deleteVacancy } from "@/app/actions/jobs";
+import ConfirmModal from "@/components/ui/ConfirmModal";
 
 export default function JobCard({ job }: { job: any }) {
   const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isDuplicating, setIsDuplicating] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const handleDelete = async () => {
-    if (!confirm("Are you sure you want to delete this job?")) return;
     setIsDeleting(true);
-    // Real implementation would call API
-    // await fetch(`/api/jobs/${job.id}`, { method: 'DELETE' });
-    // router.refresh();
-    setTimeout(() => {
-      alert("Job deleted (Simulated for Demo)");
+    try {
+      await deleteVacancy(job.id);
+      setShowDeleteModal(false);
+      router.refresh();
+    } catch (error) {
+      console.error(error);
+    } finally {
       setIsDeleting(false);
-      setIsMenuOpen(false);
-    }, 500);
+    }
   };
 
-  const handleDuplicate = () => {
-    alert("Job duplicated (Simulated for Demo)");
+  const handleDuplicate = async () => {
+    setIsDuplicating(true);
     setIsMenuOpen(false);
+    try {
+      const { duplicateVacancy } = await import("@/app/actions/jobs");
+      const res = await duplicateVacancy(job.id);
+      if (res.success) {
+        router.refresh();
+      } else {
+        alert("Duplication failed");
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsDuplicating(false);
+    }
   };
+
 
   return (
     <div className="border border-nuanu-gray-100 rounded-xl p-5 hover:shadow-lg hover:border-emerald-100 transition-all group bg-white relative">
@@ -54,12 +72,21 @@ export default function JobCard({ job }: { job: any }) {
               <div className="absolute right-0 mt-1 w-36 bg-white border border-nuanu-gray-200 rounded-lg shadow-lg overflow-hidden z-20">
                 <button 
                   onClick={handleDuplicate}
-                  className="w-full text-left px-4 py-2 text-sm text-nuanu-gray-700 hover:bg-nuanu-gray-50 flex items-center gap-2 transition-colors"
+                  disabled={isDuplicating}
+                  className="w-full text-left px-4 py-2 text-sm text-nuanu-gray-700 hover:bg-nuanu-gray-50 flex items-center gap-2 transition-colors disabled:opacity-50"
                 >
-                  <Copy className="w-3.5 h-3.5" /> Duplicate
+                  {isDuplicating ? (
+                    <div className="w-3.5 h-3.5 border-2 border-nuanu-gray-400 border-t-nuanu-navy rounded-full animate-spin" />
+                  ) : (
+                    <Copy className="w-3.5 h-3.5" />
+                  )}
+                  {isDuplicating ? "Duplicating..." : "Duplicate"}
                 </button>
                 <button 
-                  onClick={handleDelete}
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    setShowDeleteModal(true);
+                  }}
                   disabled={isDeleting}
                   className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors"
                 >
@@ -94,12 +121,25 @@ export default function JobCard({ job }: { job: any }) {
           <Link href={`/careers/${job.id}`} target="_blank" className="p-1.5 text-nuanu-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-md transition-colors" title="View Public Page">
             <Eye className="w-4 h-4" />
           </Link>
-          {/* Using # for edit since edit page doesn't exist yet, but alerting instead to simulate feature */}
-          <button onClick={() => alert('Edit page feature opening soon (Demo)')} className="p-1.5 text-nuanu-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors" title="Edit Job">
+          <Link 
+            href={`/dashboard/jobs/${job.id}/edit`} 
+            className="p-1.5 text-nuanu-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors" 
+            title="Edit Job"
+          >
             <Edit className="w-4 h-4" />
-          </button>
+          </Link>
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleDelete}
+        isLoading={isDeleting}
+        title="Delete Vacancy"
+        message={`Are you sure you want to delete "${job.title}"? This action cannot be undone and will remove all associated applications.`}
+      />
     </div>
+
   );
 }

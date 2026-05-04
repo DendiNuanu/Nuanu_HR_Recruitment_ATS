@@ -63,18 +63,65 @@ export default async function DashboardPage() {
     percentage: totalSources > 0 ? Math.round((s._count / totalSources) * 100) : 0
   })).sort((a, b) => b.count - a.count);
 
-  // 4. Monthly Applications (Simplified real data or mocked fallback)
-  // For simplicity, we provide a static array, as generating true historical series in SQL can be complex.
-  const monthlyApplications = [
-    { month: "Oct", applications: 45, hires: 2 },
-    { month: "Nov", applications: 52, hires: 3 },
-    { month: "Dec", applications: 38, hires: 1 },
-    { month: "Jan", applications: 65, hires: 4 },
-    { month: "Feb", applications: 72, hires: 5 },
-    { month: "Mar", applications: 85, hires: 7 },
-  ];
+  // 4. Real Monthly Applications Trend (Last 6 Months)
+  const sixMonthsAgo = new Date();
+  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
+  sixMonthsAgo.setDate(1);
+  sixMonthsAgo.setHours(0, 0, 0, 0);
 
-  // 5. Match Score Distribution
+  const monthlyApps = await prisma.application.findMany({
+    where: { createdAt: { gte: sixMonthsAgo } },
+    select: { createdAt: true, currentStage: true }
+  });
+
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const monthlyDataMap: Record<string, { month: string, applications: number, hires: number }> = {};
+  
+  // Initialize last 6 months
+  for (let i = 0; i < 6; i++) {
+    const d = new Date();
+    d.setMonth(d.getMonth() - i);
+    const mName = months[d.getMonth()];
+    monthlyDataMap[mName] = { month: mName, applications: 0, hires: 0 };
+  }
+
+  monthlyApps.forEach(app => {
+    const mName = months[app.createdAt.getMonth()];
+    if (monthlyDataMap[mName]) {
+      monthlyDataMap[mName].applications++;
+      if (app.currentStage === "hired") {
+        monthlyDataMap[mName].hires++;
+      }
+    }
+  });
+
+  const monthlyApplicationsTrend = Object.values(monthlyDataMap).reverse();
+
+  // 5. Average Time to Hire (Real Calculation)
+  const hiredApplications = await prisma.application.findMany({
+    where: { currentStage: "hired" },
+    select: { createdAt: true, updatedAt: true } // Assuming updatedAt is when they were hired if the stage is hired
+  });
+
+  let totalDays = 0;
+  hiredApplications.forEach(app => {
+    const diffTime = Math.abs(app.updatedAt.getTime() - app.createdAt.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    totalDays += diffDays;
+  });
+
+  const averageTimeToHire = hiredApplications.length > 0 ? Math.round(totalDays / hiredApplications.length) : 0;
+  const totalHires = hiredApplications.length;
+
+  // 6. Average Cost Per Hire (Dynamic Mock based on Vacancy Salaries)
+  const vacancies = await prisma.vacancy.findMany({
+    where: { status: "published" },
+    select: { salaryMin: true, salaryMax: true }
+  });
+  const avgSalary = vacancies.reduce((acc, v) => acc + ((v.salaryMin || 0) + (v.salaryMax || 0)) / 2, 0) / (vacancies.length || 1);
+  const averageCostPerHire = totalHires > 0 ? Math.round(avgSalary * 0.15) : 0; // 15% of annual salary as hiring cost
+
+  // 7. Match Score Distribution
   const allScores = await prisma.candidateScore.findMany({ select: { overallScore: true } });
   let range90_100 = 0, range80_89 = 0, range70_79 = 0, range60_69 = 0, range50_59 = 0, below50 = 0;
   
@@ -97,13 +144,12 @@ export default async function DashboardPage() {
     { range: "Below 50", count: below50 },
   ];
 
-  // 6. Recent Activity
+  // 8. Recent Activity
   const activities = await prisma.activityLog.findMany({
     take: 5,
     orderBy: { createdAt: 'desc' }
   });
   
-  // To get candidate names for activity logs where resource is 'Application', 'Interview' or 'Assessment'
   const resourceIds = activities.map(a => a.resourceId).filter(id => id !== null) as string[];
   const relatedApps = await prisma.application.findMany({
     where: { id: { in: resourceIds } },
@@ -121,8 +167,8 @@ export default async function DashboardPage() {
     };
   });
 
-  // 7. Top Candidates
-  const applications = await prisma.application.findMany({
+  // 9. Top Candidates
+  const topApps = await prisma.application.findMany({
     where: {
       candidateScore: { isNot: null }
     },
@@ -137,14 +183,14 @@ export default async function DashboardPage() {
     take: 4
   });
 
-  const topCandidates = applications.map(app => ({
+  const topCandidates = topApps.map(app => ({
     id: app.id,
     name: app.candidate.name,
     vacancyTitle: app.vacancy.title,
     score: app.candidateScore?.overallScore || 0,
   }));
 
-  // 8. Upcoming Interviews
+  // 10. Upcoming Interviews
   const interviews = await prisma.interview.findMany({
     where: {
       scheduledAt: { gte: new Date() }
@@ -164,25 +210,18 @@ export default async function DashboardPage() {
     status: i.status,
   }));
 
-  const totalHires = await prisma.application.count({ where: { currentStage: "hired" } });
-
   const metrics: DashboardMetrics = {
     activeVacancies,
     totalVacancies,
     totalCandidates,
     newCandidatesThisMonth,
-    averageTimeToHire: totalHires > 0 ? 18 : 0, // Simplified real-time metric
+    averageTimeToHire,
     offerAcceptanceRate,
     averageMatchScore,
-    averageCostPerHire: totalHires > 0 ? 3850 : 0, 
+    averageCostPerHire,
     pipelineFunnel,
     candidateSourceBreakdown,
-    monthlyApplications: [
-      { month: "Jan", applications: 65, hires: 4 },
-      { month: "Feb", applications: 72, hires: 5 },
-      { month: "Mar", applications: 85, hires: 7 },
-      { month: "Apr", applications: 92, hires: totalHires }, // Syncing current month
-    ],
+    monthlyApplications: monthlyApplicationsTrend,
     matchScoreDistribution,
     recentActivity,
     topCandidates,

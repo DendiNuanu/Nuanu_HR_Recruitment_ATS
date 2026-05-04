@@ -10,12 +10,26 @@ import { google } from "googleapis";
 const GOOGLE_SERVICE_ACCOUNT_JSON = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
 
 export async function getGoogleSheetsClient() {
-  if (!GOOGLE_SERVICE_ACCOUNT_JSON) {
-    throw new Error("GOOGLE_SERVICE_ACCOUNT_JSON is not configured in the environment.");
+  let serviceAccountJson = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
+
+  if (!serviceAccountJson) {
+    // Fallback to database settings
+    try {
+      const { getIntegrationSettings } = require("@/app/actions/settings");
+      const integration = await getIntegrationSettings("google_sheets");
+      if (integration && integration.isActive && integration.config) {
+        serviceAccountJson = JSON.stringify(integration.config);
+      }
+    } catch (dbError) {
+      console.error("Failed to fetch Google Sheets settings from DB:", dbError);
+    }
   }
 
-  const credentials = JSON.parse(GOOGLE_SERVICE_ACCOUNT_JSON);
+  if (!serviceAccountJson) {
+    throw new Error("Google Sheets integration is not configured. Please set GOOGLE_SERVICE_ACCOUNT_JSON or configure in Settings.");
+  }
 
+  const credentials = JSON.parse(serviceAccountJson);
   const auth = new google.auth.GoogleAuth({
     credentials,
     scopes: ["https://www.googleapis.com/auth/spreadsheets"],
@@ -27,13 +41,24 @@ export async function getGoogleSheetsClient() {
 /**
  * Appends a new candidate to the tracking Google Sheet
  */
-export async function appendCandidateToSheet(spreadsheetId: string, candidateData: any[]) {
+export async function appendCandidateToSheet(spreadsheetId: string | null, candidateData: any[]) {
   try {
     const sheets = await getGoogleSheetsClient();
     
+    let targetId = spreadsheetId;
+    if (!targetId) {
+      const { getIntegrationSettings } = require("@/app/actions/settings");
+      const integration = await getIntegrationSettings("google_sheets");
+      targetId = (integration?.config as any)?.spreadsheetId;
+    }
+
+    if (!targetId) {
+      throw new Error("Target Spreadsheet ID is not configured.");
+    }
+
     // Assumes the sheet has a tab named 'Candidates'
     const response = await sheets.spreadsheets.values.append({
-      spreadsheetId,
+      spreadsheetId: targetId,
       range: "Candidates!A:Z",
       valueInputOption: "USER_ENTERED",
       requestBody: {
