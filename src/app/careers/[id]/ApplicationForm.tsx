@@ -87,14 +87,15 @@ export default function ApplicationForm({ jobId }: { jobId: string }) {
         </div>
       </div>
 
-      <div>
-        <label className="block text-xs font-semibold text-nuanu-gray-600 mb-1">Email Address *</label>
-        <input required type="email" className="input-field py-2.5 text-sm" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
-      </div>
-
-      <div>
-        <label className="block text-xs font-semibold text-nuanu-gray-600 mb-1">Phone Number</label>
-        <input type="tel" className="input-field py-2.5 text-sm" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-xs font-semibold text-nuanu-gray-600 mb-1">Email Address *</label>
+          <input required type="email" className="input-field py-2.5 text-sm" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
+        </div>
+        <div>
+          <label className="block text-xs font-semibold text-nuanu-gray-600 mb-1">Phone Number</label>
+          <input type="tel" className="input-field py-2.5 text-sm" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
+        </div>
       </div>
 
 

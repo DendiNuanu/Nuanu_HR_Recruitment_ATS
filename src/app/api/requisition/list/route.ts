@@ -9,9 +9,19 @@ export async function GET() {
       include: {
         vacancy: {
           select: {
+            id: true,
             title: true,
             code: true,
-            department: { select: { name: true } }
+            salaryMin: true,
+            salaryMax: true,
+            department: { 
+              include: { 
+                budgets: {
+                  where: { fiscalYear: new Date().getFullYear() },
+                  take: 1
+                }
+              } 
+            }
           }
         },
         approvals: {

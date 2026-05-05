@@ -6,7 +6,7 @@ import { getCache, setCache } from "@/lib/cache";
 
 export default async function DashboardPage() {
   // RBAC Protection
-  await checkRole(["admin", "hr", "recruiter", "interviewer"]);
+  await checkRole(["admin", "hr", "recruiter", "interviewer", "finance", "manager"]);
 
   // 0. Check Cache
   const cacheKey = "dashboard_metrics";

@@ -15,6 +15,7 @@ export default function JobCard({ job }: { job: any }) {
   const [isDuplicating, setIsDuplicating] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isSubmittingApproval, setIsSubmittingApproval] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
 
   const handleDelete = async () => {
     setIsDeleting(true);
@@ -75,6 +76,24 @@ export default function JobCard({ job }: { job: any }) {
       toast.error("An unexpected error occurred");
     } finally {
       setIsSubmittingApproval(false);
+    }
+  };
+
+  const handlePublish = async () => {
+    setIsPublishing(true);
+    try {
+      const { publishVacancy } = await import("@/app/actions/jobs");
+      const res = await publishVacancy(job.id);
+      if (res.success) {
+        toast.success("Job published successfully!");
+        router.refresh();
+      } else {
+        toast.error(res.error || "Failed to publish job");
+      }
+    } catch (error) {
+      toast.error("An unexpected error occurred");
+    } finally {
+      setIsPublishing(false);
     }
   };
 
@@ -143,14 +162,24 @@ export default function JobCard({ job }: { job: any }) {
         <span className="flex items-center gap-1.5"><Users className="w-4 h-4 text-nuanu-gray-400" /> {job.filledCount}/{job.headcount} Hired</span>
       </div>
 
-      {!job.isApproved && job.status !== "published" && (
-        <div className="mb-4">
+      {/* Actions Section */}
+      <div className="mb-4">
+        {job.status === "approved" ? (
+          <button 
+            onClick={handlePublish}
+            disabled={isPublishing}
+            className="w-full py-2.5 bg-nuanu-navy text-white rounded-lg text-xs font-bold flex items-center justify-center gap-2 hover:bg-nuanu-navy-dark transition-all shadow-md shadow-nuanu-navy/10"
+          >
+            {isPublishing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
+            {isPublishing ? "Publishing..." : "Publish to Careers"}
+          </button>
+        ) : !job.isApproved && job.status !== "published" && (
           <button 
             onClick={handleSubmitForApproval}
             disabled={isSubmittingApproval || job.status === "pending_approval"}
-            className={`w-full py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-all ${
+            className={`w-full py-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-all ${
               job.status === "pending_approval" 
-              ? "bg-amber-50 text-amber-600 cursor-default" 
+              ? "bg-amber-50 text-amber-600 cursor-default border border-amber-100" 
               : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-100"
             }`}
           >
@@ -161,8 +190,8 @@ export default function JobCard({ job }: { job: any }) {
              job.status === "pending_approval" ? "Pending Approval" : 
              "Submit for Approval"}
           </button>
-        </div>
-      )}
+        )}
+      </div>
 
       <div className="flex items-center justify-between pt-4 border-t border-nuanu-gray-50">
         <div className="flex items-center gap-2">

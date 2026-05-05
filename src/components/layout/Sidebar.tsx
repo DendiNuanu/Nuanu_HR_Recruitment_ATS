@@ -26,17 +26,17 @@ import {
 } from "lucide-react";
 
 const menuItems = [
-  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Jobs & Vacancies", href: "/dashboard/jobs", icon: Briefcase },
-  { label: "Approvals", href: "/dashboard/requisitions", icon: ClipboardCheck },
-  { label: "Candidates", href: "/dashboard/candidates", icon: Users },
-  { label: "Pipeline", href: "/dashboard/pipeline", icon: Kanban },
-  { label: "AI Scoring", href: "/dashboard/ai-scoring", icon: Brain },
-  { label: "Interviews", href: "/dashboard/interviews", icon: Calendar },
-  { label: "Screening", href: "/dashboard/screening", icon: BarChart3 }, // Reusing BarChart for screening for variety
-  { label: "Offers", href: "/dashboard/offers", icon: FileText },
-  { label: "Onboarding", href: "/dashboard/onboarding", icon: UserPlus },
-  { label: "Settings", href: "/dashboard/settings", icon: Settings },
+  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, allowed: ["admin", "super-admin", "hr", "recruiter", "manager"] },
+  { label: "Jobs & Vacancies", href: "/dashboard/jobs", icon: Briefcase, allowed: ["admin", "super-admin", "hr", "recruiter"] },
+  { label: "Approvals", href: "/dashboard/requisitions", icon: ClipboardCheck, allowed: ["admin", "super-admin", "hr", "finance", "manager"] },
+  { label: "Candidates", href: "/dashboard/candidates", icon: Users, allowed: ["admin", "super-admin", "hr", "recruiter"] },
+  { label: "Pipeline", href: "/dashboard/pipeline", icon: Kanban, allowed: ["admin", "super-admin", "hr", "recruiter"] },
+  { label: "AI Scoring", href: "/dashboard/ai-scoring", icon: Brain, allowed: ["admin", "super-admin", "hr", "recruiter"] },
+  { label: "Interviews", href: "/dashboard/interviews", icon: Calendar, allowed: ["admin", "super-admin", "hr", "recruiter", "interviewer"] },
+  { label: "Screening", href: "/dashboard/screening", icon: BarChart3, allowed: ["admin", "super-admin", "hr", "recruiter"] },
+  { label: "Offers", href: "/dashboard/offers", icon: FileText, allowed: ["admin", "super-admin", "hr", "recruiter"] },
+  { label: "Onboarding", href: "/dashboard/onboarding", icon: UserPlus, allowed: ["admin", "super-admin", "hr", "recruiter"] },
+  { label: "Settings", href: "/dashboard/settings", icon: Settings, allowed: ["admin", "super-admin"] },
 ];
 
 export default function Sidebar() {
@@ -45,9 +45,11 @@ export default function Sidebar() {
   const { isCollapsed, isMobileOpen, toggle, setMobileOpen } = useSidebarStore();
   const [logo, setLogo] = useState<string | null>(null);
   const [companyName, setCompanyName] = useState("Nuanu");
+  const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    async function loadBranding() {
+    async function loadData() {
+      // Load branding
       const settings = await getIntegrationSettings("general_info");
       if (settings && (settings.config as any)?.logo) {
         setLogo((settings.config as any).logo);
@@ -55,8 +57,14 @@ export default function Sidebar() {
       if (settings && (settings.config as any)?.companyName) {
         setCompanyName((settings.config as any).companyName);
       }
+
+      // Load user from localStorage (synced with auth)
+      const storedUser = localStorage.getItem("nuanu_user");
+      if (storedUser) {
+        setUser(JSON.parse(storedUser));
+      }
     }
-    loadBranding();
+    loadData();
   }, []);
 
   const handleLogout = async () => {
@@ -69,6 +77,13 @@ export default function Sidebar() {
     if (href === "/dashboard") return pathname === "/dashboard";
     return pathname.startsWith(href);
   };
+
+  const userRoles = user?.roles?.map((r: string) => r.toLowerCase()) || [];
+  
+  const filteredMenuItems = menuItems.filter(item => {
+    if (userRoles.includes("super-admin")) return true;
+    return item.allowed.some(role => userRoles.includes(role));
+  });
 
   const sidebarContent = (
     <>
@@ -118,7 +133,7 @@ export default function Sidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
-        {menuItems.map((item) => (
+        {filteredMenuItems.map((item) => (
           <Link
             key={item.href}
             href={item.href}
@@ -150,8 +165,8 @@ export default function Sidebar() {
               <Shield className="w-3.5 h-3.5" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-white text-[13px] font-semibold truncate leading-tight">Super Admin</p>
-              <p className="text-gray-500 text-[11px] truncate leading-tight mt-0.5">admin@nuanu.com</p>
+              <p className="text-white text-[13px] font-semibold truncate leading-tight">{user?.name || "Super Admin"}</p>
+              <p className="text-gray-500 text-[11px] truncate leading-tight mt-0.5">{user?.email || "admin@nuanu.com"}</p>
             </div>
           </div>
         )}

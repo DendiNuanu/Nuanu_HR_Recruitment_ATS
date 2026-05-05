@@ -77,7 +77,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
         </div>
 
         {/* Application Form — full width on all screens */}
-        <div style={{ background: '#FFFFFF', padding: 'clamp(20px, 4vw, 32px)', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 16px rgba(0,0,0,0.08)', maxWidth: '500px', margin: '0 auto' }}>
+        <div style={{ background: '#FFFFFF', padding: 'clamp(20px, 4vw, 32px)', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 16px rgba(0,0,0,0.08)' }}>
           <h3 style={{ fontSize: '20px', fontWeight: 700, color: '#0A1628', marginBottom: '4px', textAlign: 'center' }}>Apply for this position</h3>
           <p style={{ fontSize: '14px', color: '#64748B', marginBottom: '24px', textAlign: 'center' }}>Fill in your details below to apply.</p>
           <ApplicationForm jobId={job.id} />

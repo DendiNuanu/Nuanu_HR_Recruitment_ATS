@@ -87,17 +87,27 @@ export async function approveStep(requisitionId: string, approverId: string, com
     const roleOrder = ["MANAGER", "HR", "FINANCE"];
     const currentRole = roleOrder[requisition.currentStep - 1];
 
+    // Check if user is Super Admin (bypass)
+    const user = await tx.user.findUnique({
+      where: { id: approverId },
+      include: { userRoles: { include: { role: true } } }
+    });
+    const isSuperAdmin = user?.userRoles.some(ur => ur.role.slug === "super-admin");
+
     const currentApproval = await tx.approval.findFirst({
       where: {
         requisitionId,
-        approverId,
         role: currentRole,
         status: "PENDING"
       }
     });
 
     if (!currentApproval) {
-      throw new Error("You are not the current authorized approver for this step.");
+      throw new Error("This requisition has no pending approval step for the current phase.");
+    }
+
+    if (!isSuperAdmin && currentApproval.approverId !== approverId) {
+      throw new Error(`AUTHORIZED ERROR: This step currently requires approval from ${currentRole}. Please wait for them to approve or login as an Administrator.`);
     }
 
     try {
@@ -143,7 +153,10 @@ export async function approveStep(requisitionId: string, approverId: string, com
 
         await tx.vacancy.update({
           where: { id: requisition.vacancyId },
-          data: { isApproved: true }
+          data: { 
+            isApproved: true,
+            status: "approved"
+          }
         });
 
         // Notify requester

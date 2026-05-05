@@ -239,3 +239,56 @@ export async function duplicateVacancy(id: string) {
     return { success: false, error: "Failed to duplicate job" };
   }
 }
+
+export async function publishVacancy(id: string) {
+  try {
+    const vacancy = await prisma.vacancy.findUnique({
+      where: { id }
+    });
+
+    if (!vacancy) throw new Error("Vacancy not found");
+    if (!vacancy.isApproved) throw new Error("Vacancy must be approved before publishing");
+
+    await prisma.vacancy.update({
+      where: { id },
+      data: { 
+        status: "published",
+        publishedAt: new Date()
+      }
+    });
+
+    // Manage Job Posting record
+    const existingPosting = await prisma.jobPosting.findFirst({
+      where: {
+        vacancyId: id,
+        channel: "internal"
+      }
+    });
+
+    if (existingPosting) {
+      await prisma.jobPosting.update({
+        where: { id: existingPosting.id },
+        data: {
+          status: "active",
+          publishedAt: new Date()
+        }
+      });
+    } else {
+      await prisma.jobPosting.create({
+        data: {
+          vacancyId: id,
+          channel: "internal",
+          status: "active",
+          publishedAt: new Date()
+        }
+      });
+    }
+
+    revalidatePath("/dashboard/jobs");
+    revalidatePath("/careers");
+    return { success: true };
+  } catch (error: any) {
+    console.error("Publishing failed:", error);
+    return { success: false, error: error.message };
+  }
+}

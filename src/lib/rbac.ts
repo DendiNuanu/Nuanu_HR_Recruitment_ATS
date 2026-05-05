@@ -1,6 +1,6 @@
 import { getSession } from "./auth";
 
-export type Role = "admin" | "hr" | "recruiter" | "interviewer";
+export type Role = "admin" | "hr" | "recruiter" | "interviewer" | "finance" | "manager";
 
 export async function checkRole(allowedRoles: Role[]) {
   const session = await getSession();
