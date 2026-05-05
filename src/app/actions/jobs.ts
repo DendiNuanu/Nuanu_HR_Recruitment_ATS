@@ -3,6 +3,8 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { getSession } from "@/lib/auth";
+import { createRequisition } from "@/lib/requisitionService";
 
 export async function createVacancy(formData: FormData) {
   const title = formData.get("title") as string;
@@ -49,6 +51,16 @@ export async function createVacancy(formData: FormData) {
     throw new Error("Admin user not found. Please run database seed.");
   }
 
+  if (publishToCareers && !adminUser) { // Admin user is fallback here, but rule applies
+    // Normally we'd check session, but following existing logic
+  }
+
+  const finalStatus = publishToCareers ? "published" : "draft";
+  
+  if (finalStatus === "published") {
+    // We'll allow it to go to draft and THEN submit for approval automatically if requested
+  }
+
   // Create the Vacancy
   const newVacancy = await prisma.vacancy.create({
     data: {
@@ -61,10 +73,16 @@ export async function createVacancy(formData: FormData) {
       headcount,
       description,
       requirements,
-      status: publishToCareers ? "published" : "draft",
-      publishedAt: publishToCareers ? new Date() : null,
+      status: "draft", // Always start as draft for approval flow
+      isApproved: false,
+      publishedAt: null,
     }
   });
+
+  // Automatically submit for approval if it was intended for publishing
+  if (publishToCareers) {
+    await createRequisition(newVacancy.id, adminUser.id);
+  }
 
   // Create mock JobPostings if third-party toggles are on
   const postings = [];
@@ -136,6 +154,12 @@ export async function updateVacancy(id: string, formData: FormData) {
 
   if (!departmentId) {
     throw new Error("Department is required.");
+  }
+
+  const existing = await prisma.vacancy.findUnique({ where: { id } });
+  
+  if (status === "published" && !existing?.isApproved) {
+    throw new Error("Vacancy must be approved before publishing.");
   }
 
   await prisma.vacancy.update({

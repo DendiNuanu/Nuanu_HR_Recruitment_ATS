@@ -127,6 +127,9 @@ export async function sendCandidateEmail(data: {
     return { success: true };
   } catch (error) {
     console.error("Failed to send candidate email:", error);
-    return { success: false, error: "Failed to send email" };
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : "Failed to send email" 
+    };
   }
 }

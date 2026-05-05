@@ -86,8 +86,8 @@ export default async function CreateVacancyPage() {
               <label className="flex items-start gap-3 p-3 bg-nuanu-gray-50 rounded-lg border border-nuanu-gray-200 cursor-pointer hover:bg-emerald-50 hover:border-emerald-200 transition-colors">
                 <input type="checkbox" name="publishCareers" defaultChecked className="mt-1 w-4 h-4 text-emerald-600 rounded border-gray-300" />
                 <div>
-                  <p className="text-sm font-bold text-nuanu-navy flex items-center gap-2"><LayoutTemplate className="w-4 h-4 text-emerald-500" /> Nuanu Careers Page</p>
-                  <p className="text-xs text-nuanu-gray-500 mt-1">Publish instantly to your public job board.</p>
+                  <p className="text-sm font-bold text-nuanu-navy flex items-center gap-2"><LayoutTemplate className="w-4 h-4 text-emerald-500" /> Request Approval & Publish</p>
+                  <p className="text-xs text-nuanu-gray-500 mt-1">Submit this vacancy for official approval before publishing.</p>
                 </div>
               </label>
 
@@ -109,8 +109,8 @@ export default async function CreateVacancyPage() {
             </div>
 
             <div className="pt-4 border-t border-nuanu-gray-100">
-              <button type="submit" className="w-full btn-primary py-3 justify-center text-sm">
-                <Save className="w-4 h-4" /> Create & Publish Vacancy
+              <button type="submit" className="w-full btn-primary py-3 justify-center text-sm shadow-lg shadow-emerald-500/20">
+                <Save className="w-4 h-4" /> Create & Submit for Approval
               </button>
             </div>
           </div>

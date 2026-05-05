@@ -27,15 +27,15 @@ import {
 
 const menuItems = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Job Requisitions", href: "/dashboard/jobs", icon: Briefcase },
+  { label: "Jobs & Vacancies", href: "/dashboard/jobs", icon: Briefcase },
+  { label: "Approvals", href: "/dashboard/requisitions", icon: ClipboardCheck },
   { label: "Candidates", href: "/dashboard/candidates", icon: Users },
   { label: "Pipeline", href: "/dashboard/pipeline", icon: Kanban },
   { label: "AI Scoring", href: "/dashboard/ai-scoring", icon: Brain },
   { label: "Interviews", href: "/dashboard/interviews", icon: Calendar },
-  { label: "Screening", href: "/dashboard/screening", icon: ClipboardCheck },
+  { label: "Screening", href: "/dashboard/screening", icon: BarChart3 }, // Reusing BarChart for screening for variety
   { label: "Offers", href: "/dashboard/offers", icon: FileText },
   { label: "Onboarding", href: "/dashboard/onboarding", icon: UserPlus },
-  { label: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
   { label: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
 
@@ -170,12 +170,20 @@ export default function Sidebar() {
     <>
       {/* Desktop Sidebar */}
       <motion.aside
-        animate={{ width: isCollapsed ? 72 : 256 }}
+        animate={{ width: isCollapsed ? 80 : 280 }}
         transition={{ duration: 0.3, ease: "easeInOut" }}
-        className="hidden lg:flex flex-col h-screen bg-gradient-to-b from-nuanu-navy to-nuanu-navy-dark sticky top-0 z-40 border-r border-white/5 shadow-[4px_0_24px_rgba(0,0,0,0.15)]"
+        className="hidden lg:flex flex-col h-screen bg-gradient-to-b from-nuanu-navy to-nuanu-navy-dark fixed left-0 top-0 z-50 border-r border-white/5 shadow-[4px_0_24px_rgba(0,0,0,0.15)]"
       >
         {sidebarContent}
       </motion.aside>
+
+      {/* Desktop Sidebar Placeholder (to push content) */}
+      <motion.div 
+        animate={{ width: isCollapsed ? 80 : 280 }}
+        transition={{ duration: 0.3, ease: "easeInOut" }}
+        className="hidden lg:block flex-shrink-0"
+        style={{ width: isCollapsed ? '80px' : '280px' }}
+      />
 
       {/* Mobile Overlay */}
       <AnimatePresence>

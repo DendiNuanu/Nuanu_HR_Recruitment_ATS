@@ -4,6 +4,7 @@ import { Briefcase, MapPin, ArrowLeft, Building, Calendar } from "lucide-react";
 import Link from "next/link";
 import ApplicationForm from "./ApplicationForm";
 import { formatDate } from "@/lib/utils";
+import { getSession } from "@/lib/auth";
 
 export default async function JobDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -13,7 +14,10 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
     include: { department: true },
   });
 
-  if (!job || job.status !== "published") {
+  const session = await getSession();
+  const isAdmin = session?.roles.some(r => ["admin", "hr", "recruiter", "super-admin"].includes(r.toLowerCase()));
+
+  if (!job || (job.status !== "published" && !isAdmin)) {
     notFound();
   }
 

@@ -81,7 +81,7 @@ export default function CandidatesTable({ candidates }: { candidates: Candidate[
           setSelectedEmail(null);
         }, 2000);
       } else {
-        toast.error("Failed to send email. Please check your configuration.");
+        toast.error(result.error || "Failed to send email. Please check your configuration.");
       }
     } catch (error) {
       toast.error("An unexpected error occurred.");

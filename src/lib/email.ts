@@ -18,7 +18,8 @@ export async function sendEmail({
   subject,
   text,
   html,
-  from = "Nuanu Recruitment <onboarding@resend.dev>" // Default Resend test domain
+  from = process.env.RESEND_FROM || "Nuanu Recruitment <onboarding@resend.dev>",
+  attachments
 }: EmailOptions) {
   try {
     const apiKey = process.env.RESEND_API_KEY;

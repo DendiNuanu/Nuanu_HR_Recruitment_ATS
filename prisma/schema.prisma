@@ -23,8 +23,9 @@ model User {
   departmentId        String?
   activityLogs        ActivityLog[]
   applications        Application[]
-  approvals           Approval[]          @relation("ApproverApprovals")
-  requestedApprovals  Approval[]          @relation("RequesterApprovals")
+  legacyApprovals     LegacyApproval[]    @relation("ApproverApprovals")
+  legacyReqApprovals  LegacyApproval[]    @relation("RequesterApprovals")
+  approvals           Approval[]
   interviewFeedback   InterviewFeedback[]
   scheduledInterviews Interview[]         @relation("InterviewerInterviews")
   notifications       Notification[]
@@ -151,8 +152,10 @@ model Vacancy {
   updatedAt        DateTime      @updatedAt
   deletedAt        DateTime?
   applications     Application[]
-  approvals        Approval[]
+  approvals        LegacyApproval[]
+  requisitions     JobRequisition[]
   jobPostings      JobPosting[]
+  isApproved       Boolean       @default(false)
   creator          User          @relation("VacancyCreator", fields: [creatorId], references: [id])
   department       Department    @relation(fields: [departmentId], references: [id])
   recruiter        User?         @relation("VacancyRecruiter", fields: [recruiterId], references: [id])
@@ -179,7 +182,7 @@ model JobProfile {
   @@map("job_profiles")
 }
 
-model Approval {
+model LegacyApproval {
   id          String    @id @default(uuid())
   vacancyId   String
   requesterId String
@@ -197,6 +200,35 @@ model Approval {
 
   @@index([vacancyId])
   @@index([approverId, status])
+  @@map("legacy_approvals")
+}
+
+model JobRequisition {
+  id              String   @id @default(uuid())
+  vacancyId       String
+  requestedById   String
+  status          String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  currentStep     Int      @default(1)
+  createdAt       DateTime @default(now())
+
+  vacancy         Vacancy  @relation(fields: [vacancyId], references: [id], onDelete: Cascade)
+  approvals       Approval[]
+  
+  @@map("job_requisitions")
+}
+
+model Approval {
+  id              String   @id @default(uuid())
+  requisitionId   String
+  approverId      String
+  role            String   // HR, MANAGER, FINANCE
+  status          String   @default("PENDING")
+  comment         String?
+  approvedAt      DateTime?
+
+  requisition     JobRequisition @relation(fields: [requisitionId], references: [id], onDelete: Cascade)
+  approver        User           @relation(fields: [approverId], references: [id])
+  
   @@map("approvals")
 }
 
@@ -241,7 +273,7 @@ model Application {
   updatedAt       DateTime        @updatedAt
   deletedAt       DateTime?
   candidate       User            @relation(fields: [candidateId], references: [id])
-  vacancy         Vacancy         @relation(fields: [vacancyId], references: [id])
+  vacancy         Vacancy         @relation(fields: [vacancyId], references: [id], onDelete: Cascade)
   assessments     Assessment[]
   candidateScore  CandidateScore?
   documents       Document[]
