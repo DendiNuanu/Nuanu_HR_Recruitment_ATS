@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { createCalendarEvent, updateCalendarEvent, deleteCalendarEvent } from "@/lib/google-calendar";
 import { sendEmail } from "@/lib/email";
+import { checkRole } from "@/lib/rbac";
 
 export async function scheduleInterview(data: {
   applicationId: string;
@@ -14,12 +15,29 @@ export async function scheduleInterview(data: {
   syncWithGoogle?: boolean;
 }) {
   try {
-    // We need an interviewerId. Let's just pick the first admin user or a dummy.
+    await checkRole(["admin", "hr", "recruiter"]);
+
     const adminUser = await prisma.user.findFirst({
-      where: { email: { contains: "admin" } }
+      where: { userRoles: { some: { role: { slug: "admin" } } } }
     });
 
     if (!adminUser) throw new Error("No admin user found to assign interview");
+
+    // Conflict Detection
+    const existingInterview = await prisma.interview.findFirst({
+      where: {
+        interviewerId: adminUser.id,
+        status: "scheduled",
+        scheduledAt: {
+          gte: new Date(new Date(data.scheduledAt).getTime() - 45 * 60 * 1000), // 45 mins before
+          lte: new Date(new Date(data.scheduledAt).getTime() + 45 * 60 * 1000), // 45 mins after
+        }
+      }
+    });
+
+    if (existingInterview) {
+      return { success: false, error: "Interviewer is already booked within this time slot (45-min buffer)" };
+    }
 
     const interview = await prisma.interview.create({
       data: {
@@ -125,6 +143,8 @@ export async function submitInterviewFeedback(data: {
   notes?: string;
 }) {
   try {
+    await checkRole(["admin", "hr", "recruiter", "interviewer"]);
+
     const interview = await prisma.interview.findUnique({
       where: { id: data.interviewId },
       include: { application: true }
@@ -190,6 +210,27 @@ export async function rescheduleInterview(data: {
   meetingUrl?: string;
 }) {
   try {
+    await checkRole(["admin", "hr", "recruiter"]);
+
+    const targetInterview = await prisma.interview.findUnique({ where: { id: data.interviewId } });
+    
+    // Conflict Detection for reschedule
+    const existing = await prisma.interview.findFirst({
+      where: {
+        id: { not: data.interviewId },
+        interviewerId: targetInterview?.interviewerId,
+        status: "scheduled",
+        scheduledAt: {
+          gte: new Date(new Date(data.scheduledAt).getTime() - 45 * 60 * 1000),
+          lte: new Date(new Date(data.scheduledAt).getTime() + 45 * 60 * 1000),
+        }
+      }
+    });
+
+    if (existing) {
+      return { success: false, error: "Interviewer is already booked at this time" };
+    }
+
     const interview = await prisma.interview.update({
       where: { id: data.interviewId },
       data: {
@@ -230,6 +271,8 @@ export async function rescheduleInterview(data: {
 
 export async function cancelInterview(interviewId: string) {
   try {
+    await checkRole(["admin", "hr", "recruiter"]);
+
     const interview = await prisma.interview.update({
       where: { id: interviewId },
       data: { status: "cancelled", cancelledAt: new Date() },

@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { createNotification } from "@/lib/notifications";
+import { delCache } from "@/lib/cache";
 
 export async function moveApplication(applicationId: string, toStage: string) {
   try {
@@ -24,8 +25,10 @@ export async function moveApplication(applicationId: string, toStage: string) {
       });
     }
 
+    await delCache("dashboard_metrics");
     revalidatePath("/dashboard/pipeline");
     revalidatePath("/dashboard/candidates");
+    revalidatePath("/dashboard");
     return { success: true };
   } catch (error) {
     console.error("Move Application Error:", error);

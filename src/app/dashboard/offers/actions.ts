@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { createNotification } from "@/lib/notifications";
 import { sendEmail } from "@/lib/email";
+import { checkRole } from "@/lib/rbac";
 
 export async function createOffer(data: {
   applicationId: string;
@@ -13,6 +14,7 @@ export async function createOffer(data: {
   notes?: string;
 }) {
   try {
+    await checkRole(["admin", "hr"]);
     const offer = await prisma.offer.create({
       data: {
         applicationId: data.applicationId,
@@ -54,6 +56,7 @@ export async function createOffer(data: {
 
 export async function sendOffer(offerId: string) {
   try {
+    await checkRole(["admin", "hr"]);
     const offer = await prisma.offer.update({
       where: { id: offerId },
       data: { status: "sent" },
@@ -72,11 +75,26 @@ export async function sendOffer(offerId: string) {
       data: { currentStage: "offer" }
     });
 
-    // Notify Candidate (Real Email)
+    // Notify Candidate (Real Email with PDF)
+    const { generateOfferPDF } = await import("@/lib/pdf/generateOffer");
+    const pdfBuffer = await generateOfferPDF({
+      candidateName: offer.application.candidate.name,
+      vacancyTitle: offer.application.vacancy.title,
+      salary: offer.salary,
+      startDate: offer.startDate.toISOString(),
+      companyName: "Nuanu",
+    });
+
     await sendEmail({
       to: offer.application.candidate.email,
       subject: `Official Job Offer: ${offer.application.vacancy.title} at Nuanu`,
-      text: `Hi ${offer.application.candidate.name},\n\nWe are pleased to extend an official offer for the ${offer.application.vacancy.title} position. \n\nSalary: ${offer.salary}\nStart Date: ${offer.startDate.toLocaleDateString()}\n\nPlease visit your candidate portal to review and accept the offer.`,
+      text: `Hi ${offer.application.candidate.name},\n\nWe are pleased to extend an official offer for the ${offer.application.vacancy.title} position. \n\nPlease find the attached offer letter for your review.`,
+      attachments: [
+        {
+          filename: `Job_Offer_${offer.application.candidate.name.replace(/\s+/g, '_')}.pdf`,
+          content: pdfBuffer,
+        }
+      ]
     });
 
     revalidatePath("/dashboard/offers");

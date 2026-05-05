@@ -16,7 +16,7 @@ export async function createNotification({
   metadata?: any;
 }) {
   try {
-    return await prisma.notification.create({
+    const notification = await prisma.notification.create({
       data: {
         userId,
         type,
@@ -26,6 +26,16 @@ export async function createNotification({
         metadata
       }
     });
+
+    // Real-time emit
+    try {
+      const { emitEvent } = await import("./socket");
+      emitEvent("new_notification", notification);
+    } catch (socketError) {
+      console.warn("Socket emit failed, but notification was saved.");
+    }
+
+    return notification;
   } catch (error) {
     console.error("Failed to create notification:", error);
     return null;

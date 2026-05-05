@@ -3,7 +3,19 @@
 import { useState, useEffect } from "react";
 import { Save, Building, Users, Bell, Shield, Database, Webhook, Plus, UserPlus, Key, Loader2, CheckCircle2, AlertCircle, Calendar } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { getIntegrationSettings, updateIntegrationSettings, getCalendarStatus } from "@/app/actions/settings";
+import { 
+  getIntegrationSettings, 
+  updateIntegrationSettings, 
+  getCalendarStatus,
+  getUsers,
+  getRoles,
+  inviteUser,
+  deleteUser,
+  updateUserRole,
+  updateCompanyLogo,
+  getCurrentUser
+} from "@/app/actions/settings";
+import { getDepartments } from "@/app/actions/departments";
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState("general");
@@ -22,12 +34,29 @@ export default function SettingsPage() {
     companyName: "Nuanu",
     industry: "Creative City Development and Sustainable Tourism",
     website: "https://nuanu.com",
+    logo: "",
     requireResume: true,
     enableAI: true
   });
+  
+  const [users, setUsers] = useState<any[]>([]);
+  const [roles, setRoles] = useState<any[]>([]);
+  const [departments, setDepartments] = useState<any[]>([]);
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [inviteData, setInviteData] = useState({
+    name: "",
+    email: "",
+    roleId: "",
+    departmentId: ""
+  });
+
+  const [currentUser, setCurrentUser] = useState<any>(null);
 
   useEffect(() => {
     async function loadSettings() {
+      const user = await getCurrentUser();
+      setCurrentUser(user);
+      
       const googleSettings = await getIntegrationSettings("google_sheets");
       if (googleSettings) {
         setSheetsConfig({
@@ -44,6 +73,15 @@ export default function SettingsPage() {
       if (genSettings) {
         setGeneralConfig(genSettings.config as any);
       }
+
+      const [usersData, rolesData, deptsData] = await Promise.all([
+        getUsers(),
+        getRoles(),
+        getDepartments()
+      ]);
+      setUsers(usersData);
+      setRoles(rolesData);
+      setDepartments(deptsData);
     }
     loadSettings();
   }, []);
@@ -86,13 +124,15 @@ export default function SettingsPage() {
     }
   };
 
+  const isAdmin = currentUser?.roles?.some((r: string) => r.toLowerCase() === "admin" || r.toLowerCase() === "super-admin");
+
   const tabs = [
     { id: "general", label: "General Information", icon: Building },
-    { id: "users", label: "Users & Roles", icon: Users },
+    ...(isAdmin ? [{ id: "users", label: "Users & Roles", icon: Users }] : []),
     { id: "notifications", label: "Notifications", icon: Bell },
     { id: "security", label: "Security", icon: Shield },
     { id: "integrations", label: "Integrations", icon: Webhook },
-    { id: "database", label: "Database Sync", icon: Database },
+    ...(isAdmin ? [{ id: "database", label: "Database Sync", icon: Database }] : []),
   ];
 
   return (
@@ -171,18 +211,47 @@ export default function SettingsPage() {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-nuanu-gray-700 mb-1.5">Company Logo</label>
-                      <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-nuanu-gray-300 border-dashed rounded-xl hover:bg-nuanu-gray-50 transition-colors cursor-pointer">
+                      <input 
+                        type="file" 
+                        id="logo-upload" 
+                        className="hidden" 
+                        accept="image/*"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onloadend = async () => {
+                              const base64 = reader.result as string;
+                              setGeneralConfig({ ...generalConfig, logo: base64 });
+                              const res = await updateCompanyLogo(base64);
+                              if (res.success) {
+                                setSaveStatus("success");
+                                setTimeout(() => setSaveStatus("idle"), 2000);
+                              }
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                      />
+                      <label 
+                        htmlFor="logo-upload"
+                        className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-nuanu-gray-300 border-dashed rounded-xl hover:bg-nuanu-gray-50 transition-colors cursor-pointer overflow-hidden relative group"
+                      >
                         <div className="space-y-1 text-center">
-                          <Building className="mx-auto h-12 w-12 text-nuanu-gray-400" />
+                          {generalConfig.logo ? (
+                            <img src={generalConfig.logo} alt="Logo" className="mx-auto h-20 w-auto object-contain mb-2" />
+                          ) : (
+                            <Building className="mx-auto h-12 w-12 text-nuanu-gray-400" />
+                          )}
                           <div className="flex text-sm text-nuanu-gray-600 justify-center">
                             <span className="relative cursor-pointer bg-transparent rounded-md font-medium text-emerald-600 hover:text-emerald-500">
-                              <span>Upload a file</span>
+                              <span>{generalConfig.logo ? "Change logo" : "Upload a file"}</span>
                             </span>
-                            <p className="pl-1">or drag and drop</p>
+                            {!generalConfig.logo && <p className="pl-1">or drag and drop</p>}
                           </div>
                           <p className="text-xs text-nuanu-gray-500">PNG, JPG, GIF up to 10MB</p>
                         </div>
-                      </div>
+                      </label>
                     </div>
                   </div>
                 </div>
@@ -228,14 +297,19 @@ export default function SettingsPage() {
               </motion.div>
             )}
 
-            {activeTab === "users" && (
+            {activeTab === "users" && isAdmin && (
               <motion.div key="users" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="card space-y-6">
                 <div className="flex items-center justify-between border-b border-nuanu-gray-100 pb-4">
                   <div>
                     <h2 className="text-lg font-bold text-nuanu-navy">Users & Roles</h2>
                     <p className="text-sm text-nuanu-gray-500">Manage team members and their permissions</p>
                   </div>
-                  <button className="btn-secondary text-sm py-2"><UserPlus className="w-4 h-4" /> Invite User</button>
+                  <button 
+                    onClick={() => setIsInviteModalOpen(true)}
+                    className="btn-secondary text-sm py-2"
+                  >
+                    <UserPlus className="w-4 h-4" /> Invite User
+                  </button>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="data-table">
@@ -245,27 +319,62 @@ export default function SettingsPage() {
                         <th>Role</th>
                         <th>Department</th>
                         <th>Status</th>
+                        <th className="text-right">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
-                      <tr>
-                        <td className="font-medium text-nuanu-navy">Super Admin</td>
-                        <td><span className="badge bg-purple-100 text-purple-700">Owner</span></td>
-                        <td>Human Resources</td>
-                        <td><span className="badge bg-emerald-100 text-emerald-700">Active</span></td>
-                      </tr>
-                      <tr>
-                        <td className="font-medium text-nuanu-navy">Recruiter One</td>
-                        <td><span className="badge bg-blue-100 text-blue-700">Recruiter</span></td>
-                        <td>Human Resources</td>
-                        <td><span className="badge bg-emerald-100 text-emerald-700">Active</span></td>
-                      </tr>
-                      <tr>
-                        <td className="font-medium text-nuanu-navy">Hiring Manager</td>
-                        <td><span className="badge bg-nuanu-gray-100 text-nuanu-gray-700">Manager</span></td>
-                        <td>Engineering</td>
-                        <td><span className="badge bg-amber-100 text-amber-700">Pending</span></td>
-                      </tr>
+                      {users.map(user => (
+                        <tr key={user.id}>
+                          <td>
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-xs uppercase">
+                                {user.name.charAt(0)}
+                              </div>
+                              <div>
+                                <p className="font-medium text-nuanu-navy leading-none">{user.name}</p>
+                                <p className="text-[10px] text-nuanu-gray-400 mt-1">{user.email}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td>
+                            <div className="flex flex-wrap gap-1">
+                              {user.userRoles.map((ur: any) => (
+                                <span key={ur.id} className="badge bg-blue-50 text-blue-700 text-[10px]">
+                                  {ur.role.name}
+                                </span>
+                              ))}
+                            </div>
+                          </td>
+                          <td className="text-sm text-nuanu-gray-600 font-medium">
+                            {user.department?.name || "—"}
+                          </td>
+                          <td>
+                            <span className={`badge ${user.isActive ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"} text-[10px]`}>
+                              {user.isActive ? "Active" : "Inactive"}
+                            </span>
+                          </td>
+                          <td className="text-right">
+                            <button 
+                              onClick={async () => {
+                                if (confirm(`Are you sure you want to delete ${user.name}?`)) {
+                                  const res = await deleteUser(user.id);
+                                  if (res.success) {
+                                    setUsers(users.filter(u => u.id !== user.id));
+                                  }
+                                }
+                              }}
+                              className="p-1.5 text-nuanu-gray-400 hover:text-red-600 transition-colors"
+                            >
+                              <AlertCircle className="w-4 h-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                      {users.length === 0 && (
+                        <tr>
+                          <td colSpan={5} className="text-center py-12 text-nuanu-gray-400 italic">No users found.</td>
+                        </tr>
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -434,7 +543,7 @@ export default function SettingsPage() {
               </motion.div>
             )}
 
-            {activeTab === "database" && (
+            {activeTab === "database" && isAdmin && (
               <motion.div key="database" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="card space-y-6">
                 <div className="border-b border-nuanu-gray-100 pb-4">
                   <h2 className="text-lg font-bold text-nuanu-navy">Database Synchronization</h2>
@@ -458,6 +567,111 @@ export default function SettingsPage() {
           </AnimatePresence>
         </div>
       </div>
+
+      <AnimatePresence>
+        {isInviteModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-nuanu-navy/40 backdrop-blur-sm"
+              onClick={() => !isSaving && setIsInviteModalOpen(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden relative z-10 border border-white/20"
+            >
+              <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-nuanu-navy text-white">
+                <h2 className="text-lg font-black flex items-center gap-2">
+                  <UserPlus className="w-5 h-5 text-emerald-400" /> Invite Team Member
+                </h2>
+                <button onClick={() => setIsInviteModalOpen(false)} className="p-1 hover:bg-white/10 rounded-full transition-all">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <form 
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  setIsSaving(true);
+                  const res = await inviteUser(inviteData);
+                  setIsSaving(false);
+                  if (res.success) {
+                    alert(`User invited! Temporary Password: ${res.tempPassword}`);
+                    setIsInviteModalOpen(false);
+                    const updatedUsers = await getUsers();
+                    setUsers(updatedUsers);
+                  } else {
+                    alert(res.error);
+                  }
+                }}
+                className="p-6 space-y-4"
+              >
+                <div>
+                  <label className="block text-[10px] font-black text-nuanu-gray-500 uppercase tracking-widest mb-1.5">Full Name</label>
+                  <input 
+                    type="text" required placeholder="John Doe"
+                    className="input-field py-2.5" 
+                    value={inviteData.name}
+                    onChange={e => setInviteData({...inviteData, name: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black text-nuanu-gray-500 uppercase tracking-widest mb-1.5">Email Address</label>
+                  <input 
+                    type="email" required placeholder="john@company.com"
+                    className="input-field py-2.5" 
+                    value={inviteData.email}
+                    onChange={e => setInviteData({...inviteData, email: e.target.value})}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-black text-nuanu-gray-500 uppercase tracking-widest mb-1.5">Assign Role</label>
+                    <select 
+                      required className="input-field py-2.5 text-xs font-bold"
+                      value={inviteData.roleId}
+                      onChange={e => setInviteData({...inviteData, roleId: e.target.value})}
+                    >
+                      <option value="" disabled>Select role...</option>
+                      {roles.map(role => (
+                        <option key={role.id} value={role.id}>{role.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black text-nuanu-gray-500 uppercase tracking-widest mb-1.5">Department</label>
+                    <select 
+                      className="input-field py-2.5 text-xs font-bold"
+                      value={inviteData.departmentId}
+                      onChange={e => setInviteData({...inviteData, departmentId: e.target.value})}
+                    >
+                      <option value="">Select dept...</option>
+                      {departments.map(dept => (
+                        <option key={dept.id} value={dept.id}>{dept.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="pt-4 flex justify-end gap-3">
+                  <button type="button" onClick={() => setIsInviteModalOpen(false)} className="px-4 py-2 text-xs font-bold text-nuanu-gray-500">Cancel</button>
+                  <button type="submit" disabled={isSaving} className="btn-primary py-2 px-6 text-xs">
+                    {isSaving ? "Inviting..." : "Send Invitation"}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
+
+const X = ({ className }: { className?: string }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+  </svg>
+);

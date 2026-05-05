@@ -1,10 +1,12 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSidebarStore } from "@/stores";
+import { getIntegrationSettings } from "@/app/actions/settings";
 import {
   LayoutDashboard,
   Briefcase,
@@ -41,6 +43,21 @@ export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { isCollapsed, isMobileOpen, toggle, setMobileOpen } = useSidebarStore();
+  const [logo, setLogo] = useState<string | null>(null);
+  const [companyName, setCompanyName] = useState("Nuanu");
+
+  useEffect(() => {
+    async function loadBranding() {
+      const settings = await getIntegrationSettings("general_info");
+      if (settings && (settings.config as any)?.logo) {
+        setLogo((settings.config as any).logo);
+      }
+      if (settings && (settings.config as any)?.companyName) {
+        setCompanyName((settings.config as any).companyName);
+      }
+    }
+    loadBranding();
+  }, []);
 
   const handleLogout = async () => {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -58,13 +75,17 @@ export default function Sidebar() {
       {/* Logo Header */}
       <div className="h-[72px] flex items-center justify-between px-5 border-b border-white/[0.06]">
         <Link href="/dashboard" className="flex items-center gap-3 min-w-0">
-          <Image
-            src="/nuanu-logo.png"
-            alt="Nuanu"
-            width={36}
-            height={36}
-            className="rounded-lg flex-shrink-0"
-          />
+          {logo ? (
+            <img src={logo} alt={companyName} className="w-9 h-9 rounded-lg object-contain bg-white/10" />
+          ) : (
+            <Image
+              src="/nuanu-logo.png"
+              alt="Nuanu"
+              width={36}
+              height={36}
+              className="rounded-lg flex-shrink-0"
+            />
+          )}
           {!isCollapsed && (
             <motion.div
               initial={{ opacity: 0 }}
@@ -72,7 +93,7 @@ export default function Sidebar() {
               exit={{ opacity: 0 }}
               className="min-w-0"
             >
-              <h1 className="text-[15px] font-bold text-white leading-tight">Nuanu</h1>
+              <h1 className="text-[15px] font-bold text-white leading-tight">{companyName}</h1>
               <p className="text-[10px] text-emerald-400/70 font-semibold tracking-[0.12em] uppercase leading-tight">
                 Recruitment ATS
               </p>

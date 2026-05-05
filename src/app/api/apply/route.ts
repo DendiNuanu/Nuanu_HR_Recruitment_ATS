@@ -18,6 +18,30 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
+    // 1. Duplicate Detection (Email and Phone)
+    const existingUser = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { email },
+          { phone: phone || undefined }
+        ]
+      }
+    });
+
+    if (existingUser) {
+      // Check if they already applied for THIS job
+      const alreadyApplied = await prisma.application.findFirst({
+        where: {
+          candidateId: existingUser.id,
+          vacancyId: jobId
+        }
+      });
+      
+      if (alreadyApplied) {
+        return NextResponse.json({ error: "You have already applied for this position" }, { status: 409 });
+      }
+    }
+
     // Verify vacancy exists
     const vacancy = await prisma.vacancy.findUnique({ where: { id: jobId } });
     if (!vacancy || vacancy.status !== "published") {

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { createNotification } from "@/lib/notifications";
 import { sendEmail } from "@/lib/email";
+import { delCache } from "@/lib/cache";
 
 const STAGES = [
   "applied",
@@ -85,6 +86,7 @@ export async function updateCandidateStage(applicationId: string, action: "next"
       });
     }
 
+    await delCache("dashboard_metrics");
     revalidatePath("/dashboard/candidates");
     revalidatePath("/dashboard");
     return { success: true, newStage };

@@ -142,3 +142,16 @@ export async function createTemplate(data: {
     return { success: false, error: "Failed to create template" };
   }
 }
+
+export async function deleteTemplate(templateId: string) {
+  try {
+    await prisma.assessmentTemplate.delete({
+      where: { id: templateId }
+    });
+    revalidatePath("/dashboard/screening");
+    return { success: true };
+  } catch (error) {
+    console.error("Delete Template Error:", error);
+    return { success: false, error: "Failed to delete template" };
+  }
+}

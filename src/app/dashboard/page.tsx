@@ -1,8 +1,20 @@
 import { prisma } from "@/lib/prisma";
 import DashboardClient, { DashboardMetrics } from "./DashboardClient";
 import { formatDate } from "@/lib/utils";
+import { checkRole } from "@/lib/rbac";
+import { getCache, setCache } from "@/lib/cache";
 
 export default async function DashboardPage() {
+  // RBAC Protection
+  await checkRole(["admin", "hr", "recruiter", "interviewer"]);
+
+  // 0. Check Cache
+  const cacheKey = "dashboard_metrics";
+  const cachedData = await getCache<DashboardMetrics>(cacheKey);
+  if (cachedData) {
+    return <DashboardClient metrics={cachedData} />;
+  }
+
   // 1. Stat Cards Data
   const activeVacancies = await prisma.vacancy.count({ where: { status: "published" } });
   const totalVacancies = await prisma.vacancy.count();
@@ -11,11 +23,10 @@ export default async function DashboardPage() {
   const oneMonthAgo = new Date();
   oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
   const newCandidatesThisMonth = await prisma.application.count({
-    where: { createdAt: { gte: oneMonthAgo } }
+    where: { appliedAt: { gte: oneMonthAgo } }
   });
 
-  // Calculate Average Time to Hire (mocked if no hired candidates)
-  // Calculate Offer Acceptance Rate
+  // Offer Acceptance Rate
   const offers = await prisma.offer.findMany({ select: { status: true } });
   const acceptedOffers = offers.filter(o => o.status === "accepted").length;
   const offerAcceptanceRate = offers.length > 0 ? Math.round((acceptedOffers / offers.length) * 100) : 0;
@@ -32,12 +43,12 @@ export default async function DashboardPage() {
     _count: true,
   });
   
-  const standardStages = ["applied", "screening", "hr_interview", "tech_interview", "final_interview", "offer", "hired"];
+  const standardStages = ["applied", "screening", "hr_interview", "user_interview", "final_interview", "offer", "hired"];
   const stageMap: Record<string, string> = {
     "applied": "Applied",
     "screening": "Screening",
     "hr_interview": "HR Interview",
-    "tech_interview": "Tech Interview",
+    "user_interview": "User Interview",
     "final_interview": "Final Interview",
     "offer": "Offer",
     "hired": "Hired"
@@ -77,7 +88,6 @@ export default async function DashboardPage() {
   const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const monthlyDataMap: Record<string, { month: string, applications: number, hires: number }> = {};
   
-  // Initialize last 6 months
   for (let i = 0; i < 6; i++) {
     const d = new Date();
     d.setMonth(d.getMonth() - i);
@@ -97,10 +107,10 @@ export default async function DashboardPage() {
 
   const monthlyApplicationsTrend = Object.values(monthlyDataMap).reverse();
 
-  // 5. Average Time to Hire (Real Calculation)
+  // 5. Average Time to Hire
   const hiredApplications = await prisma.application.findMany({
     where: { currentStage: "hired" },
-    select: { createdAt: true, updatedAt: true } // Assuming updatedAt is when they were hired if the stage is hired
+    select: { createdAt: true, updatedAt: true }
   });
 
   let totalDays = 0;
@@ -113,13 +123,13 @@ export default async function DashboardPage() {
   const averageTimeToHire = hiredApplications.length > 0 ? Math.round(totalDays / hiredApplications.length) : 0;
   const totalHires = hiredApplications.length;
 
-  // 6. Average Cost Per Hire (Dynamic Mock based on Vacancy Salaries)
+  // 6. Average Cost Per Hire
   const vacancies = await prisma.vacancy.findMany({
     where: { status: "published" },
     select: { salaryMin: true, salaryMax: true }
   });
   const avgSalary = vacancies.reduce((acc, v) => acc + ((v.salaryMin || 0) + (v.salaryMax || 0)) / 2, 0) / (vacancies.length || 1);
-  const averageCostPerHire = totalHires > 0 ? Math.round(avgSalary * 0.15) : 0; // 15% of annual salary as hiring cost
+  const averageCostPerHire = totalHires > 0 ? Math.round(avgSalary * 0.15) : 0;
 
   // 7. Match Score Distribution
   const allScores = await prisma.candidateScore.findMany({ select: { overallScore: true } });
@@ -168,26 +178,16 @@ export default async function DashboardPage() {
       id: a.id,
       type: a.resource.toLowerCase(), 
       action: a.action,
-      resource: app 
-        ? `${app.candidate.name} (${app.vacancy.title})` 
-        : (a.user?.name || a.resourceId || a.resource),
+      resource: app ? `${app.candidate.name} (${app.vacancy.title})` : (a.user?.name || a.resourceId || a.resource),
       time: formatDate(a.createdAt),
     };
   });
 
   // 9. Top Candidates
   const topApps = await prisma.application.findMany({
-    where: {
-      candidateScore: { isNot: null }
-    },
-    include: {
-      candidate: true,
-      vacancy: true,
-      candidateScore: true,
-    },
-    orderBy: {
-      candidateScore: { overallScore: 'desc' }
-    },
+    where: { candidateScore: { isNot: null } },
+    include: { candidate: true, vacancy: true, candidateScore: true },
+    orderBy: { candidateScore: { overallScore: 'desc' } },
     take: 4
   });
 
@@ -200,12 +200,8 @@ export default async function DashboardPage() {
 
   // 10. Upcoming Interviews
   const interviews = await prisma.interview.findMany({
-    where: {
-      scheduledAt: { gte: new Date() }
-    },
-    include: {
-      application: { include: { candidate: true, vacancy: true } }
-    },
+    where: { scheduledAt: { gte: new Date() } },
+    include: { application: { include: { candidate: true, vacancy: true } } },
     orderBy: { scheduledAt: 'asc' },
     take: 3
   });
@@ -218,17 +214,15 @@ export default async function DashboardPage() {
     status: i.status,
   }));
 
-  // Calculate real changes (comparing last 30 days)
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
   const newVacancies = await prisma.vacancy.count({ where: { createdAt: { gte: thirtyDaysAgo } } });
   const newOffers = await prisma.offer.count({ where: { createdAt: { gte: thirtyDaysAgo } } });
   
   const changes = {
     vacancies: `+${newVacancies}`,
     candidates: `+${newCandidatesThisMonth}`,
-    timeToHire: hiredApplications.length > 0 ? "-0" : "+0", // No enough data for historical trend yet
+    timeToHire: hiredApplications.length > 0 ? "-0" : "+0",
     offerRate: newOffers > 0 ? `+${newOffers}` : "+0",
     aiScore: "+0%",
     costPerHire: "+Rp 0",
@@ -252,6 +246,9 @@ export default async function DashboardPage() {
     upcomingInterviews,
     changes,
   };
+
+  // Cache for 15 minutes
+  await setCache(cacheKey, metrics, 900);
 
   return <DashboardClient metrics={metrics} />;
 }

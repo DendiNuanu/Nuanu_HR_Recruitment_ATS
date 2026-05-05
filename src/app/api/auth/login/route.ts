@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
+import { generateToken } from "@/lib/auth";
 
 export async function POST(request: Request) {
   try {
@@ -37,9 +38,12 @@ export async function POST(request: Request) {
       id: user.id,
       email: user.email,
       name: user.name,
-      roles: user.userRoles.map(ur => ur.role.name),
+      roles: user.userRoles.map(ur => ur.role.slug), // Use slugs for consistency
       departmentId: user.departmentId,
     };
+
+    // Generate JWT
+    const token = await generateToken(sessionUser);
 
     const response = NextResponse.json({
       user: sessionUser,
@@ -47,7 +51,7 @@ export async function POST(request: Request) {
     });
 
     // Set auth cookie
-    response.cookies.set("nuanu_token", `auth_token_${user.id}`, {
+    response.cookies.set("nuanu_token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",

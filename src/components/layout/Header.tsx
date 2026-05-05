@@ -66,14 +66,23 @@ export default function Header() {
   };
 
   useEffect(() => {
-    // In a real app, we'd get the current user ID from the session
-    const syncNotifications = async () => {
-      const data = await getNotifications(""); // Placeholder for all or specific user
-      setNotifications(data);
-    };
-    syncNotifications();
-    
-    const interval = setInterval(syncNotifications, 30000);
+    fetchNotifications();
+
+    // Real-time updates via Socket.io
+    const { getSocket } = require("@/lib/socket");
+    const socket = getSocket();
+
+    const { addNotification } = useNotificationStore.getState();
+
+    if (socket) {
+      socket.on("new_notification", (newNotif: any) => {
+        // Only show if it belongs to the current user
+        const userData = JSON.parse(localStorage.getItem("nuanu_user") || "{}");
+        if (newNotif.userId === userData.id) {
+          addNotification(newNotif);
+        }
+      });
+    }
 
     // Close dropdowns on outside click
     const handleClickOutside = (event: MouseEvent) => {
@@ -90,7 +99,6 @@ export default function Header() {
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => {
-      clearInterval(interval);
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [setNotifications]);

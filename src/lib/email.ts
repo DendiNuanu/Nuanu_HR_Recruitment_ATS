@@ -6,6 +6,7 @@ export type EmailOptions = {
   text?: string;
   html?: string;
   from?: string;
+  attachments?: { filename: string; content: Buffer }[];
 };
 
 /**
@@ -35,6 +36,10 @@ export async function sendEmail({
       subject,
       text: text || "",
       html: html || text || "",
+      attachments: attachments?.map(a => ({
+        filename: a.filename,
+        content: a.content,
+      })),
     });
 
     if (error) {

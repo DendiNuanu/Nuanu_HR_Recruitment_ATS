@@ -2,9 +2,11 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { checkRole } from "@/lib/rbac";
 
 export async function scanResumes() {
   try {
+    await checkRole(["admin", "hr", "recruiter"]);
     // Find applications that do NOT have a score yet
     const unscoredApps = await prisma.application.findMany({
       where: {
@@ -144,6 +146,7 @@ Return ONLY a valid JSON object in this exact format (no markdown, no extra text
 
 export async function shortlistCandidate(applicationId: string) {
   try {
+    await checkRole(["admin", "hr", "recruiter"]);
     const application = await prisma.application.update({
       where: { id: applicationId },
       data: {
@@ -178,6 +181,7 @@ export async function shortlistCandidate(applicationId: string) {
 
 export async function getFullAnalysis(applicationId: string) {
   try {
+    await checkRole(["admin", "hr", "recruiter", "interviewer"]);
     const analysis = await prisma.candidateScore.findUnique({
       where: { applicationId },
       include: {

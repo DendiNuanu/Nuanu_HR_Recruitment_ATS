@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Search, Filter, FileSpreadsheet, Brain, Users, PlayCircle, MoreVertical, X, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { createAssessment, remindAssessment, cancelAssessment, createTemplate } from "./actions";
+import { createAssessment, remindAssessment, cancelAssessment, createTemplate, deleteTemplate } from "./actions";
 
 export type AssessmentData = {
   id: string;
@@ -53,6 +53,7 @@ export default function ScreeningClient({
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [openActionId, setOpenActionId] = useState<string | null>(null);
+  const [openTemplateId, setOpenTemplateId] = useState<string | null>(null);
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -162,6 +163,15 @@ export default function ScreeningClient({
       const res = await cancelAssessment(id);
       if (res.success) {
         setOpenActionId(null);
+      }
+    }
+  };
+
+  const handleDeleteTemplate = async (id: string) => {
+    if (confirm("Are you sure you want to delete this template? This cannot be undone.")) {
+      const res = await deleteTemplate(id);
+      if (res.success) {
+        setOpenTemplateId(null);
       }
     }
   };
@@ -385,9 +395,49 @@ export default function ScreeningClient({
                   <div className="w-12 h-12 rounded-xl bg-nuanu-gray-50 flex items-center justify-center">
                     {getTypeIcon(assessment.type)}
                   </div>
-                  <button className="p-2 text-nuanu-gray-400 hover:text-nuanu-navy rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
-                    <MoreVertical className="w-5 h-5" />
-                  </button>
+                  <div className="relative overflow-visible">
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setOpenTemplateId(openTemplateId === assessment.id ? null : assessment.id);
+                      }}
+                      className={`p-2 rounded-lg transition-all ${
+                        openTemplateId === assessment.id 
+                          ? "bg-nuanu-gray-100 text-nuanu-navy" 
+                          : "text-nuanu-gray-400 hover:text-nuanu-navy hover:bg-nuanu-gray-100"
+                      }`}
+                    >
+                      <MoreVertical className="w-5 h-5" />
+                    </button>
+                    
+                    <AnimatePresence>
+                      {openTemplateId === assessment.id && (
+                        <>
+                          <div className="fixed inset-0 z-[60]" onClick={() => setOpenTemplateId(null)} />
+                          <motion.div 
+                            initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                            className="absolute right-0 top-full mt-1 w-48 bg-white rounded-xl shadow-2xl border border-nuanu-gray-100 z-[70] overflow-hidden"
+                            style={{ transformOrigin: 'top right' }}
+                          >
+                            <div className="p-2 space-y-1 text-left">
+                              <button className="w-full text-left px-3 py-2 text-sm font-semibold text-nuanu-navy hover:bg-nuanu-gray-50 rounded-lg flex items-center gap-3 transition-colors">
+                                <FileSpreadsheet className="w-4 h-4 text-blue-500" /> Edit Template
+                              </button>
+                              <div className="h-px bg-nuanu-gray-100 my-1" />
+                              <button 
+                                onClick={() => handleDeleteTemplate(assessment.id)}
+                                className="w-full text-left px-3 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-3 transition-colors"
+                              >
+                                <X className="w-4 h-4" /> Delete Template
+                              </button>
+                            </div>
+                          </motion.div>
+                        </>
+                      )}
+                    </AnimatePresence>
+                  </div>
                 </div>
 
                 <h3 className="text-lg font-black text-nuanu-navy mb-1 truncate">{assessment.title}</h3>
