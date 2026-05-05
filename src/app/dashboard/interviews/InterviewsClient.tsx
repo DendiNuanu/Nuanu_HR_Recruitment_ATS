@@ -6,6 +6,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { scheduleInterview, submitInterviewFeedback, rescheduleInterview, cancelInterview } from "./actions";
 import { getCalendarStatus } from "@/app/actions/settings";
 import { useEffect } from "react";
+import DateTimePicker from "@/components/ui/DateTimePicker";
+import { toast } from "sonner";
 
 export type InterviewData = {
   id: string;
@@ -103,6 +105,7 @@ export default function InterviewsClient({
     try {
       const res = await scheduleInterview(formData);
       if (res.success) {
+        toast.success("Interview scheduled successfully!");
         setIsModalOpen(false);
         setFormData({
           applicationId: "",
@@ -111,6 +114,8 @@ export default function InterviewsClient({
           location: "Google Meet",
           meetingUrl: "https://meet.google.com/new"
         });
+      } else {
+        toast.error(res.error || "Failed to schedule interview");
       }
     } catch (error) {
       console.error(error);
@@ -361,7 +366,7 @@ export default function InterviewsClient({
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden relative z-10"
+              className="bg-white rounded-2xl shadow-xl w-full max-w-lg relative z-10"
             >
               <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50">
                 <h2 className="text-lg font-bold text-nuanu-navy flex items-center gap-2">
@@ -394,14 +399,11 @@ export default function InterviewsClient({
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">Date & Time *</label>
-                    <input 
-                      type="datetime-local" 
-                      required
+                  <div className="col-span-2">
+                    <DateTimePicker 
+                      label="Date & Time *"
                       value={formData.scheduledAt}
-                      onChange={e => setFormData({...formData, scheduledAt: e.target.value})}
-                      className="input-field py-2.5"
+                      onChange={val => setFormData({...formData, scheduledAt: val})}
                     />
                   </div>
                   <div>
@@ -477,7 +479,7 @@ export default function InterviewsClient({
                   <button 
                     type="submit"
                     className="btn-primary"
-                    disabled={isSubmitting || !formData.applicationId}
+                    disabled={isSubmitting || !formData.applicationId || !formData.scheduledAt}
                   >
                     {isSubmitting ? (
                       <><Loader2 className="w-4 h-4 animate-spin" /> Scheduling...</>
@@ -653,7 +655,7 @@ export default function InterviewsClient({
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden relative z-10"
+              className="bg-white rounded-2xl shadow-xl w-full max-w-md relative z-10"
             >
               <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-red-50/50">
                 <h2 className="text-lg font-bold text-nuanu-navy flex items-center gap-2">
@@ -676,13 +678,10 @@ export default function InterviewsClient({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">New Date & Time *</label>
-                  <input 
-                    type="datetime-local" 
-                    required
+                  <DateTimePicker 
+                    label="New Date & Time *"
                     value={rescheduleData.scheduledAt}
-                    onChange={e => setRescheduleData({...rescheduleData, scheduledAt: e.target.value})}
-                    className="input-field py-2.5"
+                    onChange={val => setRescheduleData({...rescheduleData, scheduledAt: val})}
                   />
                 </div>
 

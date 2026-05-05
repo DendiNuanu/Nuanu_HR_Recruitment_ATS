@@ -18,10 +18,18 @@ export async function scheduleInterview(data: {
     await checkRole(["admin", "hr", "recruiter"]);
 
     const adminUser = await prisma.user.findFirst({
-      where: { userRoles: { some: { role: { slug: "admin" } } } }
+      where: { 
+        userRoles: { 
+          some: { 
+            role: { 
+              slug: { in: ["super-admin", "admin", "recruiter", "hr"] } 
+            } 
+          } 
+        } 
+      }
     });
 
-    if (!adminUser) throw new Error("No admin user found to assign interview");
+    if (!adminUser) throw new Error("No authorized personnel found to assign interview");
 
     // Conflict Detection
     const existingInterview = await prisma.interview.findFirst({
