@@ -455,7 +455,62 @@ export default function SettingsPage() {
                   </div>
                 </div>
                 <div className="space-y-6 max-w-2xl">
-                  {/* LinkedIn & JobStreet (Keep static for now) */}
+                  {/* LinkedIn & JobStreet Integrations */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* LinkedIn Card */}
+                    <div className="p-5 bg-white rounded-2xl border-2 border-blue-50 shadow-sm hover:border-blue-200 transition-all">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center">
+                            <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.239-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
+                          </div>
+                          <div>
+                            <h3 className="font-bold text-nuanu-navy text-sm">LinkedIn Talent</h3>
+                            <p className="text-[10px] text-nuanu-gray-400 uppercase font-black">Simple Job Posting</p>
+                          </div>
+                        </div>
+                        <span className="badge bg-nuanu-gray-100 text-nuanu-gray-500 text-[10px]">Disabled</span>
+                      </div>
+                      <div className="space-y-3">
+                        <input type="password" placeholder="Client ID" className="input-field py-1.5 text-xs" />
+                        <input type="password" placeholder="Client Secret" className="input-field py-1.5 text-xs" />
+                        <div className="pt-2">
+                           <p className="text-[10px] font-bold text-nuanu-gray-400 uppercase mb-1">Webhook Endpoint</p>
+                           <code className="block p-2 bg-nuanu-gray-50 rounded text-[9px] text-nuanu-navy break-all border border-nuanu-gray-100">
+                             https://nuanu-ats.app/api/webhooks/linkedin
+                           </code>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* JobStreet Card */}
+                    <div className="p-5 bg-white rounded-2xl border-2 border-indigo-50 shadow-sm hover:border-indigo-200 transition-all">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-indigo-900 text-white flex items-center justify-center font-black text-xs italic">
+                            SEEK
+                          </div>
+                          <div>
+                            <h3 className="font-bold text-nuanu-navy text-sm">JobStreet / SEEK</h3>
+                            <p className="text-[10px] text-nuanu-gray-400 uppercase font-black">API Integration</p>
+                          </div>
+                        </div>
+                        <span className="badge bg-nuanu-gray-100 text-nuanu-gray-500 text-[10px]">Disabled</span>
+                      </div>
+                      <div className="space-y-3">
+                        <input type="password" placeholder="API Key" className="input-field py-1.5 text-xs" />
+                        <div className="pt-2">
+                           <p className="text-[10px] font-bold text-nuanu-gray-400 uppercase mb-1">Application Webhook</p>
+                           <code className="block p-2 bg-nuanu-gray-50 rounded text-[9px] text-nuanu-navy break-all border border-nuanu-gray-100">
+                             https://nuanu-ats.app/api/webhooks/jobstreet
+                           </code>
+                        </div>
+                        <button className="w-full py-2 bg-indigo-50 text-indigo-700 rounded-lg text-[10px] font-bold border border-indigo-100">
+                          Configure Mapping
+                        </button>
+                      </div>
+                    </div>
+                  </div>
 
                   {/* Google Calendar */}
                   <div className="p-6 bg-white rounded-2xl border-2 border-blue-100 shadow-sm relative overflow-hidden">
