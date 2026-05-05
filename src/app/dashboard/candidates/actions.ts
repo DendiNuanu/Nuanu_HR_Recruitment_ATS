@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { createNotification } from "@/lib/notifications";
+import { sendEmail } from "@/lib/email";
 
 const STAGES = [
   "applied",
@@ -90,5 +91,40 @@ export async function updateCandidateStage(applicationId: string, action: "next"
   } catch (error) {
     console.error("Failed to update candidate stage:", error);
     return { success: false, error: "Failed to update stage" };
+  }
+}
+
+export async function sendCandidateEmail(data: {
+  candidateId: string;
+  to: string;
+  subject: string;
+  body: string;
+}) {
+  try {
+    const result = await sendEmail({
+      to: data.to,
+      subject: data.subject,
+      text: data.body,
+    });
+
+    if (!result.success) {
+      throw new Error("Resend failed to send email");
+    }
+
+    // Log this activity
+    await prisma.activityLog.create({
+      data: {
+        userId: data.candidateId,
+        action: `Email sent: ${data.subject}`,
+        resource: "Candidate",
+        resourceId: data.candidateId,
+        metadata: { subject: data.subject }
+      }
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to send candidate email:", error);
+    return { success: false, error: "Failed to send email" };
   }
 }

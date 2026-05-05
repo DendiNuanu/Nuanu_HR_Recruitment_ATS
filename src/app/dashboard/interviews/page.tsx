@@ -28,6 +28,8 @@ export default async function InterviewsPage() {
     status: i.status,
     interviewerName: i.interviewer.name,
     meetingUrl: i.meetingUrl || undefined,
+    meetingLink: i.meetingLink || undefined,
+    calendarSynced: i.calendarSynced
   }));
 
   const applicationsDb = await prisma.application.findMany({

@@ -141,3 +141,59 @@ Return ONLY a valid JSON object in this exact format (no markdown, no extra text
     return { success: false, error: "Failed to scan resumes" };
   }
 }
+
+export async function shortlistCandidate(applicationId: string) {
+  try {
+    const application = await prisma.application.update({
+      where: { id: applicationId },
+      data: {
+        currentStage: "shortlisted",
+        lastActivityAt: new Date()
+      },
+      include: {
+        candidate: true
+      }
+    });
+
+    // Log Activity
+    await prisma.activityLog.create({
+      data: {
+        userId: application.candidateId,
+        resourceId: application.id,
+        resource: "Application",
+        action: `Shortlisted candidate via AI Match Scoring`,
+      }
+    });
+
+    revalidatePath("/dashboard/ai-scoring");
+    revalidatePath("/dashboard/candidates");
+    revalidatePath("/dashboard");
+    
+    return { success: true, message: `${application.candidate.name} has been shortlisted!` };
+  } catch (error) {
+    console.error("Shortlist Error:", error);
+    return { success: false, error: "Failed to shortlist candidate" };
+  }
+}
+
+export async function getFullAnalysis(applicationId: string) {
+  try {
+    const analysis = await prisma.candidateScore.findUnique({
+      where: { applicationId },
+      include: {
+        application: {
+          include: {
+            candidate: true,
+            vacancy: true
+          }
+        }
+      }
+    });
+
+    if (!analysis) return { success: false, error: "Analysis not found" };
+    return { success: true, data: analysis };
+  } catch (error) {
+    console.error("Get Full Analysis Error:", error);
+    return { success: false, error: "Failed to fetch analysis" };
+  }
+}

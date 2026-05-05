@@ -2,6 +2,8 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { createCalendarEvent, updateCalendarEvent, deleteCalendarEvent } from "@/lib/google-calendar";
+import { sendEmail } from "@/lib/email";
 
 export async function scheduleInterview(data: {
   applicationId: string;
@@ -9,6 +11,7 @@ export async function scheduleInterview(data: {
   scheduledAt: string;
   location: string;
   meetingUrl?: string;
+  syncWithGoogle?: boolean;
 }) {
   try {
     // We need an interviewerId. Let's just pick the first admin user or a dummy.
@@ -18,7 +21,7 @@ export async function scheduleInterview(data: {
 
     if (!adminUser) throw new Error("No admin user found to assign interview");
 
-    await prisma.interview.create({
+    const interview = await prisma.interview.create({
       data: {
         applicationId: data.applicationId,
         interviewerId: adminUser.id,
@@ -28,7 +31,55 @@ export async function scheduleInterview(data: {
         meetingUrl: data.meetingUrl || null,
         status: "scheduled",
         stage: data.type === "video" ? "hr_interview" : "tech_interview"
+      },
+      include: {
+        application: { include: { candidate: true } }
       }
+    });
+
+    // --- Google Calendar Sync ---
+    let googleEvent = null;
+    const integration = await prisma.calendarIntegration.findUnique({
+      where: { userId: adminUser.id }
+    });
+
+    if (integration && data.syncWithGoogle !== false) {
+      googleEvent = await createCalendarEvent(adminUser.id, {
+        title: `Interview: ${interview.application.candidate.name} - ${interview.type}`,
+        description: `Interview for application ${interview.applicationId}. \nLocation: ${data.location}`,
+        startTime: new Date(data.scheduledAt),
+        endTime: new Date(new Date(data.scheduledAt).getTime() + 60 * 60 * 1000), // Default 1 hour
+        attendees: [interview.application.candidate.email, adminUser.email]
+      });
+
+      if (googleEvent) {
+        await prisma.interview.update({
+          where: { id: interview.id },
+          data: {
+            googleEventId: googleEvent.googleEventId,
+            meetingLink: googleEvent.meetingLink,
+            calendarSynced: true,
+            meetingUrl: googleEvent.meetingLink || interview.meetingUrl
+          }
+        });
+      }
+    }
+
+    // Log Activity
+    await prisma.activityLog.create({
+      data: {
+        userId: interview.application.candidateId,
+        action: `Scheduled an interview: ${interview.type}`,
+        resource: "Interview",
+        resourceId: interview.id,
+      }
+    });
+
+    // Send Email Notification
+    await sendEmail({
+      to: interview.application.candidate.email,
+      subject: `Interview Scheduled: ${interview.application.candidate.name}`,
+      text: `Hi ${interview.application.candidate.name},\n\nYour interview has been scheduled.\n\nDate: ${new Date(data.scheduledAt).toLocaleString()}\nType: ${data.type}\nLocation: ${data.location}${googleEvent?.meetingLink ? `\nMeeting Link: ${googleEvent.meetingLink}` : ""}\n\nBest regards,\nNuanu Recruitment Team`,
     });
 
     // Update Application Stage
@@ -58,5 +109,152 @@ export async function scheduleInterview(data: {
   } catch (error) {
     console.error("Schedule Interview Error:", error);
     return { success: false, error: "Failed to schedule interview" };
+  }
+}
+
+export async function submitInterviewFeedback(data: {
+  interviewId: string;
+  overallRating: number;
+  technicalScore?: number;
+  communicationScore?: number;
+  cultureFitScore?: number;
+  leadershipScore?: number;
+  strengths?: string;
+  weaknesses?: string;
+  recommendation: string;
+  notes?: string;
+}) {
+  try {
+    const interview = await prisma.interview.findUnique({
+      where: { id: data.interviewId },
+      include: { application: true }
+    });
+
+    if (!interview) throw new Error("Interview not found");
+
+    await prisma.interviewFeedback.upsert({
+      where: {
+        interviewId_interviewerId: {
+          interviewId: data.interviewId,
+          interviewerId: interview.interviewerId,
+        }
+      },
+      update: {
+        overallRating: data.overallRating,
+        technicalScore: data.technicalScore,
+        communicationScore: data.communicationScore,
+        cultureFitScore: data.cultureFitScore,
+        leadershipScore: data.leadershipScore,
+        strengths: data.strengths,
+        weaknesses: data.weaknesses,
+        recommendation: data.recommendation,
+        notes: data.notes,
+        isSubmitted: true,
+        submittedAt: new Date(),
+      },
+      create: {
+        interviewId: data.interviewId,
+        interviewerId: interview.interviewerId,
+        overallRating: data.overallRating,
+        technicalScore: data.technicalScore,
+        communicationScore: data.communicationScore,
+        cultureFitScore: data.cultureFitScore,
+        leadershipScore: data.leadershipScore,
+        strengths: data.strengths,
+        weaknesses: data.weaknesses,
+        recommendation: data.recommendation,
+        notes: data.notes,
+        isSubmitted: true,
+        submittedAt: new Date(),
+      }
+    });
+
+    // Update Interview Status
+    await prisma.interview.update({
+      where: { id: data.interviewId },
+      data: { status: "completed", completedAt: new Date() }
+    });
+
+    revalidatePath("/dashboard/interviews");
+    return { success: true };
+  } catch (error) {
+    console.error("Submit Feedback Error:", error);
+    return { success: false, error: "Failed to submit feedback" };
+  }
+}
+
+export async function rescheduleInterview(data: {
+  interviewId: string;
+  scheduledAt: string;
+  location?: string;
+  meetingUrl?: string;
+}) {
+  try {
+    const interview = await prisma.interview.update({
+      where: { id: data.interviewId },
+      data: {
+        scheduledAt: new Date(data.scheduledAt),
+        location: data.location,
+        meetingUrl: data.meetingUrl,
+        status: "scheduled"
+      },
+      include: { application: true }
+    });
+
+    // Log Activity
+    await prisma.activityLog.create({
+      data: {
+        userId: interview.application.candidateId,
+        action: `Rescheduled interview to ${new Date(data.scheduledAt).toLocaleString()}`,
+        resource: "Interview",
+        resourceId: interview.id,
+      }
+    });
+
+    // Sync Update to Google
+    if (interview.googleEventId && interview.calendarSynced) {
+      await updateCalendarEvent(interview.interviewerId, interview.googleEventId, {
+        startTime: new Date(data.scheduledAt),
+        endTime: new Date(new Date(data.scheduledAt).getTime() + 60 * 60 * 1000),
+        location: data.location,
+      } as any);
+    }
+
+    revalidatePath("/dashboard/interviews");
+    return { success: true };
+  } catch (error) {
+    console.error("Reschedule Interview Error:", error);
+    return { success: false, error: "Failed to reschedule interview" };
+  }
+}
+
+export async function cancelInterview(interviewId: string) {
+  try {
+    const interview = await prisma.interview.update({
+      where: { id: interviewId },
+      data: { status: "cancelled", cancelledAt: new Date() },
+      include: { application: true }
+    });
+
+    // Log Activity
+    await prisma.activityLog.create({
+      data: {
+        userId: interview.application.candidateId,
+        action: `Cancelled interview`,
+        resource: "Interview",
+        resourceId: interview.id,
+      }
+    });
+
+    // Sync Deletion to Google
+    if (interview.googleEventId && interview.calendarSynced) {
+      await deleteCalendarEvent(interview.interviewerId, interview.googleEventId);
+    }
+
+    revalidatePath("/dashboard/interviews");
+    return { success: true };
+  } catch (error) {
+    console.error("Cancel Interview Error:", error);
+    return { success: false, error: "Failed to cancel interview" };
   }
 }

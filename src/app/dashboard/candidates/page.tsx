@@ -22,10 +22,11 @@ export default async function CandidatesPage() {
     where: { userId: { in: candidateIds } }
   });
 
-  const candidates: Candidate[] = applications.map(app => {
+  const candidates = applications.map(app => {
     const profile = profiles.find(p => p.userId === app.candidateId);
     return {
       id: app.id,
+      userId: app.candidateId, // Add the actual User ID
       name: app.candidate.name,
       email: app.candidate.email,
       vacancyTitle: app.vacancy.title,

@@ -46,6 +46,14 @@ export type DashboardMetrics = {
   recentActivity: { id: string; type: string; action: string; resource: string; time: string }[];
   topCandidates: { id: string; name: string; vacancyTitle: string; score: number }[];
   upcomingInterviews: { id: string; candidateName: string; position: string; type: string; status: string }[];
+  changes: {
+    vacancies: string;
+    candidates: string;
+    timeToHire: string;
+    offerRate: string;
+    aiScore: string;
+    costPerHire: string;
+  };
 };
 
 const container = {
@@ -101,6 +109,8 @@ function ActivityIcon({ type }: { type: string }) {
     vacancy: { icon: Briefcase, color: "text-indigo-600", bg: "bg-indigo-100" },
     pipeline: { icon: Activity, color: "text-cyan-600", bg: "bg-cyan-100" },
     feedback: { icon: TrendingUp, color: "text-rose-600", bg: "bg-rose-100" },
+    email: { icon: Users, color: "text-indigo-600", bg: "bg-indigo-100" },
+    candidate: { icon: Users, color: "text-blue-600", bg: "bg-blue-100" },
   };
   const conf = iconMap[type] || iconMap.application;
   return (
@@ -117,8 +127,9 @@ export default function DashboardClient({ metrics }: { metrics: DashboardMetrics
       value: metrics.activeVacancies,
       total: metrics.totalVacancies,
       suffix: ` / ${metrics.totalVacancies}`,
-      change: "+3",
-      up: true,
+      suffix: ` / ${metrics.totalVacancies}`,
+      change: metrics.changes.vacancies,
+      up: metrics.changes.vacancies.startsWith("+"),
       icon: Briefcase,
       color: "emerald",
       gradient: "from-emerald-500 to-teal-500",
@@ -126,8 +137,8 @@ export default function DashboardClient({ metrics }: { metrics: DashboardMetrics
     {
       label: "Total Candidates",
       value: metrics.totalCandidates,
-      change: `+${metrics.newCandidatesThisMonth}`,
-      up: true,
+      change: metrics.changes.candidates,
+      up: metrics.changes.candidates.startsWith("+"),
       icon: Users,
       color: "blue",
       gradient: "from-blue-500 to-indigo-500",
@@ -136,8 +147,8 @@ export default function DashboardClient({ metrics }: { metrics: DashboardMetrics
       label: "Avg. Time to Hire",
       value: `${metrics.averageTimeToHire}`,
       suffix: " days",
-      change: "-4",
-      up: false,
+      change: metrics.changes.timeToHire,
+      up: metrics.changes.timeToHire.startsWith("+"),
       icon: Clock,
       color: "amber",
       gradient: "from-amber-500 to-orange-500",
@@ -146,8 +157,8 @@ export default function DashboardClient({ metrics }: { metrics: DashboardMetrics
       label: "Offer Accept Rate",
       value: `${metrics.offerAcceptanceRate}`,
       suffix: "%",
-      change: "+5%",
-      up: true,
+      change: metrics.changes.offerRate,
+      up: metrics.changes.offerRate.startsWith("+"),
       icon: TrendingUp,
       color: "purple",
       gradient: "from-purple-500 to-violet-500",
@@ -156,8 +167,8 @@ export default function DashboardClient({ metrics }: { metrics: DashboardMetrics
       label: "Avg. AI Match Score",
       value: `${metrics.averageMatchScore}`,
       suffix: "%",
-      change: "+3%",
-      up: true,
+      change: metrics.changes.aiScore,
+      up: metrics.changes.aiScore.startsWith("+"),
       icon: Brain,
       color: "teal",
       gradient: "from-teal-500 to-cyan-500",
@@ -165,8 +176,8 @@ export default function DashboardClient({ metrics }: { metrics: DashboardMetrics
     {
       label: "Cost per Hire",
       value: `Rp ${metrics.averageCostPerHire.toLocaleString("id-ID")}`,
-      change: "Rp -500k",
-      up: false,
+      change: metrics.changes.costPerHire,
+      up: metrics.changes.costPerHire.startsWith("+"),
       icon: DollarSign,
       color: "red",
       gradient: "from-rose-500 to-pink-500",

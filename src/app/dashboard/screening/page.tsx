@@ -2,15 +2,33 @@ import { prisma } from "@/lib/prisma";
 import ScreeningClient, { AssessmentData } from "./ScreeningClient";
 
 export default async function ScreeningPage() {
-  const templates = await prisma.assessmentTemplate.findMany();
-  
-  const assessmentsDb = await prisma.assessment.groupBy({
-    by: ['title'],
-    _count: { applicationId: true },
-    _avg: { score: true }
-  });
+  const [templates, assessmentsDb, allAssessments, applicationsDb] = await Promise.all([
+    prisma.assessmentTemplate.findMany(),
+    prisma.assessment.groupBy({
+      by: ['title'],
+      _count: { applicationId: true },
+      _avg: { score: true }
+    }),
+    prisma.assessment.findMany({
+      include: {
+        application: {
+          include: {
+            candidate: true,
+            vacancy: true
+          }
+        }
+      },
+      orderBy: { createdAt: "desc" },
+      take: 50
+    }),
+    prisma.application.findMany({
+      where: { status: { notIn: ["rejected", "hired"] } },
+      include: { candidate: true, vacancy: true },
+      orderBy: { createdAt: "desc" }
+    })
+  ]);
 
-  const assessments: AssessmentData[] = templates.map(t => {
+  const assessmentTemplates: AssessmentData[] = templates.map(t => {
     const agg = assessmentsDb.find(a => a.title === t.title);
     return {
       id: t.id,
@@ -23,13 +41,26 @@ export default async function ScreeningPage() {
     };
   });
 
-  // If no templates in DB, provide empty array gracefully
+  const recentAssessments = allAssessments.map(a => ({
+    id: a.id,
+    candidateName: a.application.candidate.name,
+    vacancyTitle: a.application.vacancy.title,
+    title: a.title,
+    type: a.type,
+    status: a.status,
+    score: a.score,
+    maxScore: a.maxScore,
+    createdAt: a.createdAt.toISOString()
+  }));
 
-  const applicationsDb = await prisma.application.findMany({
-    where: { status: { notIn: ["rejected", "hired"] } },
-    include: { candidate: true, vacancy: true },
-    orderBy: { createdAt: "desc" }
-  });
+  const stats = {
+    totalSent: allAssessments.length,
+    pending: allAssessments.filter(a => a.status === "pending").length,
+    completed: allAssessments.filter(a => a.status === "completed").length,
+    avgScore: allAssessments.length > 0 
+      ? Math.round(allAssessments.reduce((acc, curr) => acc + (curr.score || 0), 0) / allAssessments.length) 
+      : 0
+  };
 
   const activeApplications = applicationsDb.map(app => ({
     id: app.id,
@@ -37,5 +68,13 @@ export default async function ScreeningPage() {
     vacancyTitle: app.vacancy.title
   }));
 
-  return <ScreeningClient assessments={assessments} activeApplications={activeApplications} />;
+  return (
+    <ScreeningClient 
+      templates={assessmentTemplates} 
+      recentAssessments={recentAssessments}
+      activeApplications={activeApplications}
+      stats={stats}
+    />
+  );
 }
+

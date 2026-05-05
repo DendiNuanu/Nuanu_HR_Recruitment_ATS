@@ -39,3 +39,24 @@ export async function updateIntegrationSettings(name: string, type: string, conf
     return { success: false, error: "Failed to save settings" };
   }
 }
+
+export async function getCalendarStatus() {
+  try {
+    const { cookies } = await import("next/headers");
+    const cookieStore = await cookies();
+    const token = cookieStore.get("nuanu_token")?.value;
+    
+    if (!token || !token.startsWith("auth_token_")) {
+      return { connected: false };
+    }
+
+    const userId = token.replace("auth_token_", "");
+    const integration = await prisma.calendarIntegration.findUnique({
+      where: { userId }
+    });
+
+    return { connected: !!integration };
+  } catch (error) {
+    return { connected: false };
+  }
+}

@@ -16,8 +16,11 @@ import {
   Briefcase,
   Calendar,
   FileText,
-  AlertCircle,
   Clock,
+  User,
+  Settings as SettingsIcon,
+  LogOut,
+  AlertCircle,
 } from "lucide-react";
 
 import { getNotifications, markNotificationAsRead, markAllNotificationsAsRead } from "@/app/dashboard/notifications/actions";
@@ -50,9 +53,11 @@ export default function Header() {
   const { notifications, unreadCount, setNotifications, markAsRead, markAllAsRead } = useNotificationStore();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const notifRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLDivElement>(null);
+  const userRef = useRef<HTMLDivElement>(null);
 
   const fetchNotifications = async () => {
     // For demo, we assume the first admin user is logged in
@@ -68,9 +73,26 @@ export default function Header() {
     };
     syncNotifications();
     
-    // Poll for new notifications every 30 seconds
     const interval = setInterval(syncNotifications, 30000);
-    return () => clearInterval(interval);
+
+    // Close dropdowns on outside click
+    const handleClickOutside = (event: MouseEvent) => {
+      if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
+        setShowNotifications(false);
+      }
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setShowSearch(false);
+      }
+      if (userRef.current && !userRef.current.contains(event.target as Node)) {
+        setShowUserMenu(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
   }, [setNotifications]);
 
   const handleMarkRead = async (id: string) => {
@@ -235,8 +257,53 @@ export default function Header() {
           </div>
  
           {/* User Avatar */}
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-nuanu-emerald to-nuanu-teal flex items-center justify-center text-white text-sm font-bold cursor-pointer hover:shadow-lg hover:shadow-emerald-500/20 transition-all ml-1">
-            AD
+          <div ref={userRef} className="relative ml-1">
+            <button
+              onClick={() => setShowUserMenu(!showUserMenu)}
+              className="w-9 h-9 rounded-xl bg-gradient-to-br from-nuanu-emerald to-nuanu-teal flex items-center justify-center text-white text-sm font-bold cursor-pointer hover:shadow-lg hover:shadow-emerald-500/20 transition-all border-none"
+            >
+              AD
+            </button>
+            <AnimatePresence>
+              {showUserMenu && (
+                <motion.div
+                  initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                  className="absolute right-0 top-12 w-56 bg-white rounded-xl shadow-xl border border-nuanu-gray-200 overflow-hidden py-1"
+                >
+                  <div className="px-4 py-3 border-b border-nuanu-gray-100 bg-nuanu-gray-50/50">
+                    <p className="text-sm font-bold text-nuanu-navy">Admin Dendy</p>
+                    <p className="text-[10px] text-nuanu-gray-400 font-medium uppercase tracking-wider">Super Administrator</p>
+                  </div>
+                  <div className="py-1">
+                    <button className="w-full flex items-center gap-3 px-4 py-2 text-sm text-nuanu-gray-600 hover:bg-nuanu-gray-50 transition-colors">
+                      <User className="w-4 h-4" /> Profile
+                    </button>
+                    <button 
+                      onClick={() => {
+                        window.location.href = "/dashboard/settings";
+                        setShowUserMenu(false);
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-2 text-sm text-nuanu-gray-600 hover:bg-nuanu-gray-50 transition-colors"
+                    >
+                      <SettingsIcon className="w-4 h-4" /> Settings
+                    </button>
+                  </div>
+                  <div className="border-t border-nuanu-gray-100 py-1">
+                    <button 
+                      onClick={() => {
+                        // Handle logout logic here
+                        window.location.href = "/login";
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                    >
+                      <LogOut className="w-4 h-4" /> Logout
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
       </div>

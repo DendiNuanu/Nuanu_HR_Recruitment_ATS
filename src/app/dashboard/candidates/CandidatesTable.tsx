@@ -3,11 +3,13 @@
 import { useState } from "react";
 import { Search, Filter, Eye, Mail, MoreVertical, Users, X, Check, Loader2, Send } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { updateCandidateStage } from "./actions";
+import { updateCandidateStage, sendCandidateEmail } from "./actions";
 import { formatDate } from "@/lib/utils";
+import { toast } from "sonner";
 
 export type Candidate = {
   id: string;
+  userId: string;
   name: string;
   email: string;
   vacancyTitle: string;
@@ -59,17 +61,34 @@ export default function CandidatesTable({ candidates }: { candidates: Candidate[
     }
   };
 
-  const handleSendEmail = () => {
+  const handleSendEmail = async () => {
+    if (!selectedEmail) return;
+    
     setIsSendingEmail(true);
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      const result = await sendCandidateEmail({
+        candidateId: selectedEmail.userId, // Use userId instead of id (Application ID)
+        to: selectedEmail.email,
+        subject: emailSubject,
+        body: emailBody
+      });
+
+      if (result.success) {
+        setEmailSent(true);
+        toast.success("Email sent successfully!");
+        setTimeout(() => {
+          setEmailSent(false);
+          setSelectedEmail(null);
+        }, 2000);
+      } else {
+        toast.error("Failed to send email. Please check your configuration.");
+      }
+    } catch (error) {
+      toast.error("An unexpected error occurred.");
+      console.error(error);
+    } finally {
       setIsSendingEmail(false);
-      setEmailSent(true);
-      setTimeout(() => {
-        setEmailSent(false);
-        setSelectedEmail(null);
-      }, 2000);
-    }, 1500);
+    }
   };
 
   const openEmailModal = (c: Candidate) => {

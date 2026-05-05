@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { createNotification } from "@/lib/notifications";
+import { sendEmail } from "@/lib/email";
 
 export async function createOffer(data: {
   applicationId: string;
@@ -71,8 +72,12 @@ export async function sendOffer(offerId: string) {
       data: { currentStage: "offer" }
     });
 
-    // Notify Candidate (simulated)
-    console.log(`Sending offer email to ${offer.application.candidate.email}...`);
+    // Notify Candidate (Real Email)
+    await sendEmail({
+      to: offer.application.candidate.email,
+      subject: `Official Job Offer: ${offer.application.vacancy.title} at Nuanu`,
+      text: `Hi ${offer.application.candidate.name},\n\nWe are pleased to extend an official offer for the ${offer.application.vacancy.title} position. \n\nSalary: ${offer.salary}\nStart Date: ${offer.startDate.toLocaleDateString()}\n\nPlease visit your candidate portal to review and accept the offer.`,
+    });
 
     revalidatePath("/dashboard/offers");
     revalidatePath("/dashboard/candidates");

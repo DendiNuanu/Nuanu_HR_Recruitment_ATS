@@ -147,22 +147,30 @@ export default async function DashboardPage() {
   // 8. Recent Activity
   const activities = await prisma.activityLog.findMany({
     take: 5,
-    orderBy: { createdAt: 'desc' }
+    orderBy: { createdAt: 'desc' },
+    include: { user: true }
   });
   
   const resourceIds = activities.map(a => a.resourceId).filter(id => id !== null) as string[];
   const relatedApps = await prisma.application.findMany({
-    where: { id: { in: resourceIds } },
+    where: { 
+      OR: [
+        { id: { in: resourceIds } },
+        { candidateId: { in: resourceIds } }
+      ]
+    },
     include: { candidate: true, vacancy: true }
   });
 
   const recentActivity = activities.map(a => {
-    const app = relatedApps.find(app => app.id === a.resourceId);
+    const app = relatedApps.find(app => app.id === a.resourceId || app.candidateId === a.resourceId);
     return {
       id: a.id,
       type: a.resource.toLowerCase(), 
       action: a.action,
-      resource: app ? `${app.candidate.name} (${app.vacancy.title})` : (a.resourceId || a.resource),
+      resource: app 
+        ? `${app.candidate.name} (${app.vacancy.title})` 
+        : (a.user?.name || a.resourceId || a.resource),
       time: formatDate(a.createdAt),
     };
   });
@@ -210,6 +218,22 @@ export default async function DashboardPage() {
     status: i.status,
   }));
 
+  // Calculate real changes (comparing last 30 days)
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+  const newVacancies = await prisma.vacancy.count({ where: { createdAt: { gte: thirtyDaysAgo } } });
+  const newOffers = await prisma.offer.count({ where: { createdAt: { gte: thirtyDaysAgo } } });
+  
+  const changes = {
+    vacancies: `+${newVacancies}`,
+    candidates: `+${newCandidatesThisMonth}`,
+    timeToHire: hiredApplications.length > 0 ? "-0" : "+0", // No enough data for historical trend yet
+    offerRate: newOffers > 0 ? `+${newOffers}` : "+0",
+    aiScore: "+0%",
+    costPerHire: "+Rp 0",
+  };
+
   const metrics: DashboardMetrics = {
     activeVacancies,
     totalVacancies,
@@ -226,6 +250,7 @@ export default async function DashboardPage() {
     recentActivity,
     topCandidates,
     upcomingInterviews,
+    changes,
   };
 
   return <DashboardClient metrics={metrics} />;

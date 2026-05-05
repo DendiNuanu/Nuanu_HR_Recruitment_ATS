@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Save, Building, Users, Bell, Shield, Database, Webhook, Plus, UserPlus, Key, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { Save, Building, Users, Bell, Shield, Database, Webhook, Plus, UserPlus, Key, Loader2, CheckCircle2, AlertCircle, Calendar } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { getIntegrationSettings, updateIntegrationSettings } from "@/app/actions/settings";
+import { getIntegrationSettings, updateIntegrationSettings, getCalendarStatus } from "@/app/actions/settings";
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState("general");
@@ -17,6 +17,15 @@ export default function SettingsPage() {
     isActive: false
   });
 
+  const [isCalendarConnected, setIsCalendarConnected] = useState(false);
+  const [generalConfig, setGeneralConfig] = useState({
+    companyName: "Nuanu",
+    industry: "Creative City Development and Sustainable Tourism",
+    website: "https://nuanu.com",
+    requireResume: true,
+    enableAI: true
+  });
+
   useEffect(() => {
     async function loadSettings() {
       const googleSettings = await getIntegrationSettings("google_sheets");
@@ -27,27 +36,42 @@ export default function SettingsPage() {
           isActive: googleSettings.isActive
         });
       }
+
+      const calendar = await getCalendarStatus();
+      setIsCalendarConnected(calendar.connected);
+
+      const genSettings = await getIntegrationSettings("general_info");
+      if (genSettings) {
+        setGeneralConfig(genSettings.config as any);
+      }
     }
     loadSettings();
   }, []);
 
   const handleSaveIntegrations = async () => {
+    let configObj = {};
+    try {
+      configObj = JSON.parse(sheetsConfig.serviceAccount);
+    } catch (e) {}
+    
+    return await updateIntegrationSettings(
+      "google_sheets", 
+      "spreadsheet", 
+      { ...configObj, spreadsheetId: sheetsConfig.spreadsheetId },
+      sheetsConfig.isActive
+    );
+  };
+
+  const handleGlobalSave = async () => {
     setIsSaving(true);
     setSaveStatus("idle");
     try {
-      let configObj = {};
-      try {
-        configObj = JSON.parse(sheetsConfig.serviceAccount);
-      } catch (e) {
-        // If not valid JSON, we still store it as an object if possible or handle error
+      let res;
+      if (activeTab === "integrations") {
+        res = await handleSaveIntegrations();
+      } else {
+        res = await updateIntegrationSettings("general_info", "general", generalConfig, true);
       }
-      
-      const res = await updateIntegrationSettings(
-        "google_sheets", 
-        "spreadsheet", 
-        { ...configObj, spreadsheetId: sheetsConfig.spreadsheetId },
-        sheetsConfig.isActive
-      );
       
       if (res.success) {
         setSaveStatus("success");
@@ -79,7 +103,7 @@ export default function SettingsPage() {
           <p className="text-sm text-nuanu-gray-500 mt-1">Configure your Nuanu ATS instance</p>
         </div>
         <button 
-          onClick={activeTab === "integrations" ? handleSaveIntegrations : undefined}
+          onClick={handleGlobalSave}
           disabled={isSaving}
           className="btn-primary"
         >
@@ -119,20 +143,31 @@ export default function SettingsPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-nuanu-gray-700 mb-1.5">Company Name</label>
-                        <input type="text" className="input-field" defaultValue="Nuanu" />
+                        <input 
+                          type="text" 
+                          className="input-field" 
+                          value={generalConfig.companyName}
+                          onChange={(e) => setGeneralConfig({...generalConfig, companyName: e.target.value})}
+                        />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-nuanu-gray-700 mb-1.5">Industry</label>
-                        <select className="input-field">
-                          <option>Technology</option>
-                          <option>Healthcare</option>
-                          <option>Finance</option>
-                        </select>
+                        <input 
+                          type="text" 
+                          className="input-field" 
+                          value={generalConfig.industry}
+                          onChange={(e) => setGeneralConfig({...generalConfig, industry: e.target.value})}
+                        />
                       </div>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-nuanu-gray-700 mb-1.5">Company Website</label>
-                      <input type="url" className="input-field" defaultValue="https://nuanu.com" />
+                      <input 
+                        type="url" 
+                        className="input-field" 
+                        value={generalConfig.website}
+                        onChange={(e) => setGeneralConfig({...generalConfig, website: e.target.value})}
+                      />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-nuanu-gray-700 mb-1.5">Company Logo</label>
@@ -164,7 +199,12 @@ export default function SettingsPage() {
                         <p className="text-xs text-nuanu-gray-500">Force all applicants to attach a resume</p>
                       </div>
                       <label className="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" className="sr-only peer" defaultChecked />
+                        <input 
+                          type="checkbox" 
+                          className="sr-only peer" 
+                          checked={generalConfig.requireResume}
+                          onChange={(e) => setGeneralConfig({...generalConfig, requireResume: e.target.checked})}
+                        />
                         <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
                       </label>
                     </div>
@@ -174,7 +214,12 @@ export default function SettingsPage() {
                         <p className="text-xs text-nuanu-gray-500">Automatically score incoming candidates</p>
                       </div>
                       <label className="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" className="sr-only peer" defaultChecked />
+                        <input 
+                          type="checkbox" 
+                          className="sr-only peer" 
+                          checked={generalConfig.enableAI}
+                          onChange={(e) => setGeneralConfig({...generalConfig, enableAI: e.target.checked})}
+                        />
                         <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
                       </label>
                     </div>
@@ -302,11 +347,49 @@ export default function SettingsPage() {
                 </div>
                 <div className="space-y-6 max-w-2xl">
                   {/* LinkedIn & JobStreet (Keep static for now) */}
-                  <div className="opacity-50 pointer-events-none grayscale">
-                    <div className="p-4 bg-nuanu-gray-50 rounded-xl border border-nuanu-gray-200 mb-4">
-                      <h3 className="font-semibold text-nuanu-navy mb-1 text-sm">LinkedIn Talent Solutions API</h3>
-                      <p className="text-[10px] text-nuanu-gray-400 mb-3">Enterprise license required</p>
+
+                  {/* Google Calendar */}
+                  <div className="p-6 bg-white rounded-2xl border-2 border-blue-100 shadow-sm relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-4 opacity-10">
+                      <Calendar className="w-16 h-16 text-blue-600" />
                     </div>
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="font-bold text-nuanu-navy flex items-center gap-2">
+                        <div className={`w-2 h-2 rounded-full ${isCalendarConnected ? "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" : "bg-nuanu-gray-300"}`}></div>
+                        Google Calendar Integration
+                      </h3>
+                      {isCalendarConnected ? (
+                        <span className="badge bg-emerald-100 text-emerald-700 text-[10px]">Connected</span>
+                      ) : (
+                        <span className="badge bg-nuanu-gray-100 text-nuanu-gray-600 text-[10px]">Not Connected</span>
+                      )}
+                    </div>
+                    
+                    <p className="text-xs text-nuanu-gray-500 mb-6 max-w-md">
+                      Sync your interviews with Google Calendar and automatically generate Google Meet links for video calls.
+                    </p>
+
+                    {isCalendarConnected ? (
+                      <div className="flex items-center gap-3">
+                        <div className="flex-1 p-3 bg-emerald-50 border border-emerald-100 rounded-xl flex items-center gap-2">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                          <span className="text-xs font-medium text-emerald-700">Calendar Sync Active</span>
+                        </div>
+                        <button 
+                          onClick={() => window.location.href = "/api/calendar/google/connect"}
+                          className="btn-secondary py-2 text-xs"
+                        >
+                          Reconnect
+                        </button>
+                      </div>
+                    ) : (
+                      <button 
+                        onClick={() => window.location.href = "/api/calendar/google/connect"}
+                        className="btn-primary bg-blue-600 hover:bg-blue-700 w-full justify-center"
+                      >
+                        <Calendar className="w-4 h-4" /> Connect Google Calendar
+                      </button>
+                    )}
                   </div>
 
                   {/* Google Sheets */}

@@ -31,6 +31,7 @@ model User {
   onboardingTasks     OnboardingTask[]
   userRoles           UserRole[]
   department          Department?         @relation(fields: [departmentId], references: [id])
+  calendarIntegration CalendarIntegration?
   createdVacancies    Vacancy[]           @relation("VacancyCreator")
   assignedVacancies   Vacancy[]           @relation("VacancyRecruiter")
 
@@ -345,6 +346,9 @@ model Interview {
   meetingUrl      String?
   status          String              @default("scheduled")
   calendarEventId String?
+  googleEventId   String?
+  meetingLink     String?
+  calendarSynced  Boolean             @default(false)
   notes           String?
   completedAt     DateTime?
   cancelledAt     DateTime?
@@ -548,4 +552,16 @@ model Webhook {
   updatedAt       DateTime  @updatedAt
 
   @@map("webhooks")
+}
+model CalendarIntegration {
+  id           String   @id @default(uuid())
+  userId       String   @unique
+  provider     String   @default("google")
+  accessToken  String
+  refreshToken String
+  expiryDate   DateTime
+  createdAt    DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("calendar_integrations")
 }
