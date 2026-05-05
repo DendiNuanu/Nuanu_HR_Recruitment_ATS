@@ -55,6 +55,12 @@ export async function scanResumes() {
 
       // Prompt for Ollama
       const prompt = `You are an expert HR AI Assistant. Analyze the candidate's resume against the job description and return a scoring JSON.
+Use these specific weights for your evaluation:
+1. Hard Skills & Technical (40%): How well do their technical skills match the requirements?
+2. Experience Relevance (25%): Is their work history relevant to this specific role?
+3. Soft Skills & Keywords (15%): Communication, leadership, and presence of industry-specific keywords.
+4. Education & Certs (10%): Does their academic background and certifications align?
+5. ATS Formatting/Clarity (10%): Is the resume well-structured and easy for both AI and humans to read?
 
 Job Title: ${vacancyTitle}
 Job Description: ${vacancyDesc}
@@ -64,17 +70,17 @@ ${resumeText.substring(0, 3000)}
 
 Return ONLY a valid JSON object in this exact format (no markdown, no extra text):
 {
-  "overallScore": 85,
-  "hardSkillsScore": 80,
-  "softSkillsScore": 75,
-  "experienceScore": 90,
-  "educationScore": 70,
-  "formatScore": 85,
-  "matchedKeywords": ["React", "TypeScript", "Node.js"],
-  "missingKeywords": ["AWS", "Docker"],
-  "skillGaps": ["Cloud Infrastructure", "DevOps"],
-  "strengths": ["Strong frontend skills", "Leadership experience"],
-  "recommendations": ["Consider for senior role", "Schedule technical interview"]
+  "experienceYears": number,
+  "hardSkillsScore": 0-100,
+  "experienceScore": 0-100,
+  "softSkillsScore": 0-100,
+  "educationScore": 0-100,
+  "formatScore": 0-100,
+  "matchedKeywords": ["Keyword1", "Keyword2"],
+  "missingKeywords": ["Keyword3"],
+  "skillGaps": ["Gap1"],
+  "strengths": ["Strength1"],
+  "recommendations": ["Rec1"]
 }`;
 
       try {
@@ -94,15 +100,37 @@ Return ONLY a valid JSON object in this exact format (no markdown, no extra text
         const data = await response.json();
         const result = JSON.parse(data.response);
 
+        // Update Candidate Profile with extracted years of experience
+        const extractedExp = Number(result.experienceYears) || 0;
+        await prisma.candidateProfile.update({
+          where: { userId: app.candidateId },
+          data: { experienceYears: extractedExp }
+        });
+
+        // Calculate weighted overall score
+        const hard = Number(result.hardSkillsScore) || 0;
+        const exp = Number(result.experienceScore) || 0;
+        const soft = Number(result.softSkillsScore) || 0;
+        const edu = Number(result.educationScore) || 0;
+        const fmt = Number(result.formatScore) || 0;
+        
+        const overall = Math.round(
+          (hard * 0.40) + 
+          (exp * 0.25) + 
+          (soft * 0.15) + 
+          (edu * 0.10) + 
+          (fmt * 0.10)
+        );
+
         await prisma.candidateScore.create({
           data: {
             applicationId: app.id,
-            overallScore: Number(result.overallScore) || 70,
-            hardSkillsScore: Number(result.hardSkillsScore) || 0,
-            softSkillsScore: Number(result.softSkillsScore) || 0,
-            experienceScore: Number(result.experienceScore) || 0,
-            educationScore: Number(result.educationScore) || 0,
-            formatScore: Number(result.formatScore) || 0,
+            overallScore: overall,
+            hardSkillsScore: hard,
+            softSkillsScore: soft,
+            experienceScore: exp,
+            educationScore: edu,
+            formatScore: fmt,
             matchedKeywords: Array.isArray(result.matchedKeywords) ? result.matchedKeywords : [],
             missingKeywords: Array.isArray(result.missingKeywords) ? result.missingKeywords : [],
             skillGaps: Array.isArray(result.skillGaps) ? result.skillGaps : [],

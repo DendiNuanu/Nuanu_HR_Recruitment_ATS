@@ -144,7 +144,7 @@ export default function AIScoringClient({
             </div>
             <div className="flex-1">
               <h3 className="text-sm font-bold text-nuanu-navy">AI Engine Analysis in Progress</h3>
-              <p className="text-xs text-nuanu-gray-500">Extracting skills, evaluating experience, and calculating match rates for 12 new applications...</p>
+              <p className="text-xs text-nuanu-gray-500">Extracting skills, evaluating experience, and calculating match rates for new applications...</p>
             </div>
             <div className="text-right">
               <span className="text-2xl font-bold text-indigo-600">{scanProgress}%</span>
@@ -226,7 +226,15 @@ export default function AIScoringClient({
                         <h3 className="text-lg font-bold text-nuanu-navy">{candidate.name}</h3>
                         <p className="text-sm text-nuanu-gray-500">{candidate.currentTitle} at {candidate.currentCompany}</p>
                       </div>
-                      <span className="badge bg-emerald-100 text-emerald-700 uppercase">Strong Match</span>
+                      <span className={`badge uppercase ${
+                        candidate.score >= 85 ? "bg-emerald-100 text-emerald-700" :
+                        candidate.score >= 70 ? "bg-blue-100 text-blue-700" :
+                        "bg-nuanu-gray-100 text-nuanu-gray-600"
+                      }`}>
+                        {candidate.score >= 85 ? "Strong Match" : 
+                         candidate.score >= 70 ? "Good Match" : 
+                         "Potential Match"}
+                      </span>
                     </div>
 
                     <div className="mb-4">
@@ -398,13 +406,14 @@ export default function AIScoringClient({
               {/* Modal Content */}
               <div className="flex-1 overflow-y-auto p-8 space-y-8">
                 {/* Score Breakdown */}
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                   {[
                     { label: "Overall", score: selectedAnalysis.overallScore, color: "text-indigo-600" },
                     { label: "Hard Skills", score: selectedAnalysis.hardSkillsScore, color: "text-emerald-600" },
                     { label: "Soft Skills", score: selectedAnalysis.softSkillsScore, color: "text-purple-600" },
                     { label: "Experience", score: selectedAnalysis.experienceScore, color: "text-blue-600" },
                     { label: "Education", score: selectedAnalysis.educationScore, color: "text-amber-600" },
+                    { label: "ATS Format", score: selectedAnalysis.formatScore, color: "text-teal-600" },
                   ].map(stat => (
                     <div key={stat.label} className="text-center p-4 rounded-xl bg-nuanu-gray-50 border border-nuanu-gray-100">
                       <div className={`text-2xl font-bold ${stat.color}`}>{stat.score}%</div>

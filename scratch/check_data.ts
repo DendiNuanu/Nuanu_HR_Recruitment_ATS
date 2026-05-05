@@ -2,39 +2,23 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-async function main() {
-  const applications = await prisma.application.findMany({
-    include: {
-      candidate: true,
-      candidateScore: true,
-      vacancy: true,
-    },
+async function check() {
+  const dendi = await prisma.user.findFirst({
+    where: { name: 'Dendi F.' }
   });
 
-  console.log('Applications:');
-  applications.forEach((app) => {
-    console.log(`ID: ${app.id}`);
-    console.log(`Candidate: ${app.candidate.name}`);
-    console.log(`Vacancy: ${app.vacancy.title}`);
-    console.log(`Status: ${app.status}`);
-    console.log(`Score: ${app.candidateScore ? app.candidateScore.overallScore : 'None'}`);
-    console.log('---');
+  if (!dendi) {
+    console.log('Dendi F not found');
+    return;
+  }
+
+  const profile = await prisma.candidateProfile.findUnique({
+    where: { userId: dendi.id }
   });
 
-  const profiles = await prisma.candidateProfile.findMany();
-  console.log('\nCandidate Profiles:');
-  profiles.forEach((profile) => {
-    console.log(`User ID: ${profile.userId}`);
-    console.log(`Resume Text Length: ${profile.resumeText?.length || 0}`);
-    console.log('---');
-  });
+  console.log('Candidate:', dendi.name);
+  console.log('Experience Years:', profile?.experienceYears);
+  console.log('Resume Preview:', profile?.resumeText?.substring(0, 100));
 }
 
-main()
-  .catch((e) => {
-    console.error(e);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+check().finally(() => prisma.$disconnect());
