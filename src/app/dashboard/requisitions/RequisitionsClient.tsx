@@ -303,9 +303,9 @@ export default function RequisitionsClient({ initialUser, departments }: { initi
                           <ApprovalTimeline steps={req.approvals} />
                         </div>
                         
-                        <div className="mt-10 w-full">
+                        <div className="mt-10 w-full px-4">
                           {req.status === "PENDING" && (
-                            <div className="bg-white p-6 rounded-3xl border border-nuanu-gray-200 shadow-[0_50px_100px_rgba(10,22,40,0.1)] ring-1 ring-black/5 w-full">
+                            <div className="bg-white p-8 rounded-[2.5rem] border border-nuanu-gray-200 shadow-[0_50px_100px_rgba(10,22,40,0.1)] ring-1 ring-black/5 w-full">
                               {!isMyTurn ? (
                                 <div className="flex flex-col items-center justify-center py-16 text-center space-y-6">
                                   <div className="w-20 h-20 rounded-[2rem] bg-nuanu-gray-50 flex items-center justify-center text-nuanu-gray-200 border border-nuanu-gray-100 shadow-inner">
@@ -381,7 +381,7 @@ export default function RequisitionsClient({ initialUser, departments }: { initi
       {/* NEW REQUISITION MODAL - ATS PRO EDITION */}
       <AnimatePresence>
         {isModalOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center sm:p-6 md:p-12 lg:p-20 overflow-hidden bg-nuanu-navy/80 backdrop-blur-xl transition-all duration-500">
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 md:p-8 overflow-hidden bg-nuanu-navy/90 backdrop-blur-2xl transition-all duration-700">
             <motion.div 
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               className="absolute inset-0 cursor-zoom-out"
@@ -391,36 +391,38 @@ export default function RequisitionsClient({ initialUser, departments }: { initi
               initial={{ opacity: 0, scale: 0.9, y: 100 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 100 }}
-              className="bg-white rounded-3xl shadow-[0_0_0_1px_rgba(255,255,255,0.1),0_60px_120px_-20px_rgba(10,22,40,0.5)] w-full !max-w-4xl relative z-10 h-auto max-h-[90vh] flex flex-col overflow-hidden transition-all duration-500 border border-nuanu-gray-200"
+              className="bg-white rounded-[3rem] shadow-[0_0_0_1px_rgba(255,255,255,0.1),0_80px_160px_-40px_rgba(0,0,0,0.6)] w-full !max-w-7xl relative z-10 h-[92vh] flex flex-col overflow-hidden transition-all duration-700 border border-white/10"
             >
               {/* Pro Header - Dark, Sharp, Clean */}
-              <div className="bg-nuanu-navy px-10 py-10 text-white flex justify-between items-center flex-shrink-0 border-b border-white/10 relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-r from-nuanu-navy via-nuanu-navy-light to-nuanu-navy pointer-events-none opacity-50" />
-                <div className="relative z-10 flex items-center gap-6">
-                  <div className="w-14 h-14 rounded-2xl bg-nuanu-emerald flex items-center justify-center shadow-[0_15px_40px_rgba(16,185,129,0.4)] ring-4 ring-nuanu-emerald/10">
-                    <FileText className="w-6 h-6 text-white" />
+              <div className="bg-nuanu-navy px-12 py-12 text-white flex justify-between items-center flex-shrink-0 border-b border-white/5 relative overflow-hidden">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.15),transparent_70%)] pointer-events-none" />
+                <div className="relative z-10 flex items-center gap-8">
+                  <div className="w-16 h-16 rounded-2xl bg-nuanu-emerald flex items-center justify-center shadow-[0_20px_50px_rgba(16,185,129,0.5)] ring-4 ring-nuanu-emerald/10">
+                    <FileText className="w-8 h-8 text-white" />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-black tracking-tighter leading-none mb-2">JOB REQUISITION</h2>
-                    <div className="flex items-center gap-3 text-nuanu-gray-400 font-black uppercase tracking-[0.3em] text-[7px]">
-                      <span>INTERNAL REQUEST</span>
-                      <div className="w-1 h-1 rounded-full bg-nuanu-emerald" />
+                    <h2 className="text-3xl font-black tracking-tighter leading-none mb-3">JOB REQUISITION</h2>
+                    <div className="flex items-center gap-4 text-nuanu-gray-400 font-black uppercase tracking-[0.4em] text-[8px]">
+                      <span className="text-nuanu-emerald">INTERNAL REQUEST</span>
+                      <div className="w-1.5 h-1.5 rounded-full bg-white/20" />
                       <span>STRATEGIC ALIGNMENT</span>
+                      <div className="w-1.5 h-1.5 rounded-full bg-white/20" />
+                      <span>{initialUser.roles?.[0] || "ADMIN"} PANEL</span>
                     </div>
                   </div>
                 </div>
                 <button 
                   onClick={() => setIsModalOpen(false)}
                   disabled={isSubmitting}
-                  className="w-12 h-12 bg-white/5 hover:bg-white/10 rounded-xl transition-all relative z-10 border border-white/10 flex items-center justify-center group active:scale-90"
+                  className="w-14 h-14 bg-white/5 hover:bg-white/10 rounded-2xl transition-all relative z-10 border border-white/10 flex items-center justify-center group active:scale-90"
                 >
-                  <X className="w-6 h-6 text-white group-hover:rotate-90 transition-transform duration-500" />
+                  <X className="w-8 h-8 text-white group-hover:rotate-90 transition-transform duration-500" />
                 </button>
               </div>
 
               {/* Pro Form Content - Multi-section vertical flow */}
-              <div className="overflow-y-auto p-8 md:p-10 space-y-12 custom-scrollbar bg-white w-full">
-                <form id="reqForm" onSubmit={handleCreateRequisition} className="space-y-12 w-full">
+              <div className="flex-1 overflow-y-auto p-12 md:p-16 space-y-16 custom-scrollbar bg-white w-full">
+                <form id="reqForm" onSubmit={handleCreateRequisition} className="space-y-20 w-full max-w-[1200px] mx-auto">
                   
                   {/* Section 1: Core Details */}
                   <div className="space-y-6">
