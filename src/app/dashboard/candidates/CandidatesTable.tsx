@@ -67,7 +67,7 @@ export default function CandidatesTable({ candidates }: { candidates: Candidate[
     setIsSendingEmail(true);
     try {
       const result = await sendCandidateEmail({
-        candidateId: selectedEmail.userId, // Use userId instead of id (Application ID)
+        candidateId: selectedEmail.userId,
         to: selectedEmail.email,
         subject: emailSubject,
         body: emailBody
@@ -134,17 +134,17 @@ export default function CandidatesTable({ candidates }: { candidates: Candidate[
         </div>
       </div>
 
-      {/* Table */}
-      <div className="overflow-x-auto">
+      {/* Table Wrapper with horizontal scroll and padding for dropdowns */}
+      <div className="overflow-x-auto pb-4 custom-scrollbar">
         <table className="data-table min-w-full">
           <thead>
             <tr>
-              <th>Candidate</th>
+              <th className="pl-6">Candidate</th>
               <th>Applied For</th>
               <th>Stage</th>
               <th>AI Match</th>
               <th>Applied Date</th>
-              <th>Actions</th>
+              <th className="text-right pr-8">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -155,94 +155,109 @@ export default function CandidatesTable({ candidates }: { candidates: Candidate[
                 transition={{ delay: i * 0.05 }}
                 key={candidate.id}
               >
-                <td>
+                <td className="pl-6">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-100 to-teal-100 text-emerald-700 flex items-center justify-center font-bold text-sm shadow-sm">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-100 to-teal-100 text-emerald-700 flex items-center justify-center font-bold text-sm shadow-sm border border-emerald-200">
                       {candidate.name.split(" ").map(n => n[0]).join("").substring(0,2).toUpperCase()}
                     </div>
                     <div>
-                      <p className="font-semibold text-nuanu-navy">{candidate.name}</p>
+                      <p className="font-semibold text-nuanu-navy leading-tight">{candidate.name}</p>
                       <p className="text-xs text-nuanu-gray-500">{candidate.email}</p>
                     </div>
                   </div>
                 </td>
                 <td>
-                  <p className="font-medium text-nuanu-navy">{candidate.vacancyTitle}</p>
-                  <p className="text-xs text-nuanu-gray-500">{candidate.experienceYears} yrs exp • {candidate.location}</p>
+                  <p className="font-medium text-nuanu-navy leading-tight">{candidate.vacancyTitle}</p>
+                  <p className="text-[11px] text-nuanu-gray-400 mt-0.5">{candidate.experienceYears} yrs exp • {candidate.location}</p>
                 </td>
                 <td>
                   <span className={`badge ${
-                    candidate.stage.toLowerCase() === "hired" ? "bg-emerald-100 text-emerald-700" :
-                    candidate.stage.toLowerCase() === "rejected" ? "bg-red-100 text-red-700" :
-                    "bg-blue-50 text-blue-700"
-                  } uppercase tracking-wider text-[10px]`}>
+                    candidate.stage.toLowerCase() === "hired" ? "bg-emerald-100 text-emerald-700 border-emerald-200" :
+                    candidate.stage.toLowerCase() === "rejected" ? "bg-red-100 text-red-700 border-red-200" :
+                    "bg-blue-50 text-blue-700 border-blue-100"
+                  } border uppercase tracking-wider text-[9px] font-bold px-2 py-1`}>
                     {candidate.stage.replace("_", " ")}
                   </span>
                 </td>
                 <td>
                   <div className="flex items-center gap-2">
-                    <div className="w-full max-w-[100px] h-2 bg-nuanu-gray-100 rounded-full overflow-hidden">
+                    <div className="w-full max-w-[80px] h-1.5 bg-nuanu-gray-100 rounded-full overflow-hidden">
                       <div
-                        className={`h-full rounded-full ${candidate.score >= 80 ? 'bg-nuanu-emerald' : candidate.score >= 60 ? 'bg-nuanu-warning' : 'bg-nuanu-error'}`}
+                        className={`h-full rounded-full transition-all duration-500 ${candidate.score >= 80 ? 'bg-nuanu-emerald shadow-[0_0_8px_rgba(16,185,129,0.3)]' : candidate.score >= 60 ? 'bg-nuanu-warning' : 'bg-nuanu-error'}`}
                         style={{ width: `${candidate.score}%` }}
                       />
                     </div>
-                    <span className="text-xs font-bold text-nuanu-navy w-8">{Math.round(candidate.score)}%</span>
+                    <span className="text-xs font-bold text-nuanu-navy min-w-[30px]">{Math.round(candidate.score)}%</span>
                   </div>
                 </td>
                 <td>
-                  <span className="text-sm text-nuanu-gray-500">{formatDate(candidate.appliedAt)}</span>
+                  <span className="text-sm text-nuanu-gray-500 font-medium">{formatDate(candidate.appliedAt)}</span>
                 </td>
-                <td>
-                  <div className="flex items-center gap-2 relative">
+                <td className="text-right pr-8">
+                  <div className="flex items-center justify-end gap-2">
                     <button 
                       onClick={() => setSelectedProfile(candidate)} 
-                      className="p-1.5 text-nuanu-gray-400 hover:text-nuanu-emerald bg-nuanu-gray-50 hover:bg-emerald-50 rounded transition-colors" 
+                      className="p-2 text-nuanu-gray-400 hover:text-nuanu-emerald bg-nuanu-gray-50 hover:bg-emerald-50 rounded-lg transition-all hover:scale-110" 
                       title="View Profile"
                     >
                       <Eye className="w-4 h-4" />
                     </button>
                     <button 
                       onClick={() => openEmailModal(candidate)} 
-                      className="p-1.5 text-nuanu-gray-400 hover:text-blue-600 bg-nuanu-gray-50 hover:bg-blue-50 rounded transition-colors" 
+                      className="p-2 text-nuanu-gray-400 hover:text-blue-600 bg-nuanu-gray-50 hover:bg-blue-50 rounded-lg transition-all hover:scale-110" 
                       title="Send Email"
                     >
                       <Mail className="w-4 h-4" />
                     </button>
                     <div className="relative">
                       {loadingActionId === candidate.id ? (
-                        <div className="p-1.5 text-nuanu-emerald">
+                        <div className="p-2 text-nuanu-emerald">
                           <Loader2 className="w-4 h-4 animate-spin" />
                         </div>
                       ) : (
                         <button 
                           onClick={() => setActiveMenuId(activeMenuId === candidate.id ? null : candidate.id)}
-                          className="p-1.5 text-nuanu-gray-400 hover:text-nuanu-navy bg-nuanu-gray-50 hover:bg-nuanu-gray-200 rounded transition-colors" 
+                          className="p-2 text-nuanu-gray-400 hover:text-nuanu-navy bg-nuanu-gray-50 hover:bg-nuanu-gray-200 rounded-lg transition-all active:scale-95" 
                           title="More Options"
                         >
                           <MoreVertical className="w-4 h-4" />
                         </button>
                       )}
                       
-                      {activeMenuId === candidate.id && (
-                        <>
-                          <div className="fixed inset-0 z-10" onClick={() => setActiveMenuId(null)} />
-                          <div className="absolute right-0 mt-2 w-56 bg-white border border-nuanu-gray-200 rounded-xl shadow-2xl overflow-hidden z-20 animate-in fade-in zoom-in duration-200">
-                            <button 
-                              onClick={() => handleStageAction(candidate.id, "next")} 
-                              className="w-full text-left px-5 py-3 text-base font-semibold text-nuanu-navy hover:bg-emerald-50 hover:text-emerald-700 transition-colors flex items-center gap-2"
+                      <AnimatePresence>
+                        {activeMenuId === candidate.id && (
+                          <>
+                            <div className="fixed inset-0 z-10" onClick={() => setActiveMenuId(null)} />
+                            <motion.div 
+                              initial={{ opacity: 0, scale: 0.95, x: 10 }}
+                              animate={{ opacity: 1, scale: 1, x: 0 }}
+                              exit={{ opacity: 0, scale: 0.95, x: 10 }}
+                              className="absolute right-0 mt-3 w-60 bg-white border border-nuanu-gray-200 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] overflow-hidden z-20 origin-top-right"
                             >
-                              <Check className="w-5 h-5" /> Move to Next Stage
-                            </button>
-                            <button 
-                              onClick={() => handleStageAction(candidate.id, "reject")} 
-                              className="w-full text-left px-5 py-3 text-base font-semibold text-red-600 hover:bg-red-50 transition-colors border-t border-nuanu-gray-100 flex items-center gap-2"
-                            >
-                              <X className="w-5 h-5" /> Reject Candidate
-                            </button>
-                          </div>
-                        </>
-                      )}
+                              <div className="p-2">
+                                <button 
+                                  onClick={() => handleStageAction(candidate.id, "next")} 
+                                  className="w-full text-left px-4 py-3 text-sm font-bold text-nuanu-navy hover:bg-emerald-50 hover:text-emerald-700 transition-colors rounded-xl flex items-center gap-3 group"
+                                >
+                                  <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center group-hover:bg-emerald-200 transition-colors">
+                                    <Check className="w-4 h-4" />
+                                  </div>
+                                  Move to Next Stage
+                                </button>
+                                <button 
+                                  onClick={() => handleStageAction(candidate.id, "reject")} 
+                                  className="w-full text-left px-4 py-3 text-sm font-bold text-red-600 hover:bg-red-50 transition-colors rounded-xl flex items-center gap-3 group mt-1"
+                                >
+                                  <div className="w-8 h-8 rounded-lg bg-red-100 text-red-600 flex items-center justify-center group-hover:bg-red-200 transition-colors">
+                                    <X className="w-4 h-4" />
+                                  </div>
+                                  Reject Candidate
+                                </button>
+                              </div>
+                            </motion.div>
+                          </>
+                        )}
+                      </AnimatePresence>
                     </div>
                   </div>
                 </td>

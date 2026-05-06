@@ -207,3 +207,25 @@ export async function updateCompanyLogo(logoUrl: string) {
 export async function getCurrentUser() {
   return await getSession();
 }
+
+export async function getAIStatus() {
+  try {
+    const response = await fetch("http://127.0.0.1:11434/api/tags", {
+      method: "GET",
+      cache: "no-store",
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      return { 
+        success: true,
+        status: "ON", 
+        model: "qwen2.5", 
+        models: data.models?.map((m: any) => ({ name: m.name, size: m.size, modified_at: m.modified_at })) || []
+      };
+    }
+    return { success: true, status: "OFF", error: "Ollama responding with error" };
+  } catch (error) {
+    return { success: true, status: "OFF", error: "Ollama server not reachable" };
+  }
+}

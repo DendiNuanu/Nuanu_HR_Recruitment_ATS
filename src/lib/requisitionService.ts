@@ -74,6 +74,100 @@ export async function createRequisition(vacancyId: string, requestedById: string
   });
 }
 
+export async function createRequisitionWithVacancy(data: {
+  title: string;
+  departmentId: string;
+  creatorId: string;
+  positionLevel: string;
+  employmentType: string;
+  salaryMin?: number;
+  salaryMax?: number;
+  justificationType: string;
+  replacing?: string;
+  businessNeed: string;
+  responsibilities: string[];
+  education: string;
+  experienceYears: number;
+  requiredSkills: string[];
+  certifications?: string;
+}) {
+  return await prisma.$transaction(async (tx) => {
+    // 1. Create Vacancy
+    const vacancy = await tx.vacancy.create({
+      data: {
+        title: data.title,
+        code: `REQ-${Math.floor(1000 + Math.random() * 9000)}`, // Random code for requisition phase
+        departmentId: data.departmentId,
+        creatorId: data.creatorId,
+        status: "pending_approval",
+        employmentType: data.employmentType.toLowerCase(),
+        salaryMin: data.salaryMin,
+        salaryMax: data.salaryMax,
+        experienceMin: data.experienceYears,
+        educationLevel: data.education,
+        skills: data.requiredSkills,
+        responsibilities: data.responsibilities.join("\n"),
+        requirements: `Justification: ${data.justificationType}${data.replacing ? ` (Replacing ${data.replacing})` : ""}\n\nBusiness Need: ${data.businessNeed}\n\nCertifications: ${data.certifications || "None"}`,
+      },
+    });
+
+    // 2. Create JobRequisition
+    const requisition = await tx.jobRequisition.create({
+      data: {
+        vacancyId: vacancy.id,
+        requestedById: data.creatorId,
+        status: "PENDING",
+        currentStep: 1,
+      },
+    });
+
+    // 3. Define Steps
+    const steps = [
+      { role: "MANAGER", order: 1 },
+      { role: "HR", order: 2 },
+      { role: "FINANCE", order: 3 },
+    ];
+
+    const admin = await tx.user.findFirst({
+      where: { userRoles: { some: { role: { slug: "super-admin" } } } }
+    });
+
+    if (!admin) throw new Error("No admin user found for approval fallback.");
+
+    for (const step of steps) {
+      const roleUser = await tx.user.findFirst({
+        where: { userRoles: { some: { role: { slug: step.role.toLowerCase() } } } }
+      });
+
+      await tx.approval.create({
+        data: {
+          requisitionId: requisition.id,
+          approverId: roleUser?.id || admin.id,
+          role: step.role,
+          status: "PENDING",
+        },
+      });
+    }
+
+    // Notify first approver
+    const firstApproval = await tx.approval.findFirst({
+      where: { requisitionId: requisition.id, role: "MANAGER" }
+    });
+    
+    if (firstApproval) {
+      await createNotification({
+        userId: firstApproval.approverId,
+        type: "system",
+        title: "New Job Requisition Request",
+        message: `New requisition for "${data.title}" requires your approval.`,
+        link: "/dashboard/requisitions",
+      });
+    }
+
+    return requisition;
+  });
+}
+
 export async function approveStep(requisitionId: string, approverId: string, comment?: string) {
   return await prisma.$transaction(async (tx) => {
     const requisition = await tx.jobRequisition.findUnique({

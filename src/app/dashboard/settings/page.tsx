@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Save, Building, Users, Bell, Shield, Database, Webhook, Plus, UserPlus, Key, Loader2, CheckCircle2, AlertCircle, Calendar } from "lucide-react";
+import { Save, Building, Users, Bell, Shield, Database, Webhook, Plus, UserPlus, Key, Loader2, CheckCircle2, AlertCircle, Calendar, Cpu, RefreshCw, Brain } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   getIntegrationSettings, 
@@ -13,7 +13,8 @@ import {
   deleteUser,
   updateUserRole,
   updateCompanyLogo,
-  getCurrentUser
+  getCurrentUser,
+  getAIStatus
 } from "@/app/actions/settings";
 import { getDepartments } from "@/app/actions/departments";
 
@@ -51,6 +52,8 @@ export default function SettingsPage() {
   });
 
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [aiStatus, setAiStatus] = useState<any>(null);
+  const [isCheckingAI, setIsCheckingAI] = useState(false);
 
   useEffect(() => {
     async function loadSettings() {
@@ -84,7 +87,20 @@ export default function SettingsPage() {
       setDepartments(deptsData);
     }
     loadSettings();
+    checkAI();
   }, []);
+
+  const checkAI = async () => {
+    setIsCheckingAI(true);
+    try {
+      const status = await getAIStatus();
+      setAiStatus(status);
+    } catch (error) {
+      setAiStatus({ status: "OFF", error: "Connection failed" });
+    } finally {
+      setIsCheckingAI(false);
+    }
+  };
 
   const handleSaveIntegrations = async () => {
     let configObj = {};
@@ -133,6 +149,7 @@ export default function SettingsPage() {
     { id: "security", label: "Security", icon: Shield },
     { id: "integrations", label: "Integrations", icon: Webhook },
     ...(isAdmin ? [{ id: "database", label: "Database Sync", icon: Database }] : []),
+    ...(isAdmin ? [{ id: "ai_status", label: "AI Model Status", icon: Brain }] : []),
   ];
 
   return (
@@ -615,6 +632,106 @@ export default function SettingsPage() {
                     <h3 className="text-sm font-semibold text-nuanu-navy mb-2">Manual Data Sync</h3>
                     <p className="text-xs text-nuanu-gray-500 mb-3">Force a synchronization with Google Sheets instead of waiting for the cron job.</p>
                     <button className="btn-secondary py-2 text-sm"><Database className="w-4 h-4" /> Trigger Immediate Sync</button>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {activeTab === "ai_status" && isAdmin && (
+              <motion.div key="ai_status" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
+                <div className="card space-y-6 relative overflow-hidden">
+                  <div className="absolute top-0 right-0 p-8 opacity-5">
+                    <Brain className="w-32 h-32 text-indigo-600" />
+                  </div>
+                  
+                  <div className="flex items-center justify-between border-b border-nuanu-gray-100 pb-4 relative z-10">
+                    <div>
+                      <h2 className="text-lg font-bold text-nuanu-navy">AI Model Status</h2>
+                      <p className="text-sm text-nuanu-gray-500">Detect and monitor local AI engine connectivity</p>
+                    </div>
+                    <button 
+                      onClick={checkAI}
+                      disabled={isCheckingAI}
+                      className="btn-secondary text-sm py-2"
+                    >
+                      <RefreshCw className={`w-4 h-4 ${isCheckingAI ? "animate-spin" : ""}`} />
+                      {isCheckingAI ? "Detecting..." : "Refresh Status"}
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10">
+                    {/* Status Card */}
+                    <div className={`p-6 rounded-2xl border-2 transition-all ${
+                      aiStatus?.status === "ON" 
+                        ? "bg-emerald-50 border-emerald-100 shadow-sm shadow-emerald-100/50" 
+                        : "bg-red-50 border-red-100 shadow-sm shadow-red-100/50"
+                    }`}>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-nuanu-gray-400 mb-2">Engine Connectivity</p>
+                      <div className="flex items-center gap-3">
+                        <div className={`w-3 h-3 rounded-full animate-pulse ${
+                          aiStatus?.status === "ON" ? "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" : "bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]"
+                        }`}></div>
+                        <span className={`text-2xl font-black ${
+                          aiStatus?.status === "ON" ? "text-emerald-700" : "text-red-700"
+                        }`}>
+                          {aiStatus?.status || "DETECTING..."}
+                        </span>
+                      </div>
+                      <p className="text-[10px] mt-2 font-medium text-nuanu-gray-500">
+                        {aiStatus?.status === "ON" ? "Ollama server is active and responding." : (aiStatus?.error || "Ollama server not found.")}
+                      </p>
+                    </div>
+
+                    {/* Active Model Card */}
+                    <div className="p-6 rounded-2xl border-2 border-nuanu-gray-100 bg-white">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-nuanu-gray-400 mb-2">Primary Model</p>
+                      <div className="flex items-center gap-2">
+                        <Cpu className="w-5 h-5 text-indigo-600" />
+                        <span className="text-xl font-bold text-nuanu-navy">{aiStatus?.model || "qwen2.5"}</span>
+                      </div>
+                      <p className="text-[10px] mt-2 font-medium text-nuanu-gray-500 uppercase tracking-tighter">Optimized for AI Scoring & Matching</p>
+                    </div>
+
+                    {/* Resources Card */}
+                    <div className="p-6 rounded-2xl border-2 border-nuanu-gray-100 bg-white">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-nuanu-gray-400 mb-2">Available Models</p>
+                      <div className="flex items-center gap-2">
+                        <Database className="w-5 h-5 text-emerald-600" />
+                        <span className="text-xl font-bold text-nuanu-navy">{aiStatus?.models?.length || 0}</span>
+                      </div>
+                      <p className="text-[10px] mt-2 font-medium text-nuanu-gray-500 uppercase">Installed in local Ollama instance</p>
+                    </div>
+                  </div>
+
+                  {aiStatus?.models?.length > 0 && (
+                    <div className="space-y-4 relative z-10">
+                      <h3 className="text-sm font-bold text-nuanu-navy flex items-center gap-2">
+                        <Plus className="w-4 h-4 text-emerald-500" /> Detected Model Inventory
+                      </h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {aiStatus.models.map((m: any) => (
+                          <div key={m.name} className="p-3 bg-nuanu-gray-50 rounded-xl border border-nuanu-gray-100 flex justify-between items-center">
+                            <span className="text-xs font-bold text-nuanu-navy">{m.name}</span>
+                            <span className="text-[10px] text-nuanu-gray-400 font-medium">{(m.size / (1024 * 1024 * 1024)).toFixed(1)} GB</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="p-4 bg-nuanu-navy rounded-2xl text-white flex items-center justify-between relative z-10">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
+                        <Shield className="w-5 h-5 text-emerald-400" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold">Local Execution Privacy</p>
+                        <p className="text-[10px] text-gray-400">All resume data is processed locally. No data leaves your infrastructure.</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-emerald-400">Secure Engine</p>
+                    </div>
                   </div>
                 </div>
               </motion.div>
