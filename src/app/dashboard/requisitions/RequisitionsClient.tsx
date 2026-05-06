@@ -378,7 +378,8 @@ export default function RequisitionsClient({ initialUser, departments }: { initi
             );
           })}
         </div>
-      </div>
+      )}
+    </div>
 
       {/* NEW REQUISITION MODAL - ATS PRO EDITION */}
       <Portal>
