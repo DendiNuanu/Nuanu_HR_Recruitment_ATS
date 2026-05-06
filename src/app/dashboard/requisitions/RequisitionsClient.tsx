@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import ApprovalTimeline from "@/components/requisitions/ApprovalTimeline";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
+import Portal from "@/components/ui/Portal";
 
 type Requisition = {
   id: string;
@@ -178,7 +179,8 @@ export default function RequisitionsClient({ initialUser, departments }: { initi
   }) : [];
 
   return (
-    <div className="space-y-8 animate-fade-in pb-20">
+    <div className="pb-20 relative">
+      <div className="space-y-8 animate-fade-in">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
           <h1 className="text-4xl font-black text-nuanu-navy tracking-tight uppercase">Job Requisitions</h1>
@@ -376,12 +378,13 @@ export default function RequisitionsClient({ initialUser, departments }: { initi
             );
           })}
         </div>
-      )}
+      </div>
 
       {/* NEW REQUISITION MODAL - ATS PRO EDITION */}
-      <AnimatePresence>
-        {isModalOpen && (
-          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 md:p-8 overflow-hidden bg-nuanu-navy/90 backdrop-blur-2xl transition-all duration-700">
+      <Portal>
+        <AnimatePresence>
+          {isModalOpen && (
+            <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 md:p-8 overflow-hidden bg-nuanu-navy/90 backdrop-blur-2xl transition-all duration-700">
             <motion.div 
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               className="absolute inset-0 cursor-zoom-out"
@@ -746,7 +749,8 @@ export default function RequisitionsClient({ initialUser, departments }: { initi
             </motion.div>
           </div>
         )}
-      </AnimatePresence>
+        </AnimatePresence>
+      </Portal>
     </div>
   );
 }
