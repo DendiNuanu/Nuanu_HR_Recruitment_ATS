@@ -3,6 +3,8 @@ import { Briefcase, MapPin, ChevronRight, Clock } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 
+export const dynamic = "force-dynamic";
+
 export default async function CareersPage() {
   const vacancies = await prisma.vacancy.findMany({
     where: { status: "published" },

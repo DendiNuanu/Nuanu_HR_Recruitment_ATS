@@ -6,6 +6,8 @@ import ApplicationForm from "./ApplicationForm";
 import { formatDate } from "@/lib/utils";
 import { getSession } from "@/lib/auth";
 
+export const dynamic = "force-dynamic";
+
 export default async function JobDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
