@@ -83,22 +83,39 @@ Return ONLY a valid JSON object in this exact format (no markdown, no extra text
   "recommendations": ["Rec1"]
 }`;
 
+      // AI Provider Configuration
+      const aiUrl = process.env.AI_API_URL || "http://127.0.0.1:11434/v1/chat/completions";
+      const aiKey = process.env.AI_API_KEY || "";
+      const aiModel = process.env.AI_MODEL || "qwen2.5";
+
       try {
-        const response = await fetch("http://127.0.0.1:11434/api/generate", {
+        const response = await fetch(aiUrl, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { 
+            "Content-Type": "application/json",
+            ...(aiKey ? { "Authorization": `Bearer ${aiKey}` } : {})
+          },
           body: JSON.stringify({
-            model: "qwen2.5",
-            prompt: prompt,
+            model: aiModel,
+            messages: [
+              { role: "system", content: "You are an expert HR AI Assistant. Return ONLY valid JSON." },
+              { role: "user", content: prompt }
+            ],
             stream: false,
-            format: "json",
+            response_format: { type: "json_object" },
           }),
         });
 
-        if (!response.ok) throw new Error("Ollama API Error");
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`AI API Error (${response.status}): ${errorText}`);
+        }
         
         const data = await response.json();
-        const result = JSON.parse(data.response);
+        
+        // Extract content based on OpenAI-compatible format
+        const content = data.choices?.[0]?.message?.content || data.response || "{}";
+        const result = JSON.parse(content);
 
         // Update Candidate Profile with extracted years of experience
         const extractedExp = Number(result.experienceYears) || 0;

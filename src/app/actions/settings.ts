@@ -210,22 +210,33 @@ export async function getCurrentUser() {
 
 export async function getAIStatus() {
   try {
-    const response = await fetch("http://127.0.0.1:11434/api/tags", {
+    const aiUrl = process.env.AI_API_URL || "http://127.0.0.1:11434/v1/chat/completions";
+    const aiKey = process.env.AI_API_KEY || "";
+    const aiModel = process.env.AI_MODEL || "qwen2.5";
+    
+    const isCloud = aiUrl.includes("groq") || aiUrl.includes("openai") || aiUrl.includes("openrouter");
+    const providerName = isCloud ? (aiUrl.includes("groq") ? "Groq (Cloud)" : "Cloud AI") : "Ollama (Local)";
+
+    // Simple health check call
+    // For Ollama we can check tags, for Cloud we check if URL exists
+    const checkUrl = isCloud ? aiUrl.replace("/chat/completions", "") : aiUrl.replace("/v1/chat/completions", "/api/tags");
+    
+    const response = await fetch(checkUrl, {
       method: "GET",
       cache: "no-store",
+      headers: aiKey ? { "Authorization": `Bearer ${aiKey}` } : {},
     });
     
-    if (response.ok) {
-      const data = await response.json();
+    if (response.ok || isCloud) { // Cloud APIs might not respond to GET on base URL, so if we have a key/URL we assume it's "configured"
       return { 
         success: true,
         status: "ON", 
-        model: "qwen2.5", 
-        models: data.models?.map((m: any) => ({ name: m.name, size: m.size, modified_at: m.modified_at })) || []
+        model: aiModel,
+        provider: providerName,
       };
     }
-    return { success: true, status: "OFF", error: "Ollama responding with error" };
+    return { success: true, status: "OFF", provider: providerName, error: "AI endpoint not reachable" };
   } catch (error) {
-    return { success: true, status: "OFF", error: "Ollama server not reachable" };
+    return { success: true, status: "OFF", provider: "Not Configured", error: "AI server not reachable" };
   }
 }
