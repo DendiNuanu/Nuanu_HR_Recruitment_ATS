@@ -12,6 +12,11 @@ import {
   Check,
   Loader2,
   Send,
+  FileText,
+  Download,
+  User,
+  ExternalLink,
+  AlertCircle,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { updateCandidateStage, sendCandidateEmail } from "./actions";
@@ -45,6 +50,11 @@ export default function CandidatesTable({
   const [stageFilter, setStageFilter] = useState("all");
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
   const [loadingActionId, setLoadingActionId] = useState<string | null>(null);
+
+  // Profile tab
+  const [profileTab, setProfileTab] = useState<"overview" | "resume">(
+    "overview",
+  );
 
   // Modals state
   const [selectedProfile, setSelectedProfile] = useState<Candidate | null>(
@@ -130,6 +140,11 @@ export default function CandidatesTable({
     } finally {
       setIsSendingEmail(false);
     }
+  };
+
+  const openProfile = (c: Candidate) => {
+    setSelectedProfile(c);
+    setProfileTab("overview");
   };
 
   const openEmailModal = (c: Candidate) => {
@@ -262,7 +277,7 @@ export default function CandidatesTable({
                 <td className="text-right pr-8">
                   <div className="flex items-center justify-end gap-2">
                     <button
-                      onClick={() => setSelectedProfile(candidate)}
+                      onClick={() => openProfile(candidate)}
                       className="p-2 text-nuanu-gray-400 hover:text-nuanu-emerald bg-nuanu-gray-50 hover:bg-emerald-50 rounded-lg transition-all hover:scale-110"
                       title="View Profile"
                     >
@@ -403,139 +418,260 @@ export default function CandidatesTable({
                 </button>
               </div>
 
-              <div className="p-6 overflow-y-auto">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
-                  <div>
-                    <p className="text-[11px] font-bold text-nuanu-gray-400 uppercase tracking-[0.1em] mb-2">
-                      Applied For
-                    </p>
-                    <p className="text-lg font-bold text-nuanu-navy leading-snug">
-                      {selectedProfile.vacancyTitle}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-[11px] font-bold text-nuanu-gray-400 uppercase tracking-[0.1em] mb-2">
-                      Current Stage
-                    </p>
-                    <span className="badge bg-blue-100 text-blue-700 px-3 py-1.5 text-xs font-bold uppercase tracking-wider">
-                      {selectedProfile.stage.replace("_", " ")}
-                    </span>
-                  </div>
-                  <div>
-                    <p className="text-[11px] font-bold text-nuanu-gray-400 uppercase tracking-[0.1em] mb-2">
-                      Applied Date
-                    </p>
-                    <p className="text-lg font-bold text-nuanu-navy">
-                      {formatDate(selectedProfile.appliedAt)}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-[11px] font-bold text-nuanu-gray-400 uppercase tracking-[0.1em] mb-2">
-                      Location
-                    </p>
-                    <p className="text-lg font-bold text-nuanu-navy">
-                      {selectedProfile.location}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-[11px] font-bold text-nuanu-gray-400 uppercase tracking-[0.1em] mb-2">
-                      Phone Number
-                    </p>
-                    <p className="text-lg font-bold text-nuanu-navy">
-                      {selectedProfile.phone || "Not provided"}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="mb-8">
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-                    AI Match Analysis
-                  </p>
-                  <div className="flex items-center gap-4 bg-gray-50 p-4 rounded-xl border border-gray-100">
-                    <div className="relative w-16 h-16 flex-shrink-0">
-                      <svg className="w-full h-full -rotate-90">
-                        <circle
-                          cx="32"
-                          cy="32"
-                          r="28"
-                          fill="none"
-                          stroke="#E2E8F0"
-                          strokeWidth="6"
-                        />
-                        <circle
-                          cx="32"
-                          cy="32"
-                          r="28"
-                          fill="none"
-                          stroke={
-                            selectedProfile.score >= 80
-                              ? "#10B981"
-                              : selectedProfile.score >= 60
-                                ? "#F59E0B"
-                                : "#EF4444"
-                          }
-                          strokeWidth="6"
-                          strokeDasharray="175.9"
-                          strokeDashoffset={
-                            175.9 - (selectedProfile.score / 100) * 175.9
-                          }
-                          strokeLinecap="round"
-                        />
-                      </svg>
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="text-sm font-bold text-nuanu-navy">
-                          {Math.round(selectedProfile.score)}%
-                        </span>
-                      </div>
-                    </div>
-                    <div>
-                      <p className="font-medium text-nuanu-navy mb-1">
-                        {selectedProfile.score >= 80
-                          ? "Strong Match"
-                          : selectedProfile.score >= 60
-                            ? "Potential Match"
-                            : "Weak Match"}
-                      </p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {selectedProfile.skills?.map((skill) => (
-                          <span
-                            key={skill}
-                            className="px-2 py-0.5 bg-emerald-50 text-emerald-700 text-xs rounded border border-emerald-100"
-                          >
-                            {skill}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {selectedProfile.coverLetter && (
-                  <div>
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-                      Cover Letter
-                    </p>
-                    <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 text-sm text-gray-700 whitespace-pre-wrap">
-                      {selectedProfile.coverLetter}
-                    </div>
-                  </div>
-                )}
+              {/* ── Tab Navigation ─────────────────────────────────────── */}
+              <div className="flex border-b border-gray-100 bg-gray-50/50">
+                <button
+                  onClick={() => setProfileTab("overview")}
+                  className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-all border-b-2 ${
+                    profileTab === "overview"
+                      ? "border-emerald-500 text-emerald-700 bg-white"
+                      : "border-transparent text-nuanu-gray-400 hover:text-nuanu-navy hover:bg-white/60"
+                  }`}
+                >
+                  <User className="w-4 h-4" /> Profile Overview
+                </button>
+                <button
+                  onClick={() => setProfileTab("resume")}
+                  className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-all border-b-2 ${
+                    profileTab === "resume"
+                      ? "border-emerald-500 text-emerald-700 bg-white"
+                      : "border-transparent text-nuanu-gray-400 hover:text-nuanu-navy hover:bg-white/60"
+                  }`}
+                >
+                  <FileText className="w-4 h-4" /> Resume / CV
+                  {(selectedProfile.resumeUrl ||
+                    selectedProfile.resumeText) && (
+                    <span className="ml-1 w-2 h-2 rounded-full bg-emerald-500" />
+                  )}
+                </button>
               </div>
 
-              <div className="p-8 border-t border-gray-100 flex justify-end gap-4 bg-gray-50/50">
-                {selectedProfile.resumeUrl && (
-                  <a
-                    href={selectedProfile.resumeUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn-secondary mr-auto flex items-center gap-2 px-6 py-3 text-base"
-                  >
-                    View Resume / CV
-                  </a>
-                )}
+              {/* ── Tab: Profile Overview ──────────────────────────────── */}
+              {profileTab === "overview" && (
+                <div className="p-6 overflow-y-auto flex-1">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
+                    <div>
+                      <p className="text-[11px] font-bold text-nuanu-gray-400 uppercase tracking-[0.1em] mb-2">
+                        Applied For
+                      </p>
+                      <p className="text-lg font-bold text-nuanu-navy leading-snug">
+                        {selectedProfile.vacancyTitle}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-bold text-nuanu-gray-400 uppercase tracking-[0.1em] mb-2">
+                        Current Stage
+                      </p>
+                      <span className="badge bg-blue-100 text-blue-700 px-3 py-1.5 text-xs font-bold uppercase tracking-wider">
+                        {selectedProfile.stage.replace("_", " ")}
+                      </span>
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-bold text-nuanu-gray-400 uppercase tracking-[0.1em] mb-2">
+                        Applied Date
+                      </p>
+                      <p className="text-lg font-bold text-nuanu-navy">
+                        {formatDate(selectedProfile.appliedAt)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-bold text-nuanu-gray-400 uppercase tracking-[0.1em] mb-2">
+                        Location
+                      </p>
+                      <p className="text-lg font-bold text-nuanu-navy">
+                        {selectedProfile.location}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-bold text-nuanu-gray-400 uppercase tracking-[0.1em] mb-2">
+                        Phone Number
+                      </p>
+                      <p className="text-lg font-bold text-nuanu-navy">
+                        {selectedProfile.phone || "Not provided"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mb-8">
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+                      AI Match Analysis
+                    </p>
+                    <div className="flex items-center gap-4 bg-gray-50 p-4 rounded-xl border border-gray-100">
+                      <div className="relative w-16 h-16 flex-shrink-0">
+                        <svg className="w-full h-full -rotate-90">
+                          <circle
+                            cx="32"
+                            cy="32"
+                            r="28"
+                            fill="none"
+                            stroke="#E2E8F0"
+                            strokeWidth="6"
+                          />
+                          <circle
+                            cx="32"
+                            cy="32"
+                            r="28"
+                            fill="none"
+                            stroke={
+                              selectedProfile.score >= 80
+                                ? "#10B981"
+                                : selectedProfile.score >= 60
+                                  ? "#F59E0B"
+                                  : "#EF4444"
+                            }
+                            strokeWidth="6"
+                            strokeDasharray="175.9"
+                            strokeDashoffset={
+                              175.9 - (selectedProfile.score / 100) * 175.9
+                            }
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <span className="text-sm font-bold text-nuanu-navy">
+                            {Math.round(selectedProfile.score)}%
+                          </span>
+                        </div>
+                      </div>
+                      <div>
+                        <p className="font-medium text-nuanu-navy mb-1">
+                          {selectedProfile.score >= 80
+                            ? "Strong Match"
+                            : selectedProfile.score >= 60
+                              ? "Potential Match"
+                              : "Weak Match"}
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {selectedProfile.skills?.map((skill) => (
+                            <span
+                              key={skill}
+                              className="px-2 py-0.5 bg-emerald-50 text-emerald-700 text-xs rounded border border-emerald-100"
+                            >
+                              {skill}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {selectedProfile.coverLetter && (
+                    <div>
+                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+                        Cover Letter
+                      </p>
+                      <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 text-sm text-gray-700 whitespace-pre-wrap">
+                        {selectedProfile.coverLetter}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ── Tab: Resume / CV ───────────────────────────────────── */}
+              {profileTab === "resume" && (
+                <div className="flex-1 flex flex-col overflow-hidden">
+                  {/* Action bar */}
+                  <div className="flex items-center justify-between px-6 py-3 border-b border-gray-100 bg-white">
+                    <p className="text-sm text-nuanu-gray-500 font-medium">
+                      {selectedProfile.resumeUrl
+                        ? "Resume file attached — view or download below"
+                        : selectedProfile.resumeText
+                          ? "Extracted resume text from uploaded document"
+                          : "No resume on file for this candidate"}
+                    </p>
+                    <div className="flex items-center gap-2">
+                      {selectedProfile.resumeUrl && (
+                        <>
+                          <a
+                            href={selectedProfile.resumeUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn-secondary py-1.5 px-4 text-xs flex items-center gap-1.5"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" /> Open in new
+                            tab
+                          </a>
+                          <a
+                            href={selectedProfile.resumeUrl}
+                            download
+                            className="btn-primary py-1.5 px-4 text-xs flex items-center gap-1.5"
+                          >
+                            <Download className="w-3.5 h-3.5" /> Download
+                          </a>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* PDF embed — shown only when a file URL exists */}
+                  {selectedProfile.resumeUrl && (
+                    <div className="flex-1 min-h-0 bg-gray-100">
+                      <iframe
+                        src={`${selectedProfile.resumeUrl}#toolbar=1&view=FitH`}
+                        className="w-full h-full min-h-[460px]"
+                        title={`Resume — ${selectedProfile.name}`}
+                        style={{ border: "none" }}
+                      />
+                    </div>
+                  )}
+
+                  {/* Extracted text — shown when no direct URL but text was parsed */}
+                  {!selectedProfile.resumeUrl && selectedProfile.resumeText && (
+                    <div className="flex-1 overflow-y-auto p-6">
+                      <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+                        {/* Fake document header */}
+                        <div className="bg-gradient-to-r from-nuanu-navy to-[#0D2040] px-8 py-5 flex items-center gap-3">
+                          <FileText className="w-6 h-6 text-emerald-400" />
+                          <div>
+                            <p className="text-white font-bold text-base leading-tight">
+                              {selectedProfile.name}
+                            </p>
+                            <p className="text-emerald-400/70 text-xs font-medium mt-0.5">
+                              Resume / Curriculum Vitae
+                            </p>
+                          </div>
+                        </div>
+                        {/* Text content */}
+                        <div className="p-8">
+                          <pre className="font-sans text-sm text-gray-700 leading-relaxed whitespace-pre-wrap break-words">
+                            {selectedProfile.resumeText}
+                          </pre>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Empty state — no resume at all */}
+                  {!selectedProfile.resumeUrl &&
+                    !selectedProfile.resumeText && (
+                      <div className="flex-1 flex flex-col items-center justify-center gap-4 p-12 text-center">
+                        <div className="w-20 h-20 rounded-2xl bg-nuanu-gray-50 border-2 border-dashed border-nuanu-gray-200 flex items-center justify-center">
+                          <FileText className="w-9 h-9 text-nuanu-gray-300" />
+                        </div>
+                        <div>
+                          <p className="text-lg font-bold text-nuanu-navy mb-1">
+                            No Resume on File
+                          </p>
+                          <p className="text-sm text-nuanu-gray-400 max-w-xs">
+                            This candidate did not attach a resume during their
+                            application, or the file could not be processed.
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-amber-600 bg-amber-50 border border-amber-100 rounded-xl px-4 py-2.5">
+                          <AlertCircle className="w-4 h-4 shrink-0" />
+                          Resume storage requires Supabase to be configured
+                          (NEXT_PUBLIC_SUPABASE_URL).
+                        </div>
+                      </div>
+                    )}
+                </div>
+              )}
+
+              <div className="p-5 border-t border-gray-100 flex justify-end gap-3 bg-gray-50/50">
                 <button
                   onClick={() => setSelectedProfile(null)}
-                  className="btn-secondary px-6 py-3 text-base"
+                  className="btn-secondary px-6 py-2.5 text-sm"
                 >
                   Close
                 </button>
@@ -544,9 +680,9 @@ export default function CandidatesTable({
                     setSelectedProfile(null);
                     openEmailModal(selectedProfile);
                   }}
-                  className="btn-primary px-6 py-3 text-base shadow-lg shadow-emerald-500/20"
+                  className="btn-primary px-6 py-2.5 text-sm shadow-lg shadow-emerald-500/20"
                 >
-                  <Mail className="w-5 h-5" /> Message Candidate
+                  <Mail className="w-4 h-4" /> Message Candidate
                 </button>
               </div>
             </motion.div>
