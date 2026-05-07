@@ -1,77 +1,91 @@
 import { prisma } from "@/lib/prisma";
 import { createNotification } from "@/lib/notifications";
 
-export async function createRequisition(vacancyId: string, requestedById: string) {
-  return await prisma.$transaction(async (tx) => {
-    // 1. Create JobRequisition
-    const requisition = await tx.jobRequisition.create({
-      data: {
-        vacancyId,
-        requestedById,
-        status: "PENDING",
-        currentStep: 1,
-      },
-    });
-
-    // 2. Define Steps
-    // In a real system, you'd find specific users for these roles.
-    // For this ATS, we'll find any user with the corresponding role slug,
-    // defaulting to the super-admin if no specific role user is found for demo purposes.
-    
-    const steps = [
-      { role: "MANAGER", order: 1 },
-      { role: "HR", order: 2 },
-      { role: "FINANCE", order: 3 },
-    ];
-
-    // Find a fallback approver (Super Admin)
-    const admin = await tx.user.findFirst({
-      where: { userRoles: { some: { role: { slug: "super-admin" } } } }
-    });
-
-    if (!admin) throw new Error("No admin user found for approval fallback.");
-
-    // Create Approval records
-    for (const step of steps) {
-      // Logic: Try to find a user with this role slug. 
-      // For simplicity in this demo, we'll assign the first user found or fallback to admin.
-      const roleUser = await tx.user.findFirst({
-        where: { userRoles: { some: { role: { slug: step.role.toLowerCase() } } } }
-      });
-
-      await tx.approval.create({
+export async function createRequisition(
+  vacancyId: string,
+  requestedById: string,
+) {
+  // Run the DB mutations inside the transaction; collect notification target to fire after.
+  const { requisition, notifyUserId } = await prisma.$transaction(
+    async (tx) => {
+      // 1. Create JobRequisition
+      const requisition = await tx.jobRequisition.create({
         data: {
-          requisitionId: requisition.id,
-          approverId: roleUser?.id || admin.id,
-          role: step.role,
+          vacancyId,
+          requestedById,
           status: "PENDING",
+          currentStep: 1,
         },
       });
-    }
 
-    // Update Vacancy status to 'pending_approval' if it exists in STAGES or just keep it draft
-    await tx.vacancy.update({
-      where: { id: vacancyId },
-      data: { status: "pending_approval" as any }
-    });
+      // 2. Parallelize all user lookups at once
+      const [admin, managerUser, hrUser, financeUser] = await Promise.all([
+        tx.user.findFirst({
+          where: { userRoles: { some: { role: { slug: "super-admin" } } } },
+        }),
+        tx.user.findFirst({
+          where: { userRoles: { some: { role: { slug: "manager" } } } },
+        }),
+        tx.user.findFirst({
+          where: { userRoles: { some: { role: { slug: "hr" } } } },
+        }),
+        tx.user.findFirst({
+          where: { userRoles: { some: { role: { slug: "finance" } } } },
+        }),
+      ]);
 
-    // Notify first approver
-    const firstApproval = await tx.approval.findFirst({
-      where: { requisitionId: requisition.id, role: "MANAGER" }
-    });
-    
-    if (firstApproval) {
-      await createNotification({
-        userId: firstApproval.approverId,
-        type: "system",
-        title: "New Job Requisition",
-        message: "A new job vacancy requires your approval.",
-        link: "/dashboard/requisitions",
+      if (!admin) throw new Error("No admin user found for approval fallback.");
+
+      const managerId = managerUser?.id ?? admin.id;
+      const hrId = hrUser?.id ?? admin.id;
+      const financeId = financeUser?.id ?? admin.id;
+
+      // 3. Create all three approval records in a single round-trip
+      await tx.approval.createMany({
+        data: [
+          {
+            requisitionId: requisition.id,
+            approverId: managerId,
+            role: "MANAGER",
+            status: "PENDING",
+          },
+          {
+            requisitionId: requisition.id,
+            approverId: hrId,
+            role: "HR",
+            status: "PENDING",
+          },
+          {
+            requisitionId: requisition.id,
+            approverId: financeId,
+            role: "FINANCE",
+            status: "PENDING",
+          },
+        ],
       });
-    }
 
-    return requisition;
-  });
+      // 4. Update Vacancy status
+      await tx.vacancy.update({
+        where: { id: vacancyId },
+        data: { status: "pending_approval" as any },
+      });
+
+      return { requisition, notifyUserId: managerId };
+    },
+    { timeout: 15000 },
+  );
+
+  // Fire notification OUTSIDE the transaction so a slow socket import never
+  // causes the transaction to time out. Failures are silently logged.
+  createNotification({
+    userId: notifyUserId,
+    type: "system",
+    title: "New Job Requisition",
+    message: "A new job vacancy requires your approval.",
+    link: "/dashboard/requisitions",
+  }).catch(console.error);
+
+  return requisition;
 }
 
 export async function createRequisitionWithVacancy(data: {
@@ -91,236 +105,258 @@ export async function createRequisitionWithVacancy(data: {
   requiredSkills: string[];
   certifications?: string;
 }) {
-  return await prisma.$transaction(async (tx) => {
-    // 1. Create Vacancy
-    const vacancy = await tx.vacancy.create({
-      data: {
-        title: data.title,
-        code: `REQ-${Math.floor(1000 + Math.random() * 9000)}`, // Random code for requisition phase
-        departmentId: data.departmentId,
-        creatorId: data.creatorId,
-        status: "pending_approval",
-        employmentType: data.employmentType.toLowerCase(),
-        salaryMin: data.salaryMin,
-        salaryMax: data.salaryMax,
-        experienceMin: data.experienceYears,
-        educationLevel: data.education,
-        skills: data.requiredSkills,
-        responsibilities: data.responsibilities.join("\n"),
-        requirements: `Justification: ${data.justificationType}${data.replacing ? ` (Replacing ${data.replacing})` : ""}\n\nBusiness Need: ${data.businessNeed}\n\nCertifications: ${data.certifications || "None"}`,
-      },
-    });
-
-    // 2. Create JobRequisition
-    const requisition = await tx.jobRequisition.create({
-      data: {
-        vacancyId: vacancy.id,
-        requestedById: data.creatorId,
-        status: "PENDING",
-        currentStep: 1,
-      },
-    });
-
-    // 3. Define Steps
-    const steps = [
-      { role: "MANAGER", order: 1 },
-      { role: "HR", order: 2 },
-      { role: "FINANCE", order: 3 },
-    ];
-
-    const admin = await tx.user.findFirst({
-      where: { userRoles: { some: { role: { slug: "super-admin" } } } }
-    });
-
-    if (!admin) throw new Error("No admin user found for approval fallback.");
-
-    for (const step of steps) {
-      const roleUser = await tx.user.findFirst({
-        where: { userRoles: { some: { role: { slug: step.role.toLowerCase() } } } }
-      });
-
-      await tx.approval.create({
+  const { requisition, notifyUserId } = await prisma.$transaction(
+    async (tx) => {
+      // 1. Create Vacancy
+      const vacancy = await tx.vacancy.create({
         data: {
-          requisitionId: requisition.id,
-          approverId: roleUser?.id || admin.id,
-          role: step.role,
-          status: "PENDING",
+          title: data.title,
+          code: `REQ-${Math.floor(1000 + Math.random() * 9000)}`,
+          departmentId: data.departmentId,
+          creatorId: data.creatorId,
+          status: "pending_approval",
+          employmentType: data.employmentType.toLowerCase(),
+          salaryMin: data.salaryMin,
+          salaryMax: data.salaryMax,
+          experienceMin: data.experienceYears,
+          educationLevel: data.education,
+          skills: data.requiredSkills,
+          responsibilities: data.responsibilities.join("\n"),
+          requirements: `Justification: ${data.justificationType}${data.replacing ? ` (Replacing ${data.replacing})` : ""}\n\nBusiness Need: ${data.businessNeed}\n\nCertifications: ${data.certifications || "None"}`,
         },
       });
-    }
 
-    // Notify first approver
-    const firstApproval = await tx.approval.findFirst({
-      where: { requisitionId: requisition.id, role: "MANAGER" }
-    });
-    
-    if (firstApproval) {
-      await createNotification({
-        userId: firstApproval.approverId,
-        type: "system",
-        title: "New Job Requisition Request",
-        message: `New requisition for "${data.title}" requires your approval.`,
-        link: "/dashboard/requisitions",
+      // 2. Create JobRequisition
+      const requisition = await tx.jobRequisition.create({
+        data: {
+          vacancyId: vacancy.id,
+          requestedById: data.creatorId,
+          status: "PENDING",
+          currentStep: 1,
+        },
       });
-    }
 
-    return requisition;
-  });
+      // 3. Parallelize all user lookups at once
+      const [admin, managerUser, hrUser, financeUser] = await Promise.all([
+        tx.user.findFirst({
+          where: { userRoles: { some: { role: { slug: "super-admin" } } } },
+        }),
+        tx.user.findFirst({
+          where: { userRoles: { some: { role: { slug: "manager" } } } },
+        }),
+        tx.user.findFirst({
+          where: { userRoles: { some: { role: { slug: "hr" } } } },
+        }),
+        tx.user.findFirst({
+          where: { userRoles: { some: { role: { slug: "finance" } } } },
+        }),
+      ]);
+
+      if (!admin) throw new Error("No admin user found for approval fallback.");
+
+      const managerId = managerUser?.id ?? admin.id;
+      const hrId = hrUser?.id ?? admin.id;
+      const financeId = financeUser?.id ?? admin.id;
+
+      // 4. Create all three approval records in a single round-trip
+      await tx.approval.createMany({
+        data: [
+          {
+            requisitionId: requisition.id,
+            approverId: managerId,
+            role: "MANAGER",
+            status: "PENDING",
+          },
+          {
+            requisitionId: requisition.id,
+            approverId: hrId,
+            role: "HR",
+            status: "PENDING",
+          },
+          {
+            requisitionId: requisition.id,
+            approverId: financeId,
+            role: "FINANCE",
+            status: "PENDING",
+          },
+        ],
+      });
+
+      return { requisition, notifyUserId: managerId };
+    },
+    { timeout: 15000 },
+  );
+
+  // Fire notification OUTSIDE the transaction
+  createNotification({
+    userId: notifyUserId,
+    type: "system",
+    title: "New Job Requisition Request",
+    message: `New requisition for "${data.title}" requires your approval.`,
+    link: "/dashboard/requisitions",
+  }).catch(console.error);
+
+  return requisition;
 }
 
-export async function approveStep(requisitionId: string, approverId: string, comment?: string) {
-  return await prisma.$transaction(async (tx) => {
-    const requisition = await tx.jobRequisition.findUnique({
-      where: { id: requisitionId },
-      include: { approvals: { orderBy: { id: 'asc' } } } // Note: we should have a better way to order than ID, maybe a 'step' field in Approval
-    });
+export async function approveStep(
+  requisitionId: string,
+  approverId: string,
+  comment?: string,
+) {
+  type NotificationPayload = Parameters<typeof createNotification>[0];
 
-    if (!requisition) throw new Error("Requisition not found");
+  const { result, pendingNotification } = await prisma.$transaction(
+    async (tx) => {
+      // Parallelize the two independent lookups (requisition + approver user)
+      const [requisition, user] = await Promise.all([
+        tx.jobRequisition.findUnique({
+          where: { id: requisitionId },
+          include: { approvals: { orderBy: { id: "asc" } } },
+        }),
+        tx.user.findUnique({
+          where: { id: approverId },
+          include: { userRoles: { include: { role: true } } },
+        }),
+      ]);
 
-    // Map role to step index
-    const roleOrder = ["MANAGER", "HR", "FINANCE"];
-    const currentRole = roleOrder[requisition.currentStep - 1];
+      if (!requisition) throw new Error("Requisition not found");
 
-    // Check if user is Super Admin (bypass)
-    const user = await tx.user.findUnique({
-      where: { id: approverId },
-      include: { userRoles: { include: { role: true } } }
-    });
-    const isSuperAdmin = user?.userRoles.some(ur => ur.role.slug === "super-admin");
+      const roleOrder = ["MANAGER", "HR", "FINANCE"];
+      const currentRole = roleOrder[requisition.currentStep - 1];
+      const isSuperAdmin = user?.userRoles.some(
+        (ur) => ur.role.slug === "super-admin",
+      );
 
-    const currentApproval = await tx.approval.findFirst({
-      where: {
-        requisitionId,
-        role: currentRole,
-        status: "PENDING"
-      }
-    });
-
-    if (!currentApproval) {
-      throw new Error("This requisition has no pending approval step for the current phase.");
-    }
-
-    if (!isSuperAdmin && currentApproval.approverId !== approverId) {
-      throw new Error(`AUTHORIZED ERROR: This step currently requires approval from ${currentRole}. Please wait for them to approve or login as an Administrator.`);
-    }
-
-    try {
-      // Update current approval
-      await tx.approval.update({
-        where: { id: currentApproval.id },
-        data: {
-          status: "APPROVED",
-          comment,
-          approvedAt: new Date(),
-        }
+      const currentApproval = await tx.approval.findFirst({
+        where: { requisitionId, role: currentRole, status: "PENDING" },
       });
 
+      if (!currentApproval) {
+        throw new Error(
+          "This requisition has no pending approval step for the current phase.",
+        );
+      }
+
+      if (!isSuperAdmin && currentApproval.approverId !== approverId) {
+        throw new Error(
+          `AUTHORIZED ERROR: This step currently requires approval from ${currentRole}. Please wait for them to approve or login as an Administrator.`,
+        );
+      }
+
+      // Mark current step approved
+      await tx.approval.update({
+        where: { id: currentApproval.id },
+        data: { status: "APPROVED", comment, approvedAt: new Date() },
+      });
+
+      let pendingNotification: NotificationPayload | null = null;
+
       if (requisition.currentStep < 3) {
-        // Move to next step
+        // Advance to next step
         const nextStep = requisition.currentStep + 1;
         await tx.jobRequisition.update({
           where: { id: requisitionId },
-          data: { currentStep: nextStep }
+          data: { currentStep: nextStep },
         });
 
-        // Notify next approver
         const nextRole = roleOrder[nextStep - 1];
         const nextApproval = await tx.approval.findFirst({
-          where: { requisitionId, role: nextRole }
+          where: { requisitionId, role: nextRole },
         });
 
         if (nextApproval) {
-          await createNotification({
+          pendingNotification = {
             userId: nextApproval.approverId,
             type: "system",
             title: "Job Requisition Approval Required",
             message: `Requisition approved by ${currentRole}. Your approval is now required.`,
             link: "/dashboard/requisitions",
-          });
+          };
         }
       } else {
-        // Final step approved
+        // Final step — fully approve
         await tx.jobRequisition.update({
           where: { id: requisitionId },
-          data: { status: "APPROVED" }
+          data: { status: "APPROVED" },
         });
 
         await tx.vacancy.update({
           where: { id: requisition.vacancyId },
-          data: { 
-            isApproved: true,
-            status: "approved"
-          }
+          data: { isApproved: true, status: "approved" },
         });
 
-        // Notify requester
-        await createNotification({
+        pendingNotification = {
           userId: requisition.requestedById,
           type: "system",
           title: "Requisition Fully Approved",
-          message: "Your job vacancy has been fully approved and can now be published.",
+          message:
+            "Your job vacancy has been fully approved and can now be published.",
           link: "/dashboard/jobs",
-        });
+        };
       }
 
-      return { success: true };
-    } catch (error: any) {
-      console.error("approveStep Error:", error);
-      throw error;
-    }
-  });
+      return { result: { success: true }, pendingNotification };
+    },
+    { timeout: 15000 },
+  );
+
+  // Fire notification OUTSIDE the transaction
+  if (pendingNotification) {
+    createNotification(pendingNotification).catch(console.error);
+  }
+
+  return result;
 }
 
-export async function rejectRequisition(requisitionId: string, approverId: string, comment: string) {
-  return await prisma.$transaction(async (tx) => {
-    try {
+export async function rejectRequisition(
+  requisitionId: string,
+  approverId: string,
+  comment: string,
+) {
+  const { result, notifyUserId, notifyMessage } = await prisma.$transaction(
+    async (tx) => {
       const requisition = await tx.jobRequisition.findUnique({
-        where: { id: requisitionId }
+        where: { id: requisitionId },
       });
 
       if (!requisition) throw new Error("Requisition not found");
 
       // Mark current step as rejected
       await tx.approval.updateMany({
-        where: {
-          requisitionId,
-          approverId,
-          status: "PENDING"
-        },
-        data: {
-          status: "REJECTED",
-          comment,
-          approvedAt: new Date()
-        }
+        where: { requisitionId, approverId, status: "PENDING" },
+        data: { status: "REJECTED", comment, approvedAt: new Date() },
       });
 
       // Terminate requisition
       await tx.jobRequisition.update({
         where: { id: requisitionId },
-        data: { status: "REJECTED" }
+        data: { status: "REJECTED" },
       });
 
-      // Reset vacancy status to draft
-      if (requisition) {
-          await tx.vacancy.update({
-              where: { id: requisition.vacancyId },
-              data: { status: "draft" as any }
-          });
-      }
-
-      // Notify requester
-      await createNotification({
-        userId: requisition.requestedById,
-        type: "system",
-        title: "Requisition Rejected",
-        message: `Your job requisition was rejected. Reason: ${comment}`,
-        link: "/dashboard/requisitions",
+      // Reset vacancy to draft
+      await tx.vacancy.update({
+        where: { id: requisition.vacancyId },
+        data: { status: "draft" as any },
       });
 
-      return { success: true };
-    } catch (error: any) {
-      console.error("rejectRequisition Error:", error);
-      throw error;
-    }
-  });
+      return {
+        result: { success: true },
+        notifyUserId: requisition.requestedById,
+        notifyMessage: `Your job requisition was rejected. Reason: ${comment}`,
+      };
+    },
+    { timeout: 15000 },
+  );
+
+  // Fire notification OUTSIDE the transaction
+  createNotification({
+    userId: notifyUserId,
+    type: "system",
+    title: "Requisition Rejected",
+    message: notifyMessage,
+    link: "/dashboard/requisitions",
+  }).catch(console.error);
+
+  return result;
 }

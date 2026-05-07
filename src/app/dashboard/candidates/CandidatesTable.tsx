@@ -1,7 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { Search, Filter, Eye, Mail, MoreVertical, Users, X, Check, Loader2, Send } from "lucide-react";
+import {
+  Search,
+  Filter,
+  Eye,
+  Mail,
+  MoreVertical,
+  Users,
+  X,
+  Check,
+  Loader2,
+  Send,
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { updateCandidateStage, sendCandidateEmail } from "./actions";
 import { formatDate } from "@/lib/utils";
@@ -25,27 +36,36 @@ export type Candidate = {
   resumeText?: string;
 };
 
-export default function CandidatesTable({ candidates }: { candidates: Candidate[] }) {
+export default function CandidatesTable({
+  candidates,
+}: {
+  candidates: Candidate[];
+}) {
   const [search, setSearch] = useState("");
   const [stageFilter, setStageFilter] = useState("all");
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
   const [loadingActionId, setLoadingActionId] = useState<string | null>(null);
 
   // Modals state
-  const [selectedProfile, setSelectedProfile] = useState<Candidate | null>(null);
+  const [selectedProfile, setSelectedProfile] = useState<Candidate | null>(
+    null,
+  );
   const [selectedEmail, setSelectedEmail] = useState<Candidate | null>(null);
-  
+
   // Email form state
   const [emailSubject, setEmailSubject] = useState("");
   const [emailBody, setEmailBody] = useState("");
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
 
-  const filteredCandidates = candidates.filter(c => {
-    const matchSearch = c.name.toLowerCase().includes(search.toLowerCase()) ||
-                       c.email.toLowerCase().includes(search.toLowerCase()) ||
-                       c.vacancyTitle.toLowerCase().includes(search.toLowerCase());
-    const matchStage = stageFilter === "all" || c.stage.toLowerCase() === stageFilter.toLowerCase();
+  const filteredCandidates = candidates.filter((c) => {
+    const matchSearch =
+      c.name.toLowerCase().includes(search.toLowerCase()) ||
+      c.email.toLowerCase().includes(search.toLowerCase()) ||
+      c.vacancyTitle.toLowerCase().includes(search.toLowerCase());
+    const matchStage =
+      stageFilter === "all" ||
+      c.stage.toLowerCase() === stageFilter.toLowerCase();
     return matchSearch && matchStage;
   });
 
@@ -61,16 +81,21 @@ export default function CandidatesTable({ candidates }: { candidates: Candidate[
     }
   };
 
+  const openMailtoFallback = (to: string, subject: string, body: string) => {
+    const mailto = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.open(mailto, "_blank");
+  };
+
   const handleSendEmail = async () => {
     if (!selectedEmail) return;
-    
+
     setIsSendingEmail(true);
     try {
       const result = await sendCandidateEmail({
         candidateId: selectedEmail.userId,
         to: selectedEmail.email,
         subject: emailSubject,
-        body: emailBody
+        body: emailBody,
       });
 
       if (result.success) {
@@ -80,8 +105,24 @@ export default function CandidatesTable({ candidates }: { candidates: Candidate[
           setEmailSent(false);
           setSelectedEmail(null);
         }, 2000);
+      } else if ((result as { configMissing?: boolean }).configMissing) {
+        // Email service not configured — open mailto: so the user can send
+        // from their own email client as an immediate workaround.
+        toast("Email service not set up. Opening your email client instead.", {
+          description:
+            "To enable in-app email, add RESEND_API_KEY to Vercel environment variables.",
+          action: {
+            label: "Open Email Client",
+            onClick: () =>
+              openMailtoFallback(selectedEmail.email, emailSubject, emailBody),
+          },
+          duration: 8000,
+        });
+        // Also open immediately
+        openMailtoFallback(selectedEmail.email, emailSubject, emailBody);
+        setSelectedEmail(null);
       } else {
-        toast.error(result.error || "Failed to send email. Please check your configuration.");
+        toast.error(`Failed to send email: ${result.error || "Unknown error"}`);
       }
     } catch (error) {
       toast.error("An unexpected error occurred.");
@@ -93,8 +134,12 @@ export default function CandidatesTable({ candidates }: { candidates: Candidate[
 
   const openEmailModal = (c: Candidate) => {
     setSelectedEmail(c);
-    setEmailSubject(`Update regarding your application for ${c.vacancyTitle} at Nuanu`);
-    setEmailBody(`Hi ${c.name},\n\nThank you for applying for the ${c.vacancyTitle} position. We wanted to reach out regarding the next steps in our process.\n\nBest regards,\nNuanu Recruitment Team`);
+    setEmailSubject(
+      `Update regarding your application for ${c.vacancyTitle} at Nuanu`,
+    );
+    setEmailBody(
+      `Hi ${c.name},\n\nThank you for applying for the ${c.vacancyTitle} position. We wanted to reach out regarding the next steps in our process.\n\nBest regards,\nNuanu Recruitment Team`,
+    );
     setEmailSent(false);
   };
 
@@ -158,24 +203,41 @@ export default function CandidatesTable({ candidates }: { candidates: Candidate[
                 <td className="pl-6">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-100 to-teal-100 text-emerald-700 flex items-center justify-center font-bold text-sm shadow-sm border border-emerald-200">
-                      {candidate.name.split(" ").map(n => n[0]).join("").substring(0,2).toUpperCase()}
+                      {candidate.name
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")
+                        .substring(0, 2)
+                        .toUpperCase()}
                     </div>
                     <div>
-                      <p className="font-semibold text-nuanu-navy leading-tight">{candidate.name}</p>
-                      <p className="text-xs text-nuanu-gray-500">{candidate.email}</p>
+                      <p className="font-semibold text-nuanu-navy leading-tight">
+                        {candidate.name}
+                      </p>
+                      <p className="text-xs text-nuanu-gray-500">
+                        {candidate.email}
+                      </p>
                     </div>
                   </div>
                 </td>
                 <td>
-                  <p className="font-medium text-nuanu-navy leading-tight">{candidate.vacancyTitle}</p>
-                  <p className="text-[11px] text-nuanu-gray-400 mt-0.5">{candidate.experienceYears} yrs exp • {candidate.location}</p>
+                  <p className="font-medium text-nuanu-navy leading-tight">
+                    {candidate.vacancyTitle}
+                  </p>
+                  <p className="text-[11px] text-nuanu-gray-400 mt-0.5">
+                    {candidate.experienceYears} yrs exp • {candidate.location}
+                  </p>
                 </td>
                 <td>
-                  <span className={`badge ${
-                    candidate.stage.toLowerCase() === "hired" ? "bg-emerald-100 text-emerald-700 border-emerald-200" :
-                    candidate.stage.toLowerCase() === "rejected" ? "bg-red-100 text-red-700 border-red-200" :
-                    "bg-blue-50 text-blue-700 border-blue-100"
-                  } border uppercase tracking-wider text-[9px] font-bold px-2 py-1`}>
+                  <span
+                    className={`badge ${
+                      candidate.stage.toLowerCase() === "hired"
+                        ? "bg-emerald-100 text-emerald-700 border-emerald-200"
+                        : candidate.stage.toLowerCase() === "rejected"
+                          ? "bg-red-100 text-red-700 border-red-200"
+                          : "bg-blue-50 text-blue-700 border-blue-100"
+                    } border uppercase tracking-wider text-[9px] font-bold px-2 py-1`}
+                  >
                     {candidate.stage.replace("_", " ")}
                   </span>
                 </td>
@@ -183,28 +245,32 @@ export default function CandidatesTable({ candidates }: { candidates: Candidate[
                   <div className="flex items-center gap-2">
                     <div className="w-full max-w-[80px] h-1.5 bg-nuanu-gray-100 rounded-full overflow-hidden">
                       <div
-                        className={`h-full rounded-full transition-all duration-500 ${candidate.score >= 80 ? 'bg-nuanu-emerald shadow-[0_0_8px_rgba(16,185,129,0.3)]' : candidate.score >= 60 ? 'bg-nuanu-warning' : 'bg-nuanu-error'}`}
+                        className={`h-full rounded-full transition-all duration-500 ${candidate.score >= 80 ? "bg-nuanu-emerald shadow-[0_0_8px_rgba(16,185,129,0.3)]" : candidate.score >= 60 ? "bg-nuanu-warning" : "bg-nuanu-error"}`}
                         style={{ width: `${candidate.score}%` }}
                       />
                     </div>
-                    <span className="text-xs font-bold text-nuanu-navy min-w-[30px]">{Math.round(candidate.score)}%</span>
+                    <span className="text-xs font-bold text-nuanu-navy min-w-[30px]">
+                      {Math.round(candidate.score)}%
+                    </span>
                   </div>
                 </td>
                 <td>
-                  <span className="text-sm text-nuanu-gray-500 font-medium">{formatDate(candidate.appliedAt)}</span>
+                  <span className="text-sm text-nuanu-gray-500 font-medium">
+                    {formatDate(candidate.appliedAt)}
+                  </span>
                 </td>
                 <td className="text-right pr-8">
                   <div className="flex items-center justify-end gap-2">
-                    <button 
-                      onClick={() => setSelectedProfile(candidate)} 
-                      className="p-2 text-nuanu-gray-400 hover:text-nuanu-emerald bg-nuanu-gray-50 hover:bg-emerald-50 rounded-lg transition-all hover:scale-110" 
+                    <button
+                      onClick={() => setSelectedProfile(candidate)}
+                      className="p-2 text-nuanu-gray-400 hover:text-nuanu-emerald bg-nuanu-gray-50 hover:bg-emerald-50 rounded-lg transition-all hover:scale-110"
                       title="View Profile"
                     >
                       <Eye className="w-4 h-4" />
                     </button>
-                    <button 
-                      onClick={() => openEmailModal(candidate)} 
-                      className="p-2 text-nuanu-gray-400 hover:text-blue-600 bg-nuanu-gray-50 hover:bg-blue-50 rounded-lg transition-all hover:scale-110" 
+                    <button
+                      onClick={() => openEmailModal(candidate)}
+                      className="p-2 text-nuanu-gray-400 hover:text-blue-600 bg-nuanu-gray-50 hover:bg-blue-50 rounded-lg transition-all hover:scale-110"
                       title="Send Email"
                     >
                       <Mail className="w-4 h-4" />
@@ -215,28 +281,39 @@ export default function CandidatesTable({ candidates }: { candidates: Candidate[
                           <Loader2 className="w-4 h-4 animate-spin" />
                         </div>
                       ) : (
-                        <button 
-                          onClick={() => setActiveMenuId(activeMenuId === candidate.id ? null : candidate.id)}
-                          className="p-2 text-nuanu-gray-400 hover:text-nuanu-navy bg-nuanu-gray-50 hover:bg-nuanu-gray-200 rounded-lg transition-all active:scale-95" 
+                        <button
+                          onClick={() =>
+                            setActiveMenuId(
+                              activeMenuId === candidate.id
+                                ? null
+                                : candidate.id,
+                            )
+                          }
+                          className="p-2 text-nuanu-gray-400 hover:text-nuanu-navy bg-nuanu-gray-50 hover:bg-nuanu-gray-200 rounded-lg transition-all active:scale-95"
                           title="More Options"
                         >
                           <MoreVertical className="w-4 h-4" />
                         </button>
                       )}
-                      
+
                       <AnimatePresence>
                         {activeMenuId === candidate.id && (
                           <>
-                            <div className="fixed inset-0 z-10" onClick={() => setActiveMenuId(null)} />
-                            <motion.div 
+                            <div
+                              className="fixed inset-0 z-10"
+                              onClick={() => setActiveMenuId(null)}
+                            />
+                            <motion.div
                               initial={{ opacity: 0, scale: 0.95, x: 10 }}
                               animate={{ opacity: 1, scale: 1, x: 0 }}
                               exit={{ opacity: 0, scale: 0.95, x: 10 }}
                               className="absolute right-0 mt-3 w-60 bg-white border border-nuanu-gray-200 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] overflow-hidden z-20 origin-top-right"
                             >
                               <div className="p-2">
-                                <button 
-                                  onClick={() => handleStageAction(candidate.id, "next")} 
+                                <button
+                                  onClick={() =>
+                                    handleStageAction(candidate.id, "next")
+                                  }
                                   className="w-full text-left px-4 py-3 text-sm font-bold text-nuanu-navy hover:bg-emerald-50 hover:text-emerald-700 transition-colors rounded-xl flex items-center gap-3 group"
                                 >
                                   <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center group-hover:bg-emerald-200 transition-colors">
@@ -244,8 +321,10 @@ export default function CandidatesTable({ candidates }: { candidates: Candidate[
                                   </div>
                                   Move to Next Stage
                                 </button>
-                                <button 
-                                  onClick={() => handleStageAction(candidate.id, "reject")} 
+                                <button
+                                  onClick={() =>
+                                    handleStageAction(candidate.id, "reject")
+                                  }
                                   className="w-full text-left px-4 py-3 text-sm font-bold text-red-600 hover:bg-red-50 transition-colors rounded-xl flex items-center gap-3 group mt-1"
                                 >
                                   <div className="w-8 h-8 rounded-lg bg-red-100 text-red-600 flex items-center justify-center group-hover:bg-red-200 transition-colors">
@@ -269,8 +348,13 @@ export default function CandidatesTable({ candidates }: { candidates: Candidate[
         {filteredCandidates.length === 0 && (
           <div className="text-center py-12">
             <Users className="w-12 h-12 text-nuanu-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-nuanu-navy">No candidates found</h3>
-            <p className="text-nuanu-gray-500 mt-1">Try adjusting your search or filters, or submit an application from the /careers page.</p>
+            <h3 className="text-lg font-medium text-nuanu-navy">
+              No candidates found
+            </h3>
+            <p className="text-nuanu-gray-500 mt-1">
+              Try adjusting your search or filters, or submit an application
+              from the /careers page.
+            </p>
           </div>
         )}
       </div>
@@ -279,10 +363,10 @@ export default function CandidatesTable({ candidates }: { candidates: Candidate[
       <AnimatePresence>
         {selectedProfile && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div 
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }} 
-              exit={{ opacity: 0 }} 
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
               className="absolute inset-0 bg-black/40 backdrop-blur-sm"
               onClick={() => setSelectedProfile(null)}
             />
@@ -294,75 +378,130 @@ export default function CandidatesTable({ candidates }: { candidates: Candidate[
             >
               <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
                 <div className="flex items-center gap-4">
-                   <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-100 to-teal-100 text-emerald-700 flex items-center justify-center font-bold text-lg shadow-sm">
-                    {selectedProfile.name.split(" ").map(n => n[0]).join("").substring(0,2).toUpperCase()}
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-100 to-teal-100 text-emerald-700 flex items-center justify-center font-bold text-lg shadow-sm">
+                    {selectedProfile.name
+                      .split(" ")
+                      .map((n) => n[0])
+                      .join("")
+                      .substring(0, 2)
+                      .toUpperCase()}
                   </div>
                   <div>
-                    <h2 className="text-3xl font-extrabold text-nuanu-navy leading-tight">{selectedProfile.name}</h2>
-                    <p className="text-base text-nuanu-gray-500 font-medium">{selectedProfile.email}</p>
+                    <h2 className="text-3xl font-extrabold text-nuanu-navy leading-tight">
+                      {selectedProfile.name}
+                    </h2>
+                    <p className="text-base text-nuanu-gray-500 font-medium">
+                      {selectedProfile.email}
+                    </p>
                   </div>
                 </div>
-                <button 
+                <button
                   onClick={() => setSelectedProfile(null)}
                   className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
-              
+
               <div className="p-6 overflow-y-auto">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
                   <div>
-                    <p className="text-[11px] font-bold text-nuanu-gray-400 uppercase tracking-[0.1em] mb-2">Applied For</p>
-                    <p className="text-lg font-bold text-nuanu-navy leading-snug">{selectedProfile.vacancyTitle}</p>
+                    <p className="text-[11px] font-bold text-nuanu-gray-400 uppercase tracking-[0.1em] mb-2">
+                      Applied For
+                    </p>
+                    <p className="text-lg font-bold text-nuanu-navy leading-snug">
+                      {selectedProfile.vacancyTitle}
+                    </p>
                   </div>
                   <div>
-                    <p className="text-[11px] font-bold text-nuanu-gray-400 uppercase tracking-[0.1em] mb-2">Current Stage</p>
+                    <p className="text-[11px] font-bold text-nuanu-gray-400 uppercase tracking-[0.1em] mb-2">
+                      Current Stage
+                    </p>
                     <span className="badge bg-blue-100 text-blue-700 px-3 py-1.5 text-xs font-bold uppercase tracking-wider">
                       {selectedProfile.stage.replace("_", " ")}
                     </span>
                   </div>
                   <div>
-                    <p className="text-[11px] font-bold text-nuanu-gray-400 uppercase tracking-[0.1em] mb-2">Applied Date</p>
-                    <p className="text-lg font-bold text-nuanu-navy">{formatDate(selectedProfile.appliedAt)}</p>
+                    <p className="text-[11px] font-bold text-nuanu-gray-400 uppercase tracking-[0.1em] mb-2">
+                      Applied Date
+                    </p>
+                    <p className="text-lg font-bold text-nuanu-navy">
+                      {formatDate(selectedProfile.appliedAt)}
+                    </p>
                   </div>
                   <div>
-                    <p className="text-[11px] font-bold text-nuanu-gray-400 uppercase tracking-[0.1em] mb-2">Location</p>
-                    <p className="text-lg font-bold text-nuanu-navy">{selectedProfile.location}</p>
+                    <p className="text-[11px] font-bold text-nuanu-gray-400 uppercase tracking-[0.1em] mb-2">
+                      Location
+                    </p>
+                    <p className="text-lg font-bold text-nuanu-navy">
+                      {selectedProfile.location}
+                    </p>
                   </div>
                   <div>
-                    <p className="text-[11px] font-bold text-nuanu-gray-400 uppercase tracking-[0.1em] mb-2">Phone Number</p>
-                    <p className="text-lg font-bold text-nuanu-navy">{selectedProfile.phone || "Not provided"}</p>
+                    <p className="text-[11px] font-bold text-nuanu-gray-400 uppercase tracking-[0.1em] mb-2">
+                      Phone Number
+                    </p>
+                    <p className="text-lg font-bold text-nuanu-navy">
+                      {selectedProfile.phone || "Not provided"}
+                    </p>
                   </div>
                 </div>
 
                 <div className="mb-8">
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">AI Match Analysis</p>
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+                    AI Match Analysis
+                  </p>
                   <div className="flex items-center gap-4 bg-gray-50 p-4 rounded-xl border border-gray-100">
                     <div className="relative w-16 h-16 flex-shrink-0">
                       <svg className="w-full h-full -rotate-90">
-                        <circle cx="32" cy="32" r="28" fill="none" stroke="#E2E8F0" strokeWidth="6" />
-                        <circle 
-                          cx="32" cy="32" r="28" 
-                          fill="none" 
-                          stroke={selectedProfile.score >= 80 ? "#10B981" : selectedProfile.score >= 60 ? "#F59E0B" : "#EF4444"} 
-                          strokeWidth="6" 
-                          strokeDasharray="175.9" 
-                          strokeDashoffset={175.9 - (selectedProfile.score / 100) * 175.9}
-                          strokeLinecap="round" 
+                        <circle
+                          cx="32"
+                          cy="32"
+                          r="28"
+                          fill="none"
+                          stroke="#E2E8F0"
+                          strokeWidth="6"
+                        />
+                        <circle
+                          cx="32"
+                          cy="32"
+                          r="28"
+                          fill="none"
+                          stroke={
+                            selectedProfile.score >= 80
+                              ? "#10B981"
+                              : selectedProfile.score >= 60
+                                ? "#F59E0B"
+                                : "#EF4444"
+                          }
+                          strokeWidth="6"
+                          strokeDasharray="175.9"
+                          strokeDashoffset={
+                            175.9 - (selectedProfile.score / 100) * 175.9
+                          }
+                          strokeLinecap="round"
                         />
                       </svg>
                       <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="text-sm font-bold text-nuanu-navy">{Math.round(selectedProfile.score)}%</span>
+                        <span className="text-sm font-bold text-nuanu-navy">
+                          {Math.round(selectedProfile.score)}%
+                        </span>
                       </div>
                     </div>
                     <div>
                       <p className="font-medium text-nuanu-navy mb-1">
-                        {selectedProfile.score >= 80 ? "Strong Match" : selectedProfile.score >= 60 ? "Potential Match" : "Weak Match"}
+                        {selectedProfile.score >= 80
+                          ? "Strong Match"
+                          : selectedProfile.score >= 60
+                            ? "Potential Match"
+                            : "Weak Match"}
                       </p>
                       <div className="flex flex-wrap gap-1.5">
-                        {selectedProfile.skills?.map(skill => (
-                          <span key={skill} className="px-2 py-0.5 bg-emerald-50 text-emerald-700 text-xs rounded border border-emerald-100">
+                        {selectedProfile.skills?.map((skill) => (
+                          <span
+                            key={skill}
+                            className="px-2 py-0.5 bg-emerald-50 text-emerald-700 text-xs rounded border border-emerald-100"
+                          >
                             {skill}
                           </span>
                         ))}
@@ -373,14 +512,16 @@ export default function CandidatesTable({ candidates }: { candidates: Candidate[
 
                 {selectedProfile.coverLetter && (
                   <div>
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Cover Letter</p>
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+                      Cover Letter
+                    </p>
                     <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 text-sm text-gray-700 whitespace-pre-wrap">
                       {selectedProfile.coverLetter}
                     </div>
                   </div>
                 )}
               </div>
-              
+
               <div className="p-8 border-t border-gray-100 flex justify-end gap-4 bg-gray-50/50">
                 {selectedProfile.resumeUrl && (
                   <a
@@ -392,13 +533,13 @@ export default function CandidatesTable({ candidates }: { candidates: Candidate[
                     View Resume / CV
                   </a>
                 )}
-                <button 
+                <button
                   onClick={() => setSelectedProfile(null)}
                   className="btn-secondary px-6 py-3 text-base"
                 >
                   Close
                 </button>
-                <button 
+                <button
                   onClick={() => {
                     setSelectedProfile(null);
                     openEmailModal(selectedProfile);
@@ -417,10 +558,10 @@ export default function CandidatesTable({ candidates }: { candidates: Candidate[
       <AnimatePresence>
         {selectedEmail && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div 
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }} 
-              exit={{ opacity: 0 }} 
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
               className="absolute inset-0 bg-black/40 backdrop-blur-sm"
               onClick={() => !isSendingEmail && setSelectedEmail(null)}
             />
@@ -430,11 +571,11 @@ export default function CandidatesTable({ candidates }: { candidates: Candidate[
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden relative z-10"
             >
-               <div className="p-8 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+              <div className="p-8 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
                 <h2 className="text-xl font-bold text-nuanu-navy flex items-center gap-2">
                   <Mail className="w-6 h-6 text-nuanu-emerald" /> New Message
                 </h2>
-                <button 
+                <button
                   onClick={() => !isSendingEmail && setSelectedEmail(null)}
                   className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
                   disabled={isSendingEmail}
@@ -448,22 +589,30 @@ export default function CandidatesTable({ candidates }: { candidates: Candidate[
                   <div className="w-16 h-16 bg-emerald-100 text-emerald-500 rounded-full flex items-center justify-center mb-4">
                     <Check className="w-8 h-8" />
                   </div>
-                  <h3 className="text-xl font-bold text-nuanu-navy mb-2">Message Sent!</h3>
-                  <p className="text-gray-500">Your email has been sent to {selectedEmail.email}</p>
+                  <h3 className="text-xl font-bold text-nuanu-navy mb-2">
+                    Message Sent!
+                  </h3>
+                  <p className="text-gray-500">
+                    Your email has been sent to {selectedEmail.email}
+                  </p>
                 </div>
               ) : (
                 <>
                   <div className="p-8 space-y-6">
                     <div>
-                      <label className="block text-xs font-bold text-nuanu-gray-400 uppercase tracking-widest mb-2">To:</label>
+                      <label className="block text-xs font-bold text-nuanu-gray-400 uppercase tracking-widest mb-2">
+                        To:
+                      </label>
                       <div className="input-field bg-gray-50 text-nuanu-navy font-bold text-lg py-3 px-4">
                         {selectedEmail.name} &lt;{selectedEmail.email}&gt;
                       </div>
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-nuanu-gray-400 uppercase tracking-widest mb-2">Subject:</label>
-                      <input 
-                        type="text" 
+                      <label className="block text-xs font-bold text-nuanu-gray-400 uppercase tracking-widest mb-2">
+                        Subject:
+                      </label>
+                      <input
+                        type="text"
                         value={emailSubject}
                         onChange={(e) => setEmailSubject(e.target.value)}
                         className="input-field text-lg font-medium py-3 px-4"
@@ -471,8 +620,10 @@ export default function CandidatesTable({ candidates }: { candidates: Candidate[
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-nuanu-gray-400 uppercase tracking-widest mb-2">Message:</label>
-                      <textarea 
+                      <label className="block text-xs font-bold text-nuanu-gray-400 uppercase tracking-widest mb-2">
+                        Message:
+                      </label>
+                      <textarea
                         value={emailBody}
                         onChange={(e) => setEmailBody(e.target.value)}
                         className="input-field min-h-[250px] resize-y text-base leading-relaxed py-3 px-4"
@@ -481,21 +632,22 @@ export default function CandidatesTable({ candidates }: { candidates: Candidate[
                     </div>
                   </div>
                   <div className="p-8 border-t border-gray-100 flex justify-end gap-4 bg-gray-50/50">
-                    <button 
+                    <button
                       onClick={() => setSelectedEmail(null)}
                       className="btn-secondary px-8 py-3 text-base"
                       disabled={isSendingEmail}
                     >
                       Cancel
                     </button>
-                    <button 
+                    <button
                       onClick={handleSendEmail}
                       className="btn-primary px-8 py-3 text-base shadow-lg shadow-emerald-500/20"
                       disabled={isSendingEmail}
                     >
                       {isSendingEmail ? (
                         <>
-                          <Loader2 className="w-5 h-5 animate-spin" /> Sending...
+                          <Loader2 className="w-5 h-5 animate-spin" />{" "}
+                          Sending...
                         </>
                       ) : (
                         <>

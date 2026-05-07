@@ -11,14 +11,15 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       {
-        protocol: 'https',
-        hostname: 'www.nuanu.com',
+        protocol: "https",
+        hostname: "www.nuanu.com",
       },
     ],
   },
-  experimental: {
-    // Add any experimental features here if needed
-  }
+  // Opt native/Node.js-only packages out of the server-component bundle
+  // so they are required via native Node.js require() instead of being
+  // webpack-bundled (which breaks binary addons and large native deps).
+  serverExternalPackages: ["bcryptjs", "pdf-parse"],
 };
 
 export default nextConfig;

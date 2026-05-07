@@ -4,19 +4,24 @@ import { prisma } from "./prisma";
 const oauth2Client = new google.auth.OAuth2(
   process.env.GOOGLE_CLIENT_ID,
   process.env.GOOGLE_CLIENT_SECRET,
-  process.env.GOOGLE_REDIRECT_URI
+  process.env.GOOGLE_REDIRECT_URI,
 );
 
-export async function getGoogleAuthUrl() {
+export async function getGoogleAuthUrl(userId: string) {
   const scopes = [
     "https://www.googleapis.com/auth/calendar.events",
-    "https://www.googleapis.com/auth/calendar.readonly"
+    "https://www.googleapis.com/auth/calendar.readonly",
   ];
+
+  // Encode userId in the state parameter so the callback can identify the user
+  // even when operating across redirects (belt-and-suspenders alongside the cookie).
+  const state = Buffer.from(JSON.stringify({ userId })).toString("base64url");
 
   return oauth2Client.generateAuthUrl({
     access_type: "offline",
     prompt: "consent",
     scope: scopes,
+    state,
   });
 }
 
@@ -27,7 +32,7 @@ export async function getTokensFromCode(code: string) {
 
 async function getClientForUser(userId: string) {
   const integration = await prisma.calendarIntegration.findUnique({
-    where: { userId }
+    where: { userId },
   });
 
   if (!integration) return null;
@@ -35,7 +40,7 @@ async function getClientForUser(userId: string) {
   const client = new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_ID,
     process.env.GOOGLE_CLIENT_SECRET,
-    process.env.GOOGLE_REDIRECT_URI
+    process.env.GOOGLE_REDIRECT_URI,
   );
 
   client.setCredentials({
@@ -69,13 +74,16 @@ async function getClientForUser(userId: string) {
   return google.calendar({ version: "v3", auth: client });
 }
 
-export async function createCalendarEvent(userId: string, data: {
-  title: string;
-  description: string;
-  startTime: Date;
-  endTime: Date;
-  attendees: string[];
-}) {
+export async function createCalendarEvent(
+  userId: string,
+  data: {
+    title: string;
+    description: string;
+    startTime: Date;
+    endTime: Date;
+    attendees: string[];
+  },
+) {
   const calendar = await getClientForUser(userId);
   if (!calendar) return null;
 
@@ -88,7 +96,7 @@ export async function createCalendarEvent(userId: string, data: {
         description: data.description,
         start: { dateTime: data.startTime.toISOString() },
         end: { dateTime: data.endTime.toISOString() },
-        attendees: data.attendees.map(email => ({ email })),
+        attendees: data.attendees.map((email) => ({ email })),
         conferenceData: {
           createRequest: {
             requestId: `interview-${Date.now()}`,
@@ -100,7 +108,9 @@ export async function createCalendarEvent(userId: string, data: {
 
     return {
       googleEventId: event.data.id!,
-      meetingLink: event.data.hangoutLink! || event.data.conferenceData?.entryPoints?.[0]?.uri,
+      meetingLink:
+        event.data.hangoutLink! ||
+        event.data.conferenceData?.entryPoints?.[0]?.uri,
     };
   } catch (error) {
     console.error("Google Calendar Create Event Error:", error);
@@ -108,12 +118,16 @@ export async function createCalendarEvent(userId: string, data: {
   }
 }
 
-export async function updateCalendarEvent(userId: string, googleEventId: string, data: {
-  title?: string;
-  description?: string;
-  startTime?: Date;
-  endTime?: Date;
-}) {
+export async function updateCalendarEvent(
+  userId: string,
+  googleEventId: string,
+  data: {
+    title?: string;
+    description?: string;
+    startTime?: Date;
+    endTime?: Date;
+  },
+) {
   const calendar = await getClientForUser(userId);
   if (!calendar) return null;
 
@@ -124,7 +138,9 @@ export async function updateCalendarEvent(userId: string, googleEventId: string,
       requestBody: {
         ...(data.title && { summary: data.title }),
         ...(data.description && { description: data.description }),
-        ...(data.startTime && { start: { dateTime: data.startTime.toISOString() } }),
+        ...(data.startTime && {
+          start: { dateTime: data.startTime.toISOString() },
+        }),
         ...(data.endTime && { end: { dateTime: data.endTime.toISOString() } }),
       },
     });
@@ -135,7 +151,10 @@ export async function updateCalendarEvent(userId: string, googleEventId: string,
   }
 }
 
-export async function deleteCalendarEvent(userId: string, googleEventId: string) {
+export async function deleteCalendarEvent(
+  userId: string,
+  googleEventId: string,
+) {
   const calendar = await getClientForUser(userId);
   if (!calendar) return null;
 

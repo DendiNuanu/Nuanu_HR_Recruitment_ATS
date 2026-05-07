@@ -6,34 +6,31 @@ export async function createNotification({
   title,
   message,
   link,
-  metadata
+  metadata,
 }: {
   userId: string;
-  type: 'approval' | 'interview' | 'offer' | 'system' | 'reminder';
+  type: "approval" | "interview" | "offer" | "system" | "reminder";
   title: string;
   message: string;
   link?: string;
-  metadata?: any;
+  metadata?: unknown;
 }) {
   try {
     const notification = await prisma.notification.create({
-      data: {
-        userId,
-        type,
-        title,
-        message,
-        link,
-        metadata
-      }
+      data: { userId, type, title, message, link, metadata },
     });
 
-    // Real-time emit
-    try {
-      const { emitEvent } = await import("./socket");
-      emitEvent("new_notification", notification);
-    } catch (socketError) {
-      console.warn("Socket emit failed, but notification was saved.");
-    }
+    // Fire-and-forget real-time emit — never throws, never awaited.
+    // Socket.IO is only active when NEXT_PUBLIC_SOCKET_URL is configured;
+    // on Vercel serverless it is intentionally disabled.
+    Promise.resolve().then(async () => {
+      try {
+        const { emitEvent } = await import("./socket");
+        emitEvent("new_notification", notification);
+      } catch {
+        // Swallow — socket unavailability must never break notification saves
+      }
+    });
 
     return notification;
   } catch (error) {

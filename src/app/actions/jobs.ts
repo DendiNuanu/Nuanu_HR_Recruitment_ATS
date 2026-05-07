@@ -4,11 +4,13 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
-import { createRequisition } from "@/lib/requisitionService";
+import { createNotification } from "@/lib/notifications";
 
 export async function createVacancy(formData: FormData) {
   const title = formData.get("title") as string;
-  const code = formData.get("code") as string || `JOB-${Math.floor(Math.random() * 10000)}`;
+  const code =
+    (formData.get("code") as string) ||
+    `JOB-${Math.floor(Math.random() * 10000)}`;
   const departmentName = formData.get("departmentName") as string;
   const employmentType = formData.get("employmentType") as string;
   const location = formData.get("location") as string;
@@ -18,7 +20,7 @@ export async function createVacancy(formData: FormData) {
 
   // Find or Create Department
   let targetDept = await prisma.department.findUnique({
-    where: { name: departmentName }
+    where: { name: departmentName },
   });
 
   if (!targetDept && departmentName) {
@@ -26,7 +28,7 @@ export async function createVacancy(formData: FormData) {
       data: {
         name: departmentName,
         code: departmentName.substring(0, 3).toUpperCase(), // Basic auto-code
-      }
+      },
     });
   }
 
@@ -36,57 +38,108 @@ export async function createVacancy(formData: FormData) {
     throw new Error("Department is required.");
   }
 
-
   const publishToCareers = formData.get("publishCareers") === "on";
   const publishToLinkedIn = formData.get("publishLinkedIn") === "on";
   const publishToJobStreet = formData.get("publishJobStreet") === "on";
 
-  // In a real app, you would get creatorId from the auth session
-  // For this ATS, we'll find the Super Admin user to assign as creator
-  const adminUser = await prisma.user.findFirst({
-    where: { email: "admin@nuanu.com" }
-  });
+  // Prefer the logged-in user's ID from the session; fall back to the admin
+  // account so the action still works when called without a browser session
+  // (e.g. during seeding / automated flows).
+  const session = await getSession();
+  let creatorId: string;
+  let cachedAdminId: string | null = null;
 
-  if (!adminUser) {
-    throw new Error("Admin user not found. Please run database seed.");
+  if (session?.id) {
+    creatorId = session.id;
+  } else {
+    const adminUser = await prisma.user.findFirst({
+      where: { email: "admin@nuanu.com" },
+    });
+    if (!adminUser) {
+      throw new Error("Admin user not found. Please run database seed.");
+    }
+    creatorId = adminUser.id;
+    cachedAdminId = adminUser.id;
   }
 
-  if (publishToCareers && !adminUser) { // Admin user is fallback here, but rule applies
-    // Normally we'd check session, but following existing logic
-  }
-
-  const finalStatus = publishToCareers ? "published" : "draft";
-  
-  if (finalStatus === "published") {
-    // We'll allow it to go to draft and THEN submit for approval automatically if requested
-  }
-
-  // Create the Vacancy
+  // Create the Vacancy — set status directly based on publish intent so we
+  // never need to fire the heavy createRequisition transaction from here.
   const newVacancy = await prisma.vacancy.create({
     data: {
       title,
       code,
       departmentId,
-      creatorId: adminUser.id,
+      creatorId,
       employmentType,
       location,
       headcount,
       description,
       requirements,
-      status: "draft", // Always start as draft for approval flow
+      status: publishToCareers ? "pending_approval" : "draft",
       isApproved: false,
       publishedAt: null,
-    }
+    },
   });
 
-  // Automatically submit for approval if it was intended for publishing
+  // Set up the approval workflow inline — no heavy transaction needed for
+  // these three lightweight inserts.
   if (publishToCareers) {
-    await createRequisition(newVacancy.id, adminUser.id);
+    // Resolve admin ID (may already be cached from the session-fallback path)
+    if (!cachedAdminId) {
+      const adminUser = await prisma.user.findFirst({
+        where: { email: "admin@nuanu.com" },
+      });
+      cachedAdminId = adminUser?.id ?? creatorId;
+    }
+    const approverId = cachedAdminId;
+
+    // Lightweight requisition record — no transaction needed
+    const requisition = await prisma.jobRequisition.create({
+      data: {
+        vacancyId: newVacancy.id,
+        requestedById: creatorId,
+        status: "PENDING",
+        currentStep: 1,
+      },
+    });
+
+    // All 3 approval records in one round-trip, admin as approver for every role
+    await prisma.approval.createMany({
+      data: [
+        {
+          requisitionId: requisition.id,
+          approverId,
+          role: "MANAGER",
+          status: "PENDING",
+        },
+        {
+          requisitionId: requisition.id,
+          approverId,
+          role: "HR",
+          status: "PENDING",
+        },
+        {
+          requisitionId: requisition.id,
+          approverId,
+          role: "FINANCE",
+          status: "PENDING",
+        },
+      ],
+    });
+
+    // Fire notification without blocking the server action
+    createNotification({
+      userId: approverId,
+      type: "system",
+      title: "New Job Requisition",
+      message: "A new job vacancy requires your approval.",
+      link: "/dashboard/requisitions",
+    }).catch(console.error);
   }
 
   // Create mock JobPostings if third-party toggles are on
   const postings = [];
-  
+
   if (publishToCareers) {
     postings.push({
       vacancyId: newVacancy.id,
@@ -95,7 +148,7 @@ export async function createVacancy(formData: FormData) {
       publishedAt: new Date(),
     });
   }
-  
+
   if (publishToLinkedIn) {
     postings.push({
       vacancyId: newVacancy.id,
@@ -134,11 +187,11 @@ export async function updateVacancy(id: string, formData: FormData) {
   const headcount = parseInt(formData.get("headcount") as string) || 1;
   const description = formData.get("description") as string;
   const requirements = formData.get("requirements") as string;
-  const status = formData.get("status") as string || "published";
+  const status = (formData.get("status") as string) || "published";
 
   // Find or Create Department
   let targetDept = await prisma.department.findUnique({
-    where: { name: departmentName }
+    where: { name: departmentName },
   });
 
   if (!targetDept && departmentName) {
@@ -146,7 +199,7 @@ export async function updateVacancy(id: string, formData: FormData) {
       data: {
         name: departmentName,
         code: departmentName.substring(0, 3).toUpperCase(),
-      }
+      },
     });
   }
 
@@ -157,7 +210,7 @@ export async function updateVacancy(id: string, formData: FormData) {
   }
 
   const existing = await prisma.vacancy.findUnique({ where: { id } });
-  
+
   if (status === "published" && !existing?.isApproved) {
     throw new Error("Vacancy must be approved before publishing.");
   }
@@ -173,7 +226,7 @@ export async function updateVacancy(id: string, formData: FormData) {
       description,
       requirements,
       status: status as any,
-    }
+    },
   });
 
   revalidatePath("/dashboard/jobs");
@@ -186,7 +239,7 @@ export async function deleteVacancy(id: string) {
   // Cascading deletes should handle related records if configured in Prisma
   // But we can be explicit if needed.
   await prisma.vacancy.delete({
-    where: { id }
+    where: { id },
   });
 
   revalidatePath("/dashboard/jobs");
@@ -198,7 +251,7 @@ export async function duplicateVacancy(id: string) {
   try {
     const original = await prisma.vacancy.findUnique({
       where: { id },
-      include: { department: true }
+      include: { department: true },
     });
 
     if (!original) throw new Error("Original vacancy not found");
@@ -229,7 +282,7 @@ export async function duplicateVacancy(id: string) {
         headcount: original.headcount,
         priority: original.priority,
         status: "draft", // Clones are always drafts initially
-      }
+      },
     });
 
     revalidatePath("/dashboard/jobs");
@@ -243,26 +296,27 @@ export async function duplicateVacancy(id: string) {
 export async function publishVacancy(id: string) {
   try {
     const vacancy = await prisma.vacancy.findUnique({
-      where: { id }
+      where: { id },
     });
 
     if (!vacancy) throw new Error("Vacancy not found");
-    if (!vacancy.isApproved) throw new Error("Vacancy must be approved before publishing");
+    if (!vacancy.isApproved)
+      throw new Error("Vacancy must be approved before publishing");
 
     await prisma.vacancy.update({
       where: { id },
-      data: { 
+      data: {
         status: "published",
-        publishedAt: new Date()
-      }
+        publishedAt: new Date(),
+      },
     });
 
     // Manage Job Posting record
     const existingPosting = await prisma.jobPosting.findFirst({
       where: {
         vacancyId: id,
-        channel: "internal"
-      }
+        channel: "internal",
+      },
     });
 
     if (existingPosting) {
@@ -270,8 +324,8 @@ export async function publishVacancy(id: string) {
         where: { id: existingPosting.id },
         data: {
           status: "active",
-          publishedAt: new Date()
-        }
+          publishedAt: new Date(),
+        },
       });
     } else {
       await prisma.jobPosting.create({
@@ -279,8 +333,8 @@ export async function publishVacancy(id: string) {
           vacancyId: id,
           channel: "internal",
           status: "active",
-          publishedAt: new Date()
-        }
+          publishedAt: new Date(),
+        },
       });
     }
 

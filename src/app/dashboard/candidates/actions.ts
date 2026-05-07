@@ -13,14 +13,17 @@ const STAGES = [
   "user_interview",
   "final_interview",
   "offer",
-  "hired"
+  "hired",
 ];
 
-export async function updateCandidateStage(applicationId: string, action: "next" | "reject") {
+export async function updateCandidateStage(
+  applicationId: string,
+  action: "next" | "reject",
+) {
   try {
     const application = await prisma.application.findUnique({
       where: { id: applicationId },
-      select: { currentStage: true, candidateId: true }
+      select: { currentStage: true, candidateId: true },
     });
 
     if (!application) {
@@ -43,21 +46,40 @@ export async function updateCandidateStage(applicationId: string, action: "next"
         where: { id: applicationId },
         data: {
           currentStage: newStage,
-          status: newStage === "rejected" ? "rejected" : newStage === "hired" ? "hired" : "active",
-          ...(newStage === "rejected" ? { rejectedAt: new Date() } : {})
-        }
+          status:
+            newStage === "rejected"
+              ? "rejected"
+              : newStage === "hired"
+                ? "hired"
+                : "active",
+          ...(newStage === "rejected" ? { rejectedAt: new Date() } : {}),
+        },
       });
 
       // Synchronize Vacancy filledCount
       if (newStage === "hired" && application.currentStage !== "hired") {
         await tx.vacancy.update({
-          where: { id: (await tx.application.findUnique({ where: { id: applicationId }, select: { vacancyId: true } }))?.vacancyId },
-          data: { filledCount: { increment: 1 } }
+          where: {
+            id: (
+              await tx.application.findUnique({
+                where: { id: applicationId },
+                select: { vacancyId: true },
+              })
+            )?.vacancyId,
+          },
+          data: { filledCount: { increment: 1 } },
         });
       } else if (application.currentStage === "hired" && newStage !== "hired") {
         await tx.vacancy.update({
-          where: { id: (await tx.application.findUnique({ where: { id: applicationId }, select: { vacancyId: true } }))?.vacancyId },
-          data: { filledCount: { decrement: 1 } }
+          where: {
+            id: (
+              await tx.application.findUnique({
+                where: { id: applicationId },
+                select: { vacancyId: true },
+              })
+            )?.vacancyId,
+          },
+          data: { filledCount: { decrement: 1 } },
         });
       }
     });
@@ -69,13 +91,17 @@ export async function updateCandidateStage(applicationId: string, action: "next"
         action: `Candidate moved to ${newStage.replace("_", " ")} stage`,
         resource: "Application",
         resourceId: applicationId,
-      }
+      },
     });
 
     // Create Real Notification
-    const admin = await prisma.user.findFirst({ where: { userRoles: { some: { role: { slug: 'admin' } } } } });
-    const candidate = await prisma.user.findUnique({ where: { id: application.candidateId } });
-    
+    const admin = await prisma.user.findFirst({
+      where: { userRoles: { some: { role: { slug: "admin" } } } },
+    });
+    const candidate = await prisma.user.findUnique({
+      where: { id: application.candidateId },
+    });
+
     if (admin && candidate) {
       await createNotification({
         userId: admin.id,
@@ -110,26 +136,36 @@ export async function sendCandidateEmail(data: {
     });
 
     if (!result.success) {
-      throw new Error("Resend failed to send email");
+      // Propagate configMissing so the client can offer a mailto: fallback
+      return {
+        success: false,
+        error: result.error,
+        configMissing:
+          (result as { configMissing?: boolean }).configMissing ?? false,
+      };
     }
 
-    // Log this activity
-    await prisma.activityLog.create({
-      data: {
-        userId: data.candidateId,
-        action: `Email sent: ${data.subject}`,
-        resource: "Candidate",
-        resourceId: data.candidateId,
-        metadata: { subject: data.subject }
-      }
-    });
+    // Log this activity (non-fatal if it fails)
+    try {
+      await prisma.activityLog.create({
+        data: {
+          userId: data.candidateId,
+          action: `Email sent: ${data.subject}`,
+          resource: "Candidate",
+          resourceId: data.candidateId,
+          metadata: { subject: data.subject },
+        },
+      });
+    } catch {
+      // activity log failure must not break email success
+    }
 
     return { success: true };
   } catch (error) {
     console.error("Failed to send candidate email:", error);
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : "Failed to send email" 
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to send email",
     };
   }
 }

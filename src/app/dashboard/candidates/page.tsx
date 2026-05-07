@@ -1,54 +1,66 @@
 import { prisma } from "@/lib/prisma";
-import { Search, Filter, Eye, Download, Mail, MoreVertical, Users } from "lucide-react";
+import { unstable_cache } from "next/cache";
 import CandidatesTable from "./CandidatesTable";
 import ExportButton from "./ExportButton";
 
-export default async function CandidatesPage() {
-  // Pull real applications from the database
-  const applications = await prisma.application.findMany({
-    include: {
-      candidate: true,
-      vacancy: {
-        include: { department: true }
+const getCachedCandidatesData = unstable_cache(
+  async () => {
+    // Pull real applications from the database
+    const applications = await prisma.application.findMany({
+      include: {
+        candidate: true,
+        vacancy: {
+          include: { department: true },
+        },
+        candidateScore: true,
       },
-      candidateScore: true,
-    },
-    orderBy: { createdAt: "desc" },
-  });
+      orderBy: { createdAt: "desc" },
+    });
 
-  // Map DB records to a flat shape for the client component
-  const candidateIds = applications.map(a => a.candidateId);
-  const profiles = await prisma.candidateProfile.findMany({
-    where: { userId: { in: candidateIds } }
-  });
+    // Map DB records to a flat shape for the client component
+    const candidateIds = applications.map((a) => a.candidateId);
+    const profiles = await prisma.candidateProfile.findMany({
+      where: { userId: { in: candidateIds } },
+    });
 
-  const candidates = applications.map(app => {
-    const profile = profiles.find(p => p.userId === app.candidateId);
-    return {
-      id: app.id,
-      userId: app.candidateId, // Add the actual User ID
-      name: app.candidate.name,
-      email: app.candidate.email,
-      vacancyTitle: app.vacancy.title,
-      stage: app.currentStage,
-      score: app.candidateScore?.overallScore ?? 0,
-      experienceYears: profile?.experienceYears ?? 0,
-      location: app.vacancy.location ?? "Remote",
-      appliedAt: app.appliedAt.toISOString(),
-      phone: app.candidate.phone ?? undefined,
-      skills: profile?.skills ?? ["Communication", "Problem Solving"],
-      coverLetter: app.coverLetter ?? undefined,
-      resumeUrl: profile?.resumeUrl ?? undefined,
-      resumeText: profile?.resumeText ?? undefined,
-    };
-  });
+    const candidates = applications.map((app) => {
+      const profile = profiles.find((p) => p.userId === app.candidateId);
+      return {
+        id: app.id,
+        userId: app.candidateId, // Add the actual User ID
+        name: app.candidate.name,
+        email: app.candidate.email,
+        vacancyTitle: app.vacancy.title,
+        stage: app.currentStage,
+        score: app.candidateScore?.overallScore ?? 0,
+        experienceYears: profile?.experienceYears ?? 0,
+        location: app.vacancy.location ?? "Remote",
+        appliedAt: app.appliedAt.toISOString(),
+        phone: app.candidate.phone ?? undefined,
+        skills: profile?.skills ?? ["Communication", "Problem Solving"],
+        coverLetter: app.coverLetter ?? undefined,
+        resumeUrl: profile?.resumeUrl ?? undefined,
+        resumeText: profile?.resumeText ?? undefined,
+      };
+    });
+
+    return candidates;
+  },
+  ["candidates-page-data"],
+  { revalidate: 60, tags: ["applications", "candidates"] },
+);
+
+export default async function CandidatesPage() {
+  const candidates = await getCachedCandidatesData();
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-nuanu-navy">Candidates</h1>
-          <p className="text-sm text-nuanu-gray-500 mt-1">Manage and evaluate all applicants</p>
+          <p className="text-sm text-nuanu-gray-500 mt-1">
+            Manage and evaluate all applicants
+          </p>
         </div>
         <div className="flex gap-3">
           <ExportButton candidates={candidates} />

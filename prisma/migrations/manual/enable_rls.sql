@@ -1,4 +1,6 @@
--- Enable RLS on every table in public schema and allow only service_role.
+-- Enable RLS on every table in public schema and allow backend roles.
+SET ROLE postgres;
+
 DO $$
 DECLARE
   t RECORD;
@@ -19,6 +21,19 @@ BEGIN
     ) THEN
       EXECUTE format(
         'CREATE POLICY service_role_full_access ON public.%I FOR ALL TO service_role USING (true) WITH CHECK (true);',
+        t.tablename
+      );
+    END IF;
+
+    IF NOT EXISTS (
+      SELECT 1
+      FROM pg_policies
+      WHERE schemaname = 'public'
+        AND tablename = t.tablename
+        AND policyname = 'postgres_full_access'
+    ) THEN
+      EXECUTE format(
+        'CREATE POLICY postgres_full_access ON public.%I FOR ALL TO postgres USING (true) WITH CHECK (true);',
         t.tablename
       );
     END IF;

@@ -1,84 +1,40 @@
-import { createClient } from "redis";
+import { unstable_cache } from "next/cache";
 
-const globalForRedis = global as unknown as { redisClient: ReturnType<typeof createClient> };
-
-export const redisClient = globalForRedis.redisClient || createClient({
-  url: process.env.REDIS_URL || "redis://localhost:6379"
-});
-
-if (process.env.NODE_ENV !== "production") globalForRedis.redisClient = redisClient;
-
-redisClient.on("error", (err) => console.error("Redis Client Error", err));
-
-let isConnected = false;
-
-async function connect() {
-  return false; // TEMPORARILY DISABLED TO FIX HANGING
-  if (process.env.REDIS_ENABLED === "false") return false;
-  
-  // Check if already open to avoid "Socket already opened" error
-  if (redisClient.isOpen) {
-    isConnected = true;
-    return true;
-  }
-
-  try {
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error("Redis connection timeout")), 2000)
-    );
-    
-    await Promise.race([
-      redisClient.connect(),
-      timeoutPromise
-    ]);
-    
-    isConnected = true;
-    return true;
-  } catch (error: any) {
-    // If it's already opened, we're good
-    if (error.message?.includes("already opened")) {
-      isConnected = true;
-      return true;
-    }
-    console.error("Failed to connect to Redis:", error);
-    isConnected = false;
-    return false;
-  }
+/**
+ * Thin wrapper around Next.js unstable_cache.
+ * Replaces the broken Redis implementation.
+ * Works on Vercel without any external Redis service.
+ */
+export function createCachedFn<T>(
+  fn: () => Promise<T>,
+  keys: string[],
+  options: { revalidate?: number; tags?: string[] } = {},
+): () => Promise<T> {
+  return unstable_cache(fn, keys, {
+    revalidate: options.revalidate ?? 300,
+    tags: options.tags,
+  });
 }
 
-export async function setCache(key: string, value: any, ttlSeconds: number = 3600) {
-  try {
-    const connected = await connect();
-    if (!connected) return;
-    
-    await redisClient.set(key, JSON.stringify(value), {
-      EX: ttlSeconds
-    });
-  } catch (error) {
-    console.error("Redis setCache error", error);
-  }
+// Legacy shim — keeps pages that call getCache/setCache from crashing.
+// They simply become no-ops; the real caching is done via createCachedFn
+// or the `use cache` directive on page functions directly.
+const memCache = new Map<string, { value: unknown; expiresAt: number }>();
+
+export async function setCache(key: string, value: unknown, ttlSeconds = 300) {
+  memCache.set(key, { value, expiresAt: Date.now() + ttlSeconds * 1000 });
 }
 
 export async function getCache<T>(key: string): Promise<T | null> {
-  try {
-    const connected = await connect();
-    if (!connected) return null;
-
-    const data = await redisClient.get(key);
-    return data ? JSON.parse(data) : null;
-  } catch (error) {
-    console.error("Redis getCache error", error);
+  const entry = memCache.get(key);
+  if (!entry) return null;
+  if (Date.now() > entry.expiresAt) {
+    memCache.delete(key);
     return null;
   }
+  return entry.value as T;
 }
 
 export async function delCache(key: string) {
-  try {
-    const connected = await connect();
-    if (!connected) return;
-
-    await redisClient.del(key);
-  } catch (error) {
-    console.error("Redis delCache error", error);
-  }
+  memCache.delete(key);
 }
