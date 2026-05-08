@@ -2,7 +2,11 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { createCalendarEvent, updateCalendarEvent, deleteCalendarEvent } from "@/lib/google-calendar";
+import {
+  createCalendarEvent,
+  updateCalendarEvent,
+  deleteCalendarEvent,
+} from "@/lib/google-calendar";
 import { sendEmail } from "@/lib/email";
 import { checkRole } from "@/lib/rbac";
 
@@ -18,18 +22,19 @@ export async function scheduleInterview(data: {
     await checkRole(["admin", "hr", "recruiter"]);
 
     const adminUser = await prisma.user.findFirst({
-      where: { 
-        userRoles: { 
-          some: { 
-            role: { 
-              slug: { in: ["super-admin", "admin", "recruiter", "hr"] } 
-            } 
-          } 
-        } 
-      }
+      where: {
+        userRoles: {
+          some: {
+            role: {
+              slug: { in: ["super-admin", "admin", "recruiter", "hr"] },
+            },
+          },
+        },
+      },
     });
 
-    if (!adminUser) throw new Error("No authorized personnel found to assign interview");
+    if (!adminUser)
+      throw new Error("No authorized personnel found to assign interview");
 
     // Conflict Detection
     const existingInterview = await prisma.interview.findFirst({
@@ -39,12 +44,16 @@ export async function scheduleInterview(data: {
         scheduledAt: {
           gte: new Date(new Date(data.scheduledAt).getTime() - 45 * 60 * 1000), // 45 mins before
           lte: new Date(new Date(data.scheduledAt).getTime() + 45 * 60 * 1000), // 45 mins after
-        }
-      }
+        },
+      },
     });
 
     if (existingInterview) {
-      return { success: false, error: "Interviewer is already booked within this time slot (45-min buffer)" };
+      return {
+        success: false,
+        error:
+          "Interviewer is already booked within this time slot (45-min buffer)",
+      };
     }
 
     const interview = await prisma.interview.create({
@@ -56,17 +65,17 @@ export async function scheduleInterview(data: {
         location: data.location,
         meetingUrl: data.meetingUrl || null,
         status: "scheduled",
-        stage: data.type === "video" ? "hr_interview" : "tech_interview"
+        stage: data.type === "video" ? "hr_interview" : "tech_interview",
       },
       include: {
-        application: { include: { candidate: true } }
-      }
+        application: { include: { candidate: true } },
+      },
     });
 
     // --- Google Calendar Sync ---
     let googleEvent = null;
     const integration = await prisma.calendarIntegration.findUnique({
-      where: { userId: adminUser.id }
+      where: { userId: adminUser.id },
     });
 
     if (integration && data.syncWithGoogle !== false) {
@@ -74,8 +83,10 @@ export async function scheduleInterview(data: {
         title: `Interview: ${interview.application.candidate.name} - ${interview.type}`,
         description: `Interview for application ${interview.applicationId}. \nLocation: ${data.location}`,
         startTime: new Date(data.scheduledAt),
-        endTime: new Date(new Date(data.scheduledAt).getTime() + 60 * 60 * 1000), // Default 1 hour
-        attendees: [interview.application.candidate.email, adminUser.email]
+        endTime: new Date(
+          new Date(data.scheduledAt).getTime() + 60 * 60 * 1000,
+        ), // Default 1 hour
+        attendees: [interview.application.candidate.email, adminUser.email],
       });
 
       if (googleEvent) {
@@ -85,8 +96,8 @@ export async function scheduleInterview(data: {
             googleEventId: googleEvent.googleEventId,
             meetingLink: googleEvent.meetingLink,
             calendarSynced: true,
-            meetingUrl: googleEvent.meetingLink || interview.meetingUrl
-          }
+            meetingUrl: googleEvent.meetingLink || interview.meetingUrl,
+          },
         });
       }
     }
@@ -98,7 +109,7 @@ export async function scheduleInterview(data: {
         action: `Scheduled an interview: ${interview.type}`,
         resource: "Interview",
         resourceId: interview.id,
-      }
+      },
     });
 
     // Send Email Notification
@@ -112,12 +123,14 @@ export async function scheduleInterview(data: {
     await prisma.application.update({
       where: { id: data.applicationId },
       data: {
-        currentStage: data.type === "video" ? "hr_interview" : "tech_interview"
-      }
+        currentStage: data.type === "video" ? "hr_interview" : "tech_interview",
+      },
     });
 
     // Log Activity
-    const app = await prisma.application.findUnique({ where: { id: data.applicationId } });
+    const app = await prisma.application.findUnique({
+      where: { id: data.applicationId },
+    });
     if (app) {
       await prisma.activityLog.create({
         data: {
@@ -125,7 +138,7 @@ export async function scheduleInterview(data: {
           action: "Scheduled an interview",
           resource: "Interview",
           resourceId: data.applicationId,
-        }
+        },
       });
     }
 
@@ -155,7 +168,7 @@ export async function submitInterviewFeedback(data: {
 
     const interview = await prisma.interview.findUnique({
       where: { id: data.interviewId },
-      include: { application: true }
+      include: { application: true },
     });
 
     if (!interview) throw new Error("Interview not found");
@@ -165,7 +178,7 @@ export async function submitInterviewFeedback(data: {
         interviewId_interviewerId: {
           interviewId: data.interviewId,
           interviewerId: interview.interviewerId,
-        }
+        },
       },
       update: {
         overallRating: data.overallRating,
@@ -194,13 +207,13 @@ export async function submitInterviewFeedback(data: {
         notes: data.notes,
         isSubmitted: true,
         submittedAt: new Date(),
-      }
+      },
     });
 
     // Update Interview Status
     await prisma.interview.update({
       where: { id: data.interviewId },
-      data: { status: "completed", completedAt: new Date() }
+      data: { status: "completed", completedAt: new Date() },
     });
 
     revalidatePath("/dashboard/interviews");
@@ -220,8 +233,10 @@ export async function rescheduleInterview(data: {
   try {
     await checkRole(["admin", "hr", "recruiter"]);
 
-    const targetInterview = await prisma.interview.findUnique({ where: { id: data.interviewId } });
-    
+    const targetInterview = await prisma.interview.findUnique({
+      where: { id: data.interviewId },
+    });
+
     // Conflict Detection for reschedule
     const existing = await prisma.interview.findFirst({
       where: {
@@ -231,12 +246,15 @@ export async function rescheduleInterview(data: {
         scheduledAt: {
           gte: new Date(new Date(data.scheduledAt).getTime() - 45 * 60 * 1000),
           lte: new Date(new Date(data.scheduledAt).getTime() + 45 * 60 * 1000),
-        }
-      }
+        },
+      },
     });
 
     if (existing) {
-      return { success: false, error: "Interviewer is already booked at this time" };
+      return {
+        success: false,
+        error: "Interviewer is already booked at this time",
+      };
     }
 
     const interview = await prisma.interview.update({
@@ -245,9 +263,9 @@ export async function rescheduleInterview(data: {
         scheduledAt: new Date(data.scheduledAt),
         location: data.location,
         meetingUrl: data.meetingUrl,
-        status: "scheduled"
+        status: "scheduled",
       },
-      include: { application: true }
+      include: { application: true },
     });
 
     // Log Activity
@@ -257,16 +275,22 @@ export async function rescheduleInterview(data: {
         action: `Rescheduled interview to ${new Date(data.scheduledAt).toLocaleString()}`,
         resource: "Interview",
         resourceId: interview.id,
-      }
+      },
     });
 
     // Sync Update to Google
     if (interview.googleEventId && interview.calendarSynced) {
-      await updateCalendarEvent(interview.interviewerId, interview.googleEventId, {
-        startTime: new Date(data.scheduledAt),
-        endTime: new Date(new Date(data.scheduledAt).getTime() + 60 * 60 * 1000),
-        location: data.location,
-      } as any);
+      await updateCalendarEvent(
+        interview.interviewerId,
+        interview.googleEventId,
+        {
+          startTime: new Date(data.scheduledAt),
+          endTime: new Date(
+            new Date(data.scheduledAt).getTime() + 60 * 60 * 1000,
+          ),
+          location: data.location,
+        } as any,
+      );
     }
 
     revalidatePath("/dashboard/interviews");
@@ -277,6 +301,31 @@ export async function rescheduleInterview(data: {
   }
 }
 
+export async function getInterviewFeedback(interviewId: string) {
+  try {
+    const feedback = await prisma.interviewFeedback.findFirst({
+      where: { interviewId },
+      include: { interviewer: { select: { name: true } } },
+    });
+    if (!feedback) return null;
+    return {
+      overallRating: feedback.overallRating,
+      technicalScore: feedback.technicalScore ?? 5,
+      communicationScore: feedback.communicationScore ?? 5,
+      cultureFitScore: feedback.cultureFitScore ?? 5,
+      leadershipScore: feedback.leadershipScore ?? 5,
+      strengths: feedback.strengths ?? "",
+      weaknesses: feedback.weaknesses ?? "",
+      recommendation: feedback.recommendation,
+      notes: feedback.notes ?? "",
+      interviewerName: feedback.interviewer.name,
+      submittedAt: feedback.submittedAt?.toISOString() ?? null,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function cancelInterview(interviewId: string) {
   try {
     await checkRole(["admin", "hr", "recruiter"]);
@@ -284,7 +333,7 @@ export async function cancelInterview(interviewId: string) {
     const interview = await prisma.interview.update({
       where: { id: interviewId },
       data: { status: "cancelled", cancelledAt: new Date() },
-      include: { application: true }
+      include: { application: true },
     });
 
     // Log Activity
@@ -294,12 +343,15 @@ export async function cancelInterview(interviewId: string) {
         action: `Cancelled interview`,
         resource: "Interview",
         resourceId: interview.id,
-      }
+      },
     });
 
     // Sync Deletion to Google
     if (interview.googleEventId && interview.calendarSynced) {
-      await deleteCalendarEvent(interview.interviewerId, interview.googleEventId);
+      await deleteCalendarEvent(
+        interview.interviewerId,
+        interview.googleEventId,
+      );
     }
 
     revalidatePath("/dashboard/interviews");

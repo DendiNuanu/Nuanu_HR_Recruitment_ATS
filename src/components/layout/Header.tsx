@@ -36,7 +36,7 @@ const pageTitles: Record<string, string> = {
   "/dashboard/pipeline": "Hiring Pipeline",
   "/dashboard/ai-scoring": "AI Match Scoring",
   "/dashboard/interviews": "Interviews",
-  "/dashboard/screening": "Screening & Testing",
+  "/dashboard/screening": "Assessment",
   "/dashboard/offers": "Offers & Contracts",
   "/dashboard/onboarding": "Employee Onboarding",
   "/dashboard/analytics": "Analytics & Reports",

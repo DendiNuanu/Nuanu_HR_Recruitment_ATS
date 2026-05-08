@@ -69,7 +69,7 @@ const menuItems = [
     allowed: ["admin", "super-admin", "hr", "recruiter", "interviewer"],
   },
   {
-    label: "Screening",
+    label: "Assessment",
     href: "/dashboard/screening",
     icon: BarChart3,
     allowed: ["admin", "super-admin", "hr", "recruiter"],
