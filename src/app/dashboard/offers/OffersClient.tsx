@@ -1,7 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { Search, Filter, FileText, CheckCircle2, XCircle, Send, MoreVertical, DollarSign, X, Loader2, Calendar } from "lucide-react";
+import {
+  Search,
+  Filter,
+  FileText,
+  CheckCircle2,
+  XCircle,
+  Send,
+  MoreVertical,
+  X,
+  Loader2,
+  Calendar,
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { formatDate } from "@/lib/utils";
 import { createOffer, sendOffer } from "./actions";
@@ -23,12 +34,12 @@ export type ActiveApp = {
   vacancyTitle: string;
 };
 
-export default function OffersClient({ 
+export default function OffersClient({
   offers,
-  activeApplications = []
-}: { 
-  offers: OfferData[],
-  activeApplications?: ActiveApp[]
+  activeApplications = [],
+}: {
+  offers: OfferData[];
+  activeApplications?: ActiveApp[];
 }) {
   const [search, setSearch] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -40,8 +51,8 @@ export default function OffersClient({
     applicationId: "",
     salary: 15000000,
     bonus: 0,
-    startDate: new Date().toISOString().split('T')[0],
-    notes: ""
+    startDate: new Date().toISOString().split("T")[0],
+    notes: "",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -57,8 +68,8 @@ export default function OffersClient({
           applicationId: "",
           salary: 15000000,
           bonus: 0,
-          startDate: new Date().toISOString().split('T')[0],
-          notes: ""
+          startDate: new Date().toISOString().split("T")[0],
+          notes: "",
         });
       }
     } catch (error) {
@@ -82,14 +93,30 @@ export default function OffersClient({
     }
   };
 
-
   const getStatusBadge = (status: string) => {
-    switch(status) {
-      case 'accepted': return <span className="badge bg-emerald-100 text-emerald-700">Accepted</span>;
-      case 'sent': return <span className="badge bg-blue-100 text-blue-700">Sent</span>;
-      case 'draft': return <span className="badge bg-nuanu-gray-100 text-nuanu-gray-700">Draft</span>;
-      case 'rejected': return <span className="badge bg-red-100 text-red-700">Rejected</span>;
-      default: return <span className="badge bg-nuanu-gray-100 text-nuanu-gray-700">{status}</span>;
+    switch (status) {
+      case "accepted":
+        return (
+          <span className="badge bg-emerald-100 text-emerald-700">
+            Accepted
+          </span>
+        );
+      case "sent":
+        return <span className="badge bg-blue-100 text-blue-700">Sent</span>;
+      case "draft":
+        return (
+          <span className="badge bg-nuanu-gray-100 text-nuanu-gray-700">
+            Draft
+          </span>
+        );
+      case "rejected":
+        return <span className="badge bg-red-100 text-red-700">Rejected</span>;
+      default:
+        return (
+          <span className="badge bg-nuanu-gray-100 text-nuanu-gray-700">
+            {status}
+          </span>
+        );
     }
   };
 
@@ -97,8 +124,12 @@ export default function OffersClient({
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-nuanu-navy">Offers & Contracts</h1>
-          <p className="text-sm text-nuanu-gray-500 mt-1">Generate, send, and track candidate offer letters</p>
+          <h1 className="text-2xl font-bold text-nuanu-navy">
+            Offers & Contracts
+          </h1>
+          <p className="text-sm text-nuanu-gray-500 mt-1">
+            Generate, send, and track candidate offer letters
+          </p>
         </div>
         <button onClick={() => setIsModalOpen(true)} className="btn-primary">
           <FileText className="w-5 h-5" /> Generate Offer
@@ -143,66 +174,87 @@ export default function OffersClient({
               </tr>
             </thead>
             <tbody>
-              {offers.filter(o => o.candidateName.toLowerCase().includes(search.toLowerCase())).map((offer, i) => (
-                <motion.tr
-                  key={offer.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.05 }}
-                >
-                  <td>
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-xs">
-                        {offer.candidateName.charAt(0)}
+              {offers
+                .filter((o) =>
+                  o.candidateName.toLowerCase().includes(search.toLowerCase()),
+                )
+                .map((offer, i) => (
+                  <motion.tr
+                    key={offer.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.05 }}
+                  >
+                    <td>
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-xs">
+                          {offer.candidateName.charAt(0)}
+                        </div>
+                        <span className="font-semibold text-nuanu-navy">
+                          {offer.candidateName}
+                        </span>
                       </div>
-                      <span className="font-semibold text-nuanu-navy">{offer.candidateName}</span>
-                    </div>
-                  </td>
-                  <td>
-                    <span className="text-nuanu-gray-600 text-sm">{offer.position}</span>
-                  </td>
-                  <td>
-                    <div className="flex items-center gap-1.5 text-sm font-medium text-nuanu-navy">
-                      <DollarSign className="w-4 h-4 text-nuanu-emerald" />
-                      Rp {offer.salary.toLocaleString("id-ID")}
-                    </div>
-                    {offer.bonus && <div className="text-xs text-nuanu-gray-500 mt-0.5">+ Rp {(offer.bonus).toLocaleString("id-ID")} bonus</div>}
-                  </td>
-                  <td>{getStatusBadge(offer.status)}</td>
-                  <td>
-                    <span className="text-sm text-nuanu-gray-600">{formatDate(offer.startDate)}</span>
-                  </td>
-                  <td>
-                    <div className="flex items-center gap-2">
-                      <button className="p-1.5 text-nuanu-gray-400 hover:text-blue-600 bg-nuanu-gray-50 hover:bg-blue-50 rounded transition-colors" title="View Document">
-                        <FileText className="w-4 h-4" />
-                      </button>
-                      <button 
-                        disabled={offer.status !== "draft"}
-                        onClick={() => {
-                          setSelectedOfferId(offer.id);
-                          setShowConfirmSend(true);
-                        }}
-                        className="p-1.5 text-nuanu-gray-400 hover:text-emerald-600 bg-nuanu-gray-50 hover:bg-emerald-50 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed" 
-                        title="Send Offer"
-                      >
-                        <Send className="w-4 h-4" />
-                      </button>
-                      <button className="p-1.5 text-nuanu-gray-400 hover:text-nuanu-navy bg-nuanu-gray-50 hover:bg-nuanu-gray-200 rounded transition-colors">
-                        <MoreVertical className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </td>
-                </motion.tr>
-              ))}
+                    </td>
+                    <td>
+                      <span className="text-nuanu-gray-600 text-sm">
+                        {offer.position}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="flex items-center gap-1.5 text-sm font-medium text-nuanu-navy">
+                        <span className="text-nuanu-emerald font-bold text-xs">
+                          Rp
+                        </span>
+                        {offer.salary.toLocaleString("id-ID")}
+                      </div>
+                      {offer.bonus && (
+                        <div className="text-xs text-nuanu-gray-500 mt-0.5">
+                          + Rp {offer.bonus.toLocaleString("id-ID")} bonus
+                        </div>
+                      )}
+                    </td>
+                    <td>{getStatusBadge(offer.status)}</td>
+                    <td>
+                      <span className="text-sm text-nuanu-gray-600">
+                        {formatDate(offer.startDate)}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="flex items-center gap-2">
+                        <button
+                          className="p-1.5 text-nuanu-gray-400 hover:text-blue-600 bg-nuanu-gray-50 hover:bg-blue-50 rounded transition-colors"
+                          title="View Document"
+                        >
+                          <FileText className="w-4 h-4" />
+                        </button>
+                        <button
+                          disabled={offer.status !== "draft"}
+                          onClick={() => {
+                            setSelectedOfferId(offer.id);
+                            setShowConfirmSend(true);
+                          }}
+                          className="p-1.5 text-nuanu-gray-400 hover:text-emerald-600 bg-nuanu-gray-50 hover:bg-emerald-50 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                          title="Send Offer"
+                        >
+                          <Send className="w-4 h-4" />
+                        </button>
+                        <button className="p-1.5 text-nuanu-gray-400 hover:text-nuanu-navy bg-nuanu-gray-50 hover:bg-nuanu-gray-200 rounded transition-colors">
+                          <MoreVertical className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </motion.tr>
+                ))}
             </tbody>
           </table>
-          
+
           {offers.length === 0 && (
-             <div className="text-center py-12">
-               <FileText className="w-12 h-12 text-nuanu-gray-300 mx-auto mb-4" />
-               <h3 className="text-lg font-medium text-nuanu-navy">No offers found</h3>
-             </div>
+            <div className="text-center py-12">
+              <FileText className="w-12 h-12 text-nuanu-gray-300 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-nuanu-navy">
+                No offers found
+              </h3>
+            </div>
           )}
         </div>
       </div>
@@ -221,15 +273,14 @@ export default function OffersClient({
         type="info"
       />
 
-
       {/* Generate Offer Modal */}
       <AnimatePresence>
         {isModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div 
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }} 
-              exit={{ opacity: 0 }} 
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
               className="absolute inset-0 bg-black/40 backdrop-blur-sm"
               onClick={() => !isSubmitting && setIsModalOpen(false)}
             />
@@ -241,9 +292,10 @@ export default function OffersClient({
             >
               <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50">
                 <h2 className="text-lg font-bold text-nuanu-navy flex items-center gap-2">
-                  <FileText className="w-5 h-5 text-nuanu-emerald" /> Generate New Offer
+                  <FileText className="w-5 h-5 text-nuanu-emerald" /> Generate
+                  New Offer
                 </h2>
-                <button 
+                <button
                   onClick={() => !isSubmitting && setIsModalOpen(false)}
                   className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded-full transition-colors"
                 >
@@ -253,45 +305,72 @@ export default function OffersClient({
 
               <form onSubmit={handleSubmit} className="p-6 space-y-4">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">Candidate Application *</label>
-                  <select 
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">
+                    Candidate Application *
+                  </label>
+                  <select
                     required
                     value={formData.applicationId}
-                    onChange={e => setFormData({...formData, applicationId: e.target.value})}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        applicationId: e.target.value,
+                      })
+                    }
                     className="input-field py-2.5"
                   >
-                    <option value="" disabled>Select a candidate...</option>
-                    {activeApplications.map(app => (
+                    <option value="" disabled>
+                      Select a candidate...
+                    </option>
+                    {activeApplications.map((app) => (
                       <option key={app.id} value={app.id}>
                         {app.candidateName} - {app.vacancyTitle}
                       </option>
                     ))}
                   </select>
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">Monthly Salary (Rp)</label>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">
+                      Monthly Salary (Rp)
+                    </label>
                     <div className="relative">
-                      <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                      <input 
-                        type="number" 
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs">
+                        Rp
+                      </span>
+                      <input
+                        type="number"
                         required
                         value={formData.salary}
-                        onChange={e => setFormData({...formData, salary: parseInt(e.target.value)})}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            salary: parseInt(e.target.value),
+                          })
+                        }
                         className="input-field py-2.5 pl-9"
                         placeholder="e.g. 15000000"
                       />
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">Signing Bonus (Rp)</label>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">
+                      Signing Bonus (Rp)
+                    </label>
                     <div className="relative">
-                      <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                      <input 
-                        type="number" 
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs">
+                        Rp
+                      </span>
+                      <input
+                        type="number"
                         value={formData.bonus}
-                        onChange={e => setFormData({...formData, bonus: parseInt(e.target.value)})}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            bonus: parseInt(e.target.value),
+                          })
+                        }
                         className="input-field py-2.5 pl-9"
                         placeholder="e.g. 5000000"
                       />
@@ -300,24 +379,32 @@ export default function OffersClient({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">Proposed Start Date</label>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">
+                    Proposed Start Date
+                  </label>
                   <div className="relative">
                     <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <input 
-                      type="date" 
+                    <input
+                      type="date"
                       required
                       value={formData.startDate}
-                      onChange={e => setFormData({...formData, startDate: e.target.value})}
+                      onChange={(e) =>
+                        setFormData({ ...formData, startDate: e.target.value })
+                      }
                       className="input-field py-2.5 pl-9"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">Internal Notes</label>
-                  <textarea 
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">
+                    Internal Notes
+                  </label>
+                  <textarea
                     value={formData.notes}
-                    onChange={e => setFormData({...formData, notes: e.target.value})}
+                    onChange={(e) =>
+                      setFormData({ ...formData, notes: e.target.value })
+                    }
                     className="input-field py-2.5 resize-y"
                     rows={2}
                     placeholder="Approvals, special conditions..."
@@ -325,7 +412,7 @@ export default function OffersClient({
                 </div>
 
                 <div className="pt-4 flex justify-end gap-3">
-                  <button 
+                  <button
                     type="button"
                     onClick={() => setIsModalOpen(false)}
                     className="btn-secondary"
@@ -333,14 +420,19 @@ export default function OffersClient({
                   >
                     Cancel
                   </button>
-                  <button 
+                  <button
                     type="submit"
                     className="btn-primary px-8"
                     disabled={isSubmitting || !formData.applicationId}
                   >
                     {isSubmitting ? (
-                      <><Loader2 className="w-4 h-4 animate-spin" /> Generating...</>
-                    ) : "Generate Offer"}
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />{" "}
+                        Generating...
+                      </>
+                    ) : (
+                      "Generate Offer"
+                    )}
                   </button>
                 </div>
               </form>
@@ -351,4 +443,3 @@ export default function OffersClient({
     </div>
   );
 }
-

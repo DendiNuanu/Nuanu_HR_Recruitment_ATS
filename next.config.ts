@@ -1,11 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Gzip/Brotli compress all responses
+  compress: true,
+  // Don't leak server info
+  poweredByHeader: false,
   typescript: {
-    // !! WARN !!
-    // Dangerously allow production builds to successfully complete even if
-    // your project has type errors.
-    // !! WARN !!
     ignoreBuildErrors: true,
   },
   images: {
@@ -16,10 +16,11 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  // Opt native/Node.js-only packages out of the server-component bundle
-  // so they are required via native Node.js require() instead of being
-  // webpack-bundled (which breaks binary addons and large native deps).
   serverExternalPackages: ["bcryptjs", "pdf-parse"],
+  experimental: {
+    // Tree-shake large icon/animation libraries so only used exports are bundled
+    optimizePackageImports: ["lucide-react", "framer-motion"],
+  },
 };
 
 export default nextConfig;

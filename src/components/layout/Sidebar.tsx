@@ -26,43 +26,125 @@ import {
 } from "lucide-react";
 
 const menuItems = [
-  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, allowed: ["admin", "super-admin", "hr", "recruiter", "manager"] },
-  { label: "Jobs & Vacancies", href: "/dashboard/jobs", icon: Briefcase, allowed: ["admin", "super-admin", "hr", "recruiter"] },
-  { label: "Approvals", href: "/dashboard/requisitions", icon: ClipboardCheck, allowed: ["admin", "super-admin", "hr", "finance", "manager"] },
-  { label: "Candidates", href: "/dashboard/candidates", icon: Users, allowed: ["admin", "super-admin", "hr", "recruiter"] },
-  { label: "Pipeline", href: "/dashboard/pipeline", icon: Kanban, allowed: ["admin", "super-admin", "hr", "recruiter"] },
-  { label: "AI Scoring", href: "/dashboard/ai-scoring", icon: Brain, allowed: ["admin", "super-admin", "hr", "recruiter"] },
-  { label: "Interviews", href: "/dashboard/interviews", icon: Calendar, allowed: ["admin", "super-admin", "hr", "recruiter", "interviewer"] },
-  { label: "Screening", href: "/dashboard/screening", icon: BarChart3, allowed: ["admin", "super-admin", "hr", "recruiter"] },
-  { label: "Offers", href: "/dashboard/offers", icon: FileText, allowed: ["admin", "super-admin", "hr", "recruiter"] },
-  { label: "Onboarding", href: "/dashboard/onboarding", icon: UserPlus, allowed: ["admin", "super-admin", "hr", "recruiter"] },
-  { label: "Settings", href: "/dashboard/settings", icon: Settings, allowed: ["admin", "super-admin"] },
+  {
+    label: "Dashboard",
+    href: "/dashboard",
+    icon: LayoutDashboard,
+    allowed: ["admin", "super-admin", "hr", "recruiter", "manager"],
+  },
+  {
+    label: "Jobs & Vacancies",
+    href: "/dashboard/jobs",
+    icon: Briefcase,
+    allowed: ["admin", "super-admin", "hr", "recruiter"],
+  },
+  {
+    label: "Approvals",
+    href: "/dashboard/requisitions",
+    icon: ClipboardCheck,
+    allowed: ["admin", "super-admin", "hr", "finance", "manager"],
+  },
+  {
+    label: "Candidates",
+    href: "/dashboard/candidates",
+    icon: Users,
+    allowed: ["admin", "super-admin", "hr", "recruiter"],
+  },
+  {
+    label: "Pipeline",
+    href: "/dashboard/pipeline",
+    icon: Kanban,
+    allowed: ["admin", "super-admin", "hr", "recruiter"],
+  },
+  {
+    label: "AI Scoring",
+    href: "/dashboard/ai-scoring",
+    icon: Brain,
+    allowed: ["admin", "super-admin", "hr", "recruiter"],
+  },
+  {
+    label: "Interviews",
+    href: "/dashboard/interviews",
+    icon: Calendar,
+    allowed: ["admin", "super-admin", "hr", "recruiter", "interviewer"],
+  },
+  {
+    label: "Screening",
+    href: "/dashboard/screening",
+    icon: BarChart3,
+    allowed: ["admin", "super-admin", "hr", "recruiter"],
+  },
+  {
+    label: "Offers",
+    href: "/dashboard/offers",
+    icon: FileText,
+    allowed: ["admin", "super-admin", "hr", "recruiter"],
+  },
+  {
+    label: "Onboarding",
+    href: "/dashboard/onboarding",
+    icon: UserPlus,
+    allowed: ["admin", "super-admin", "hr", "recruiter"],
+  },
+  {
+    label: "Settings",
+    href: "/dashboard/settings",
+    icon: Settings,
+    allowed: ["admin", "super-admin"],
+  },
 ];
 
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { isCollapsed, isMobileOpen, toggle, setMobileOpen } = useSidebarStore();
+  const { isCollapsed, isMobileOpen, toggle, setMobileOpen } =
+    useSidebarStore();
   const [logo, setLogo] = useState<string | null>(null);
   const [companyName, setCompanyName] = useState("Nuanu");
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
     async function loadData() {
-      // Load branding
-      const settings = await getIntegrationSettings("general_info");
-      if (settings && (settings.config as any)?.logo) {
-        setLogo((settings.config as any).logo);
-      }
-      if (settings && (settings.config as any)?.companyName) {
-        setCompanyName((settings.config as any).companyName);
+      // ── Branding: read from localStorage cache first ─────────────────────────
+      // Only hits the DB if cache is missing or older than 10 minutes.
+      const CACHE_TTL = 10 * 60 * 1000; // 10 min
+      try {
+        const cached = localStorage.getItem("nuanu_branding");
+        if (cached) {
+          const { data, ts } = JSON.parse(cached);
+          if (Date.now() - ts < CACHE_TTL) {
+            if (data.logo) setLogo(data.logo);
+            if (data.companyName) setCompanyName(data.companyName);
+            // Still load user below
+            const storedUser = localStorage.getItem("nuanu_user");
+            if (storedUser) setUser(JSON.parse(storedUser));
+            return;
+          }
+        }
+      } catch {
+        // ignore malformed cache
       }
 
-      // Load user from localStorage (synced with auth)
-      const storedUser = localStorage.getItem("nuanu_user");
-      if (storedUser) {
-        setUser(JSON.parse(storedUser));
+      // ── Fetch from server and populate cache ─────────────────────────────────
+      const settings = await getIntegrationSettings("general_info");
+      const brandData = {
+        logo: (settings?.config as any)?.logo ?? null,
+        companyName: (settings?.config as any)?.companyName ?? "Nuanu",
+      };
+      try {
+        localStorage.setItem(
+          "nuanu_branding",
+          JSON.stringify({ data: brandData, ts: Date.now() }),
+        );
+      } catch {
+        // ignore storage errors (private browsing, quota, etc.)
       }
+      if (brandData.logo) setLogo(brandData.logo);
+      setCompanyName(brandData.companyName);
+
+      // ── User ─────────────────────────────────────────────────────────────────
+      const storedUser = localStorage.getItem("nuanu_user");
+      if (storedUser) setUser(JSON.parse(storedUser));
     }
     loadData();
   }, []);
@@ -79,10 +161,10 @@ export default function Sidebar() {
   };
 
   const userRoles = user?.roles?.map((r: string) => r.toLowerCase()) || [];
-  
-  const filteredMenuItems = menuItems.filter(item => {
+
+  const filteredMenuItems = menuItems.filter((item) => {
     if (userRoles.includes("super-admin")) return true;
-    return item.allowed.some(role => userRoles.includes(role));
+    return item.allowed.some((role) => userRoles.includes(role));
   });
 
   const sidebarContent = (
@@ -91,7 +173,11 @@ export default function Sidebar() {
       <div className="h-[72px] flex items-center justify-between px-5 border-b border-white/[0.06]">
         <Link href="/dashboard" className="flex items-center gap-3 min-w-0">
           {logo ? (
-            <img src={logo} alt={companyName} className="w-9 h-9 rounded-lg object-contain bg-white/10" />
+            <img
+              src={logo}
+              alt={companyName}
+              className="w-9 h-9 rounded-lg object-contain bg-white/10"
+            />
           ) : (
             <Image
               src="/nuanu-logo.png"
@@ -108,7 +194,9 @@ export default function Sidebar() {
               exit={{ opacity: 0 }}
               className="min-w-0"
             >
-              <h1 className="text-[15px] font-bold text-white leading-tight">{companyName}</h1>
+              <h1 className="text-[15px] font-bold text-white leading-tight">
+                {companyName}
+              </h1>
               <p className="text-[10px] text-emerald-400/70 font-semibold tracking-[0.12em] uppercase leading-tight">
                 Recruitment ATS
               </p>
@@ -116,7 +204,10 @@ export default function Sidebar() {
           )}
         </Link>
         <button
-          onClick={() => { toggle(); setMobileOpen(false); }}
+          onClick={() => {
+            toggle();
+            setMobileOpen(false);
+          }}
           className="text-gray-500 hover:text-white transition-colors p-1.5 rounded-lg hover:bg-white/5 hidden lg:flex items-center justify-center"
         >
           <ChevronLeft
@@ -165,8 +256,12 @@ export default function Sidebar() {
               <Shield className="w-3.5 h-3.5" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-white text-[13px] font-semibold truncate leading-tight">{user?.name || "Super Admin"}</p>
-              <p className="text-gray-500 text-[11px] truncate leading-tight mt-0.5">{user?.email || "admin@nuanu.com"}</p>
+              <p className="text-white text-[13px] font-semibold truncate leading-tight">
+                {user?.name || "Super Admin"}
+              </p>
+              <p className="text-gray-500 text-[11px] truncate leading-tight mt-0.5">
+                {user?.email || "admin@nuanu.com"}
+              </p>
             </div>
           </div>
         )}
@@ -193,11 +288,11 @@ export default function Sidebar() {
       </motion.aside>
 
       {/* Desktop Sidebar Placeholder (to push content) */}
-      <motion.div 
+      <motion.div
         animate={{ width: isCollapsed ? 80 : 280 }}
         transition={{ duration: 0.3, ease: "easeInOut" }}
         className="hidden lg:block flex-shrink-0"
-        style={{ width: isCollapsed ? '80px' : '280px' }}
+        style={{ width: isCollapsed ? "80px" : "280px" }}
       />
 
       {/* Mobile Overlay */}

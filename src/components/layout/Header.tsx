@@ -23,7 +23,11 @@ import {
   AlertCircle,
 } from "lucide-react";
 
-import { getNotifications, markNotificationAsRead, markAllNotificationsAsRead } from "@/app/dashboard/notifications/actions";
+import {
+  getNotifications,
+  markNotificationAsRead,
+  markAllNotificationsAsRead,
+} from "@/app/dashboard/notifications/actions";
 
 const pageTitles: Record<string, string> = {
   "/dashboard": "Dashboard Overview",
@@ -50,7 +54,13 @@ const notificationIcons: Record<string, React.ElementType> = {
 export default function Header() {
   const pathname = usePathname();
   const { setMobileOpen } = useSidebarStore();
-  const { notifications, unreadCount, setNotifications, markAsRead, markAllAsRead } = useNotificationStore();
+  const {
+    notifications,
+    unreadCount,
+    setNotifications,
+    markAsRead,
+    markAllAsRead,
+  } = useNotificationStore();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -60,48 +70,42 @@ export default function Header() {
   const userRef = useRef<HTMLDivElement>(null);
 
   const fetchNotifications = async () => {
-    // For demo, we assume the first admin user is logged in
-    const res = await getNotifications("current-user-id"); // We'll need to handle this properly
+    const userData = JSON.parse(localStorage.getItem("nuanu_user") || "{}");
+    if (!userData?.id) return;
+    const res = await getNotifications(userData.id);
     if (res) setNotifications(res);
   };
 
   useEffect(() => {
-    fetchNotifications();
-
-    // Real-time updates via Socket.io
-    const { getSocket } = require("@/lib/socket");
-    const socket = getSocket();
-
-    const { addNotification } = useNotificationStore.getState();
-
-    if (socket) {
-      socket.on("new_notification", (newNotif: any) => {
-        // Only show if it belongs to the current user
-        const userData = JSON.parse(localStorage.getItem("nuanu_user") || "{}");
-        if (newNotif.userId === userData.id) {
-          addNotification(newNotif);
-        }
-      });
-    }
-
     // Close dropdowns on outside click
     const handleClickOutside = (event: MouseEvent) => {
-      if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
+      if (
+        notifRef.current &&
+        !notifRef.current.contains(event.target as Node)
+      ) {
         setShowNotifications(false);
       }
-      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+      if (
+        searchRef.current &&
+        !searchRef.current.contains(event.target as Node)
+      ) {
         setShowSearch(false);
       }
       if (userRef.current && !userRef.current.contains(event.target as Node)) {
         setShowUserMenu(false);
       }
     };
-
     document.addEventListener("mousedown", handleClickOutside);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [setNotifications]);
+  }, []);
+
+  useEffect(() => {
+    if (showNotifications && notifications.length === 0) {
+      fetchNotifications();
+    }
+  }, [showNotifications]);
 
   const handleMarkRead = async (id: string) => {
     markAsRead(id);
@@ -110,11 +114,14 @@ export default function Header() {
 
   const handleMarkAllRead = async () => {
     markAllAsRead();
-    await markAllNotificationsAsRead(""); 
+    await markAllNotificationsAsRead("");
   };
 
   const breadcrumbs = pathname.split("/").filter(Boolean);
-  const pageTitle = pageTitles[pathname] || breadcrumbs[breadcrumbs.length - 1]?.replace(/-/g, " ") || "Dashboard";
+  const pageTitle =
+    pageTitles[pathname] ||
+    breadcrumbs[breadcrumbs.length - 1]?.replace(/-/g, " ") ||
+    "Dashboard";
 
   return (
     <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-xl border-b border-nuanu-gray-200">
@@ -134,13 +141,23 @@ export default function Header() {
               {breadcrumbs.map((crumb, i) => (
                 <span key={i} className="flex items-center gap-1.5">
                   {i > 0 && <ChevronRight className="w-3 h-3" />}
-                  <span className={i === breadcrumbs.length - 1 ? "text-nuanu-gray-600 font-medium" : ""}>
-                    {crumb.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
+                  <span
+                    className={
+                      i === breadcrumbs.length - 1
+                        ? "text-nuanu-gray-600 font-medium"
+                        : ""
+                    }
+                  >
+                    {crumb
+                      .replace(/-/g, " ")
+                      .replace(/\b\w/g, (c) => c.toUpperCase())}
                   </span>
                 </span>
               ))}
             </div>
-            <h1 className="text-lg font-bold text-nuanu-navy capitalize">{pageTitle}</h1>
+            <h1 className="text-lg font-bold text-nuanu-navy capitalize">
+              {pageTitle}
+            </h1>
           </div>
         </div>
 
@@ -205,7 +222,9 @@ export default function Header() {
                   className="absolute right-0 top-12 w-96 bg-white rounded-xl shadow-xl border border-nuanu-gray-200 overflow-hidden"
                 >
                   <div className="flex items-center justify-between p-4 border-b border-nuanu-gray-100">
-                    <h3 className="font-semibold text-nuanu-navy">Notifications</h3>
+                    <h3 className="font-semibold text-nuanu-navy">
+                      Notifications
+                    </h3>
                     <div className="flex items-center gap-2">
                       {unreadCount > 0 && (
                         <button
@@ -235,16 +254,24 @@ export default function Header() {
                               !notif.isRead ? "bg-emerald-50/50" : ""
                             }`}
                           >
-                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                              !notif.isRead ? "bg-nuanu-emerald/10 text-nuanu-emerald" : "bg-nuanu-gray-100 text-nuanu-gray-400"
-                            }`}>
+                            <div
+                              className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                                !notif.isRead
+                                  ? "bg-nuanu-emerald/10 text-nuanu-emerald"
+                                  : "bg-nuanu-gray-100 text-nuanu-gray-400"
+                              }`}
+                            >
                               <Icon className="w-4 h-4" />
                             </div>
                             <div className="min-w-0 flex-1">
-                              <p className={`text-sm ${!notif.isRead ? "font-semibold text-nuanu-navy" : "text-nuanu-gray-600"}`}>
+                              <p
+                                className={`text-sm ${!notif.isRead ? "font-semibold text-nuanu-navy" : "text-nuanu-gray-600"}`}
+                              >
                                 {notif.title}
                               </p>
-                              <p className="text-xs text-nuanu-gray-400 mt-0.5 truncate">{notif.message}</p>
+                              <p className="text-xs text-nuanu-gray-400 mt-0.5 truncate">
+                                {notif.message}
+                              </p>
                             </div>
                             {!notif.isRead && (
                               <div className="w-2 h-2 rounded-full bg-nuanu-emerald flex-shrink-0 mt-2" />
@@ -255,7 +282,9 @@ export default function Header() {
                     ) : (
                       <div className="p-8 text-center">
                         <Bell className="w-8 h-8 text-nuanu-gray-200 mx-auto mb-2" />
-                        <p className="text-sm text-nuanu-gray-400">No notifications yet</p>
+                        <p className="text-sm text-nuanu-gray-400">
+                          No notifications yet
+                        </p>
                       </div>
                     )}
                   </div>
@@ -263,7 +292,7 @@ export default function Header() {
               )}
             </AnimatePresence>
           </div>
- 
+
           {/* User Avatar */}
           <div ref={userRef} className="relative ml-1">
             <button
@@ -281,14 +310,18 @@ export default function Header() {
                   className="absolute right-0 top-12 w-56 bg-white rounded-xl shadow-xl border border-nuanu-gray-200 overflow-hidden py-1"
                 >
                   <div className="px-4 py-3 border-b border-nuanu-gray-100 bg-nuanu-gray-50/50">
-                    <p className="text-sm font-bold text-nuanu-navy">Admin Dendy</p>
-                    <p className="text-[10px] text-nuanu-gray-400 font-medium uppercase tracking-wider">Super Administrator</p>
+                    <p className="text-sm font-bold text-nuanu-navy">
+                      Admin Dendy
+                    </p>
+                    <p className="text-[10px] text-nuanu-gray-400 font-medium uppercase tracking-wider">
+                      Super Administrator
+                    </p>
                   </div>
                   <div className="py-1">
                     <button className="w-full flex items-center gap-3 px-4 py-2 text-sm text-nuanu-gray-600 hover:bg-nuanu-gray-50 transition-colors">
                       <User className="w-4 h-4" /> Profile
                     </button>
-                    <button 
+                    <button
                       onClick={() => {
                         window.location.href = "/dashboard/settings";
                         setShowUserMenu(false);
@@ -299,7 +332,7 @@ export default function Header() {
                     </button>
                   </div>
                   <div className="border-t border-nuanu-gray-100 py-1">
-                    <button 
+                    <button
                       onClick={() => {
                         // Handle logout logic here
                         window.location.href = "/login";

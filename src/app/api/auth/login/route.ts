@@ -8,29 +8,37 @@ export async function POST(request: Request) {
     const { email, password } = await request.json();
 
     if (!email || !password) {
-      return NextResponse.json({ error: "Email and password are required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Email and password are required" },
+        { status: 400 },
+      );
     }
 
     // Connect to actual Prisma Database
     const user = await prisma.user.findUnique({
       where: { email },
       include: {
-        department: true,
         userRoles: {
-          include: { role: true }
-        }
-      }
+          include: { role: true },
+        },
+      },
     });
 
     if (!user) {
-      return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Invalid email or password" },
+        { status: 401 },
+      );
     }
 
     // Verify hashed password
     const passwordMatch = await bcrypt.compare(password, user.password);
 
     if (!passwordMatch) {
-      return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Invalid email or password" },
+        { status: 401 },
+      );
     }
 
     // Map DB user to session format
@@ -38,7 +46,7 @@ export async function POST(request: Request) {
       id: user.id,
       email: user.email,
       name: user.name,
-      roles: user.userRoles.map(ur => ur.role.slug), // Use slugs for consistency
+      roles: user.userRoles.map((ur) => ur.role.slug), // Use slugs for consistency
       departmentId: user.departmentId,
     };
 
@@ -62,6 +70,9 @@ export async function POST(request: Request) {
     return response;
   } catch (error) {
     console.error("Login API Error:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }
