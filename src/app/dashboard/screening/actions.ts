@@ -19,24 +19,24 @@ export async function createAssessment(data: {
         title: data.title,
         description: data.description,
         maxScore: data.maxScore,
-        status: "pending"
-      }
+        status: "pending",
+      },
     });
 
     // Update Application Stage
     await prisma.application.update({
       where: { id: data.applicationId },
       data: {
-        currentStage: "screening"
-      }
+        currentStage: "screening",
+      },
     });
 
     // Log Activity
-    const app = await prisma.application.findUnique({ 
+    const app = await prisma.application.findUnique({
       where: { id: data.applicationId },
-      include: { candidate: true }
+      include: { candidate: true },
     });
-    
+
     if (app) {
       await prisma.activityLog.create({
         data: {
@@ -44,7 +44,7 @@ export async function createAssessment(data: {
           action: `Sent a new assessment: ${data.title}`,
           resource: "Assessment",
           resourceId: data.applicationId,
-        }
+        },
       });
 
       // Send Real Email Invitation
@@ -70,7 +70,7 @@ export async function remindAssessment(assessmentId: string) {
     // For now, we'll just log it
     const assessment = await prisma.assessment.findUnique({
       where: { id: assessmentId },
-      include: { application: { include: { candidate: true } } }
+      include: { application: { include: { candidate: true } } },
     });
 
     if (assessment) {
@@ -80,9 +80,9 @@ export async function remindAssessment(assessmentId: string) {
           action: `Reminder sent for assessment: ${assessment.title}`,
           resource: "Assessment",
           resourceId: assessment.id,
-        }
+        },
       });
-      
+
       // Create a notification for the candidate
       await prisma.notification.create({
         data: {
@@ -90,8 +90,8 @@ export async function remindAssessment(assessmentId: string) {
           type: "assessment_reminder",
           title: "Assessment Reminder",
           message: `Please complete your "${assessment.title}" assessment.`,
-          link: `/assessments/${assessment.id}`
-        }
+          link: `/assessments/${assessment.id}`,
+        },
       });
 
       // Send Real Email Reminder
@@ -112,7 +112,7 @@ export async function remindAssessment(assessmentId: string) {
 export async function cancelAssessment(assessmentId: string) {
   try {
     await prisma.assessment.delete({
-      where: { id: assessmentId }
+      where: { id: assessmentId },
     });
     revalidatePath("/dashboard/screening");
     return { success: true };
@@ -132,8 +132,8 @@ export async function createTemplate(data: {
     await prisma.assessmentTemplate.create({
       data: {
         ...data,
-        questions: [] // Default empty questions
-      }
+        questions: [], // Default empty questions
+      },
     });
     revalidatePath("/dashboard/screening");
     return { success: true };
@@ -146,12 +146,135 @@ export async function createTemplate(data: {
 export async function deleteTemplate(templateId: string) {
   try {
     await prisma.assessmentTemplate.delete({
-      where: { id: templateId }
+      where: { id: templateId },
     });
     revalidatePath("/dashboard/screening");
     return { success: true };
   } catch (error) {
     console.error("Delete Template Error:", error);
     return { success: false, error: "Failed to delete template" };
+  }
+}
+
+export async function submitAssessmentResult(data: {
+  assessmentId: string;
+  score: number;
+  notes?: string;
+  status?: string;
+}) {
+  try {
+    const assessment = await prisma.assessment.findUnique({
+      where: { id: data.assessmentId },
+      include: { application: { include: { candidate: true, vacancy: true } } },
+    });
+    if (!assessment) return { success: false, error: "Assessment not found" };
+
+    const threshold = assessment.passThreshold ?? 70;
+    const maxScore = assessment.maxScore ?? 100;
+    const pct = (data.score / maxScore) * 100;
+    const isPassed = pct >= threshold;
+
+    await prisma.assessment.update({
+      where: { id: data.assessmentId },
+      data: {
+        score: data.score,
+        status: data.status ?? "completed",
+        isPassed,
+        completedAt: new Date(),
+        answers: data.notes ? { notes: data.notes } : undefined,
+      },
+    });
+
+    // Log activity
+    await prisma.activityLog.create({
+      data: {
+        userId: assessment.application.candidateId,
+        action: `Assessment "${assessment.title}" scored ${data.score}/${maxScore} — ${isPassed ? "PASSED" : "FAILED"}`,
+        resource: "Assessment",
+        resourceId: assessment.id,
+      },
+    });
+
+    // Notify candidate
+    await prisma.notification.create({
+      data: {
+        userId: assessment.application.candidateId,
+        type: "assessment_result",
+        title: `Assessment Result: ${assessment.title}`,
+        message: `Your score: ${data.score}/${maxScore} — ${isPassed ? "You passed! 🎉" : "Better luck next time."}`,
+        link: `/dashboard/candidates`,
+      },
+    });
+
+    revalidatePath("/dashboard/screening");
+    revalidatePath("/dashboard/candidates");
+    return { success: true, isPassed, pct: Math.round(pct) };
+  } catch (error) {
+    console.error("Submit Assessment Result Error:", error);
+    return { success: false, error: "Failed to submit result" };
+  }
+}
+
+export async function updateAssessmentStatus(
+  assessmentId: string,
+  status: "pending" | "started" | "completed" | "cancelled",
+) {
+  try {
+    await prisma.assessment.update({
+      where: { id: assessmentId },
+      data: {
+        status,
+        ...(status === "started" ? { startedAt: new Date() } : {}),
+        ...(status === "completed" ? { completedAt: new Date() } : {}),
+      },
+    });
+    revalidatePath("/dashboard/screening");
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: "Failed to update status" };
+  }
+}
+
+export async function updateTemplate(data: {
+  id: string;
+  title: string;
+  type: string;
+  description: string;
+  duration: number;
+  passThreshold: number;
+}) {
+  try {
+    await prisma.assessmentTemplate.update({
+      where: { id: data.id },
+      data: {
+        title: data.title,
+        type: data.type,
+        description: data.description,
+        duration: data.duration,
+        passThreshold: data.passThreshold,
+        updatedAt: new Date(),
+      },
+    });
+    revalidatePath("/dashboard/screening");
+    return { success: true };
+  } catch (error) {
+    console.error("Update Template Error:", error);
+    return { success: false, error: "Failed to update template" };
+  }
+}
+
+export async function toggleTemplateStatus(
+  templateId: string,
+  isActive: boolean,
+) {
+  try {
+    await prisma.assessmentTemplate.update({
+      where: { id: templateId },
+      data: { isActive },
+    });
+    revalidatePath("/dashboard/screening");
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: "Failed to toggle status" };
   }
 }
