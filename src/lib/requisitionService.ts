@@ -13,7 +13,7 @@ export async function createRequisition(
         data: {
           vacancyId,
           requestedById,
-          status: "PENDING",
+          status: "DRAFT",
           currentStep: 1,
         },
       });
@@ -131,7 +131,7 @@ export async function createRequisitionWithVacancy(data: {
         data: {
           vacancyId: vacancy.id,
           requestedById: data.creatorId,
-          status: "PENDING",
+          status: "DRAFT",
           currentStep: 1,
         },
       });
@@ -275,10 +275,10 @@ export async function approveStep(
           };
         }
       } else {
-        // Final step — fully approve
+        // Final step — fully approved → mark as Published
         await tx.jobRequisition.update({
           where: { id: requisitionId },
-          data: { status: "APPROVED" },
+          data: { status: "PUBLISHED" },
         });
 
         await tx.vacancy.update({
@@ -289,9 +289,9 @@ export async function approveStep(
         pendingNotification = {
           userId: requisition.requestedById,
           type: "system",
-          title: "Requisition Fully Approved",
+          title: "Requisition Published",
           message:
-            "Your job vacancy has been fully approved and can now be published.",
+            "Your job requisition has been fully approved and is now Published.",
           link: "/dashboard/jobs",
         };
       }
@@ -328,10 +328,10 @@ export async function rejectRequisition(
         data: { status: "REJECTED", comment, approvedAt: new Date() },
       });
 
-      // Terminate requisition
+      // Cancel requisition
       await tx.jobRequisition.update({
         where: { id: requisitionId },
-        data: { status: "REJECTED" },
+        data: { status: "CANCELLED" },
       });
 
       // Reset vacancy to draft
@@ -343,7 +343,7 @@ export async function rejectRequisition(
       return {
         result: { success: true },
         notifyUserId: requisition.requestedById,
-        notifyMessage: `Your job requisition was rejected. Reason: ${comment}`,
+        notifyMessage: `Your job requisition was cancelled. Reason: ${comment}`,
       };
     },
     { timeout: 15000 },
