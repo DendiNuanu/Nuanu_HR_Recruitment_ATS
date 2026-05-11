@@ -11,6 +11,7 @@
 
 import nodemailer from "nodemailer";
 import { Resend } from "resend";
+import { prisma } from "@/lib/prisma";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -76,6 +77,56 @@ function buildMailOptions(
       content: a.content,
     })),
   };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Provider 0 — Database SMTP (configured via Settings UI — highest priority)
+// ─────────────────────────────────────────────────────────────────────────────
+async function sendViaDbSmtp(opts: EmailOptions): Promise<EmailResult> {
+  try {
+    const row = await prisma.integration.findUnique({
+      where: { name: "email_smtp" },
+    });
+    if (!row || !row.isActive)
+      return {
+        success: false,
+        configMissing: true,
+        error: "DB SMTP not configured",
+      };
+    const c = row.config as any;
+    if (!c.host || !c.user || !c.pass)
+      return {
+        success: false,
+        configMissing: true,
+        error: "DB SMTP incomplete",
+      };
+
+    const port = parseInt(c.port ?? "587", 10);
+    const secure = port === 465;
+    const transporter = nodemailer.createTransport({
+      host: c.host,
+      port,
+      secure,
+      requireTLS: !secure,
+      auth: { user: c.user, pass: c.pass.replace(/\s+/g, "") },
+      tls: { rejectUnauthorized: false }, // allow self-signed for flexibility
+    });
+
+    try {
+      await transporter.verify();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      return { success: false, error: `DB SMTP auth failed: ${msg}` };
+    }
+
+    const fromAddr = c.from || c.user;
+    const info = await transporter.sendMail(buildMailOptions(opts, fromAddr));
+    console.log("[Email] Sent via DB SMTP:", info.messageId);
+    return { success: true, data: { messageId: info.messageId } };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { success: false, error: `DB SMTP error: ${msg}` };
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -285,6 +336,11 @@ async function sendViaResend(opts: EmailOptions): Promise<EmailResult> {
 // ─────────────────────────────────────────────────────────────────────────────
 export async function sendEmail(opts: EmailOptions): Promise<EmailResult> {
   const errors: string[] = [];
+
+  // ── Provider 0: Database SMTP (Settings UI) ───────────────────────────────
+  const dbResult = await sendViaDbSmtp(opts);
+  if (dbResult.success) return dbResult;
+  if (!dbResult.configMissing) errors.push(`DB-SMTP: ${dbResult.error}`);
 
   // ── Provider A: Generic SMTP ─────────────────────────────────────────────
   if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {

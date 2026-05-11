@@ -359,3 +359,63 @@ export async function getAIStatus() {
     };
   }
 }
+
+export async function getEmailConfig() {
+  try {
+    const integration = await prisma.integration.findUnique({
+      where: { name: "email_smtp" },
+    });
+    if (!integration) return null;
+    const c = integration.config as any;
+    return {
+      host: c.host ?? "",
+      port: c.port ?? "587",
+      user: c.user ?? "",
+      pass: c.pass ?? "",
+      from: c.from ?? "",
+      isActive: integration.isActive,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function saveEmailConfig(data: {
+  host: string;
+  port: string;
+  user: string;
+  pass: string;
+  from: string;
+}) {
+  try {
+    await prisma.integration.upsert({
+      where: { name: "email_smtp" },
+      update: {
+        config: data as any,
+        isActive: true,
+        updatedAt: new Date(),
+      },
+      create: {
+        name: "email_smtp",
+        type: "smtp",
+        config: data as any,
+        isActive: true,
+      },
+    });
+    revalidatePath("/dashboard/settings");
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error?.message ?? "Failed to save" };
+  }
+}
+
+export async function sendTestEmail(toEmail: string) {
+  // Import inline to avoid circular deps
+  const { sendEmail } = await import("@/lib/email");
+  const result = await sendEmail({
+    to: toEmail,
+    subject: "Nuanu ATS \u2014 Email Configuration Test",
+    text: `Hi,\n\nThis is a test email from Nuanu HR Recruitment ATS.\nIf you received this, your email configuration is working correctly!\n\nSent at: ${new Date().toISOString()}\n\nBest regards,\nNuanu ATS`,
+  });
+  return result;
+}

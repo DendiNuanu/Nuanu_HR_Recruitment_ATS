@@ -26,6 +26,9 @@ import {
   Eye,
   EyeOff,
   Check,
+  Mail,
+  Send,
+  ServerCog,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
@@ -41,6 +44,9 @@ import {
   updateCompanyLogo,
   getCurrentUser,
   getAIStatus,
+  getEmailConfig,
+  saveEmailConfig,
+  sendTestEmail,
 } from "@/app/actions/settings";
 import { getDepartments } from "@/app/actions/departments";
 import ConfirmModal from "@/components/ui/ConfirmModal";
@@ -104,6 +110,18 @@ export default function SettingsPage() {
   const [tempPasswordVisible, setTempPasswordVisible] = useState(false);
   const [copiedPassword, setCopiedPassword] = useState(false);
 
+  // Email SMTP config (saved in DB via Settings UI)
+  const [emailConfig, setEmailConfig] = useState({
+    host: "",
+    port: "587",
+    user: "",
+    pass: "",
+    from: "",
+  });
+  const [emailPassVisible, setEmailPassVisible] = useState(false);
+  const [isEmailSaving, setIsEmailSaving] = useState(false);
+  const [isTestingEmail, setIsTestingEmail] = useState(false);
+
   // Show success/error toast after Google Calendar OAuth redirect.
   // Reading window.location.search avoids useSearchParams + Suspense requirement.
   useEffect(() => {
@@ -152,14 +170,16 @@ export default function SettingsPage() {
         setGeneralConfig(genSettings.config as any);
       }
 
-      const [usersData, rolesData, deptsData] = await Promise.all([
+      const [usersData, rolesData, deptsData, emailCfg] = await Promise.all([
         getUsers(),
         getRoles(),
         getDepartments(),
+        getEmailConfig(),
       ]);
       setUsers(usersData);
       setRoles(rolesData);
       setDepartments(deptsData);
+      if (emailCfg) setEmailConfig(emailCfg);
     }
     loadSettings();
     checkAI();
@@ -951,6 +971,275 @@ export default function SettingsPage() {
                         </p>
                       </div>
                     </div>
+                  </div>
+                </div>
+
+                {/* ── Email SMTP Configuration ───────────────────────── */}
+                <div className="mt-6 p-5 rounded-2xl border-2 border-emerald-100 bg-emerald-50/40 space-y-4">
+                  <div className="flex items-center gap-3 mb-1">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center">
+                      <Mail className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-black text-nuanu-navy">
+                        Email Sending (SMTP)
+                      </h3>
+                      <p className="text-[11px] text-nuanu-gray-500">
+                        Configure any SMTP provider — sends to ANY recipient, no
+                        domain verification needed
+                      </p>
+                    </div>
+                    <span
+                      className={`ml-auto text-[10px] font-black px-2 py-1 rounded-full ${
+                        emailConfig.host
+                          ? "bg-emerald-100 text-emerald-700"
+                          : "bg-gray-100 text-gray-500"
+                      }`}
+                    >
+                      {emailConfig.host ? "CONFIGURED" : "NOT SET"}
+                    </span>
+                  </div>
+
+                  {/* Quick-pick presets */}
+                  <div>
+                    <p className="text-[10px] font-black text-nuanu-gray-500 uppercase tracking-widest mb-2">
+                      Quick Presets
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        {
+                          label: "Brevo",
+                          host: "smtp-relay.brevo.com",
+                          port: "587",
+                        },
+                        { label: "Gmail", host: "smtp.gmail.com", port: "587" },
+                        {
+                          label: "Outlook",
+                          host: "smtp-mail.outlook.com",
+                          port: "587",
+                        },
+                        { label: "Zoho", host: "smtp.zoho.com", port: "587" },
+                        {
+                          label: "Yahoo",
+                          host: "smtp.mail.yahoo.com",
+                          port: "465",
+                        },
+                      ].map((p) => (
+                        <button
+                          key={p.label}
+                          type="button"
+                          onClick={() =>
+                            setEmailConfig({
+                              ...emailConfig,
+                              host: p.host,
+                              port: p.port,
+                            })
+                          }
+                          className={`px-3 py-1.5 rounded-lg text-[11px] font-bold border transition-all ${
+                            emailConfig.host === p.host
+                              ? "bg-emerald-600 text-white border-emerald-600"
+                              : "bg-white text-nuanu-navy border-nuanu-gray-200 hover:border-emerald-400"
+                          }`}
+                        >
+                          {p.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[10px] font-black text-nuanu-gray-500 uppercase tracking-widest mb-1">
+                        SMTP Host
+                      </label>
+                      <input
+                        type="text"
+                        className="input-field py-2 text-sm"
+                        placeholder="smtp-relay.brevo.com"
+                        value={emailConfig.host}
+                        onChange={(e) =>
+                          setEmailConfig({
+                            ...emailConfig,
+                            host: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black text-nuanu-gray-500 uppercase tracking-widest mb-1">
+                        Port
+                      </label>
+                      <input
+                        type="text"
+                        className="input-field py-2 text-sm"
+                        placeholder="587"
+                        value={emailConfig.port}
+                        onChange={(e) =>
+                          setEmailConfig({
+                            ...emailConfig,
+                            port: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black text-nuanu-gray-500 uppercase tracking-widest mb-1">
+                        Username / Email
+                      </label>
+                      <input
+                        type="email"
+                        className="input-field py-2 text-sm"
+                        placeholder="you@gmail.com"
+                        value={emailConfig.user}
+                        onChange={(e) =>
+                          setEmailConfig({
+                            ...emailConfig,
+                            user: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black text-nuanu-gray-500 uppercase tracking-widest mb-1">
+                        Password / SMTP Key
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={emailPassVisible ? "text" : "password"}
+                          className="input-field py-2 text-sm pr-10"
+                          placeholder="App password or SMTP key"
+                          value={emailConfig.pass}
+                          onChange={(e) =>
+                            setEmailConfig({
+                              ...emailConfig,
+                              pass: e.target.value,
+                            })
+                          }
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setEmailPassVisible((v) => !v)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-nuanu-gray-400"
+                        >
+                          {emailPassVisible ? (
+                            <EyeOff className="w-4 h-4" />
+                          ) : (
+                            <Eye className="w-4 h-4" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-[10px] font-black text-nuanu-gray-500 uppercase tracking-widest mb-1">
+                        From Display Name (optional)
+                      </label>
+                      <input
+                        type="text"
+                        className="input-field py-2 text-sm"
+                        placeholder="Nuanu Recruitment <hr@nuanu.com>"
+                        value={emailConfig.from}
+                        onChange={(e) =>
+                          setEmailConfig({
+                            ...emailConfig,
+                            from: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
+                  </div>
+
+                  {/* Brevo Quick Guide */}
+                  <div className="p-3 bg-white rounded-xl border border-emerald-100 text-[11px] text-nuanu-gray-600 space-y-1">
+                    <p className="font-black text-emerald-700 uppercase tracking-wide text-[10px]">
+                      ⚡ Recommended: Brevo (Free — 300 emails/day, NO domain
+                      needed)
+                    </p>
+                    <p>
+                      1. Sign up free at{" "}
+                      <span className="font-bold text-nuanu-navy">
+                        brevo.com
+                      </span>
+                    </p>
+                    <p>
+                      2. Go to Settings → SMTP &amp; API → Generate SMTP Key
+                    </p>
+                    <p>
+                      3. Select <span className="font-bold">Brevo</span> preset
+                      above, enter your Brevo login email as Username, paste the
+                      SMTP Key as Password
+                    </p>
+                    <p>4. Click Save, then Send Test Email — done!</p>
+                  </div>
+
+                  <div className="flex gap-3 pt-1">
+                    <button
+                      onClick={async () => {
+                        setIsEmailSaving(true);
+                        const res = await saveEmailConfig(emailConfig);
+                        setIsEmailSaving(false);
+                        if (res.success)
+                          toast.success("Email configuration saved!", {
+                            description:
+                              "Now click Send Test Email to verify it works.",
+                          });
+                        else
+                          toast.error("Failed to save", {
+                            description: res.error,
+                          });
+                      }}
+                      disabled={
+                        isEmailSaving ||
+                        !emailConfig.host ||
+                        !emailConfig.user ||
+                        !emailConfig.pass
+                      }
+                      className="btn-primary py-2 px-5 text-xs"
+                    >
+                      {isEmailSaving ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />{" "}
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <ServerCog className="w-3.5 h-3.5" /> Save
+                          Configuration
+                        </>
+                      )}
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (!currentUser?.email) {
+                          toast.error("Cannot determine your email address.");
+                          return;
+                        }
+                        setIsTestingEmail(true);
+                        const res = await sendTestEmail(currentUser.email);
+                        setIsTestingEmail(false);
+                        if (res.success) {
+                          toast.success("Test email sent!", {
+                            description: `Check your inbox at ${currentUser.email}`,
+                          });
+                        } else {
+                          toast.error("Test failed", {
+                            description: (res as any).error,
+                          });
+                        }
+                      }}
+                      disabled={isTestingEmail || !emailConfig.host}
+                      className="btn-secondary py-2 px-5 text-xs"
+                    >
+                      {isTestingEmail ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />{" "}
+                          Sending...
+                        </>
+                      ) : (
+                        <>
+                          <Send className="w-3.5 h-3.5" /> Send Test Email
+                        </>
+                      )}
+                    </button>
                   </div>
                 </div>
               </motion.div>
