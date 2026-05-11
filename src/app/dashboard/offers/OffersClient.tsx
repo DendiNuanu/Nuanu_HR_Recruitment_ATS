@@ -32,6 +32,8 @@ import {
   editOffer,
 } from "./actions";
 import ConfirmModal from "@/components/ui/ConfirmModal";
+import DatePickerField from "@/components/ui/DatePickerField";
+import CurrencyInput from "@/components/ui/CurrencyInput";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -984,94 +986,58 @@ export default function OffersClient({
                 {/* Salary + Bonus */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">
+                    <label className="block text-xs font-semibold text-gray-600 mb-1.5">
                       Monthly Salary (Rp) *
                     </label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs">
-                        Rp
-                      </span>
-                      <input
-                        type="number"
-                        required
-                        min={0}
-                        value={createFormData.salary}
-                        onChange={(e) =>
-                          setCreateFormData({
-                            ...createFormData,
-                            salary: parseInt(e.target.value) || 0,
-                          })
-                        }
-                        className="input-field py-2.5 pl-9"
-                        placeholder="15000000"
-                      />
-                    </div>
+                    <CurrencyInput
+                      value={createFormData.salary}
+                      onChange={(v) =>
+                        setCreateFormData({ ...createFormData, salary: v })
+                      }
+                      required
+                      placeholder="15,000,000"
+                    />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">
+                    <label className="block text-xs font-semibold text-gray-600 mb-1.5">
                       Signing Bonus (Rp)
                     </label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs">
-                        Rp
-                      </span>
-                      <input
-                        type="number"
-                        min={0}
-                        value={createFormData.bonus}
-                        onChange={(e) =>
-                          setCreateFormData({
-                            ...createFormData,
-                            bonus: parseInt(e.target.value) || 0,
-                          })
-                        }
-                        className="input-field py-2.5 pl-9"
-                        placeholder="0"
-                      />
-                    </div>
+                    <CurrencyInput
+                      value={createFormData.bonus}
+                      onChange={(v) =>
+                        setCreateFormData({ ...createFormData, bonus: v })
+                      }
+                      placeholder="0"
+                    />
                   </div>
                 </div>
 
                 {/* Start Date + Expiry Date */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">
+                    <label className="block text-xs font-semibold text-gray-600 mb-1.5">
                       Proposed Start Date *
                     </label>
-                    <div className="relative">
-                      <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                      <input
-                        type="date"
-                        required
-                        value={createFormData.startDate}
-                        onChange={(e) =>
-                          setCreateFormData({
-                            ...createFormData,
-                            startDate: e.target.value,
-                          })
-                        }
-                        className="input-field py-2.5 pl-9"
-                      />
-                    </div>
+                    <DatePickerField
+                      value={createFormData.startDate}
+                      onChange={(d) =>
+                        setCreateFormData({ ...createFormData, startDate: d })
+                      }
+                      placeholder="Pick a start date"
+                      required
+                    />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">
+                    <label className="block text-xs font-semibold text-gray-600 mb-1.5">
                       Offer Expiry Date
                     </label>
-                    <div className="relative">
-                      <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                      <input
-                        type="date"
-                        value={createFormData.expiresAt}
-                        onChange={(e) =>
-                          setCreateFormData({
-                            ...createFormData,
-                            expiresAt: e.target.value,
-                          })
-                        }
-                        className="input-field py-2.5 pl-9"
-                      />
-                    </div>
+                    <DatePickerField
+                      value={createFormData.expiresAt}
+                      onChange={(d) =>
+                        setCreateFormData({ ...createFormData, expiresAt: d })
+                      }
+                      placeholder="Pick expiry date"
+                    />
                   </div>
                 </div>
 
@@ -1209,92 +1175,57 @@ export default function OffersClient({
                 {/* Salary + Bonus */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">
+                    <label className="block text-xs font-semibold text-gray-600 mb-1.5">
                       Monthly Salary (Rp) *
                     </label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs">
-                        Rp
-                      </span>
-                      <input
-                        type="number"
-                        required
-                        min={0}
-                        value={editFormData.salary}
-                        onChange={(e) =>
-                          setEditFormData({
-                            ...editFormData,
-                            salary: parseInt(e.target.value) || 0,
-                          })
-                        }
-                        className="input-field py-2.5 pl-9"
-                      />
-                    </div>
+                    <CurrencyInput
+                      value={editFormData.salary}
+                      onChange={(v) =>
+                        setEditFormData({ ...editFormData, salary: v })
+                      }
+                      required
+                    />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">
+                    <label className="block text-xs font-semibold text-gray-600 mb-1.5">
                       Signing Bonus (Rp)
                     </label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs">
-                        Rp
-                      </span>
-                      <input
-                        type="number"
-                        min={0}
-                        value={editFormData.bonus}
-                        onChange={(e) =>
-                          setEditFormData({
-                            ...editFormData,
-                            bonus: parseInt(e.target.value) || 0,
-                          })
-                        }
-                        className="input-field py-2.5 pl-9"
-                      />
-                    </div>
+                    <CurrencyInput
+                      value={editFormData.bonus}
+                      onChange={(v) =>
+                        setEditFormData({ ...editFormData, bonus: v })
+                      }
+                      placeholder="0"
+                    />
                   </div>
                 </div>
 
                 {/* Start Date + Expiry */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">
+                    <label className="block text-xs font-semibold text-gray-600 mb-1.5">
                       Proposed Start Date *
                     </label>
-                    <div className="relative">
-                      <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                      <input
-                        type="date"
-                        required
-                        value={editFormData.startDate}
-                        onChange={(e) =>
-                          setEditFormData({
-                            ...editFormData,
-                            startDate: e.target.value,
-                          })
-                        }
-                        className="input-field py-2.5 pl-9"
-                      />
-                    </div>
+                    <DatePickerField
+                      value={editFormData.startDate}
+                      onChange={(d) =>
+                        setEditFormData({ ...editFormData, startDate: d })
+                      }
+                      placeholder="Pick a start date"
+                      required
+                    />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">
+                    <label className="block text-xs font-semibold text-gray-600 mb-1.5">
                       Offer Expiry Date
                     </label>
-                    <div className="relative">
-                      <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                      <input
-                        type="date"
-                        value={editFormData.expiresAt}
-                        onChange={(e) =>
-                          setEditFormData({
-                            ...editFormData,
-                            expiresAt: e.target.value,
-                          })
-                        }
-                        className="input-field py-2.5 pl-9"
-                      />
-                    </div>
+                    <DatePickerField
+                      value={editFormData.expiresAt}
+                      onChange={(d) =>
+                        setEditFormData({ ...editFormData, expiresAt: d })
+                      }
+                      placeholder="Pick expiry date"
+                    />
                   </div>
                 </div>
 
