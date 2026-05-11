@@ -119,16 +119,27 @@ export default function CandidatesTable({
         }, 2000);
       } else {
         const errMsg = (result as { error?: string }).error || "Unknown error";
-        const isMisconfigured = (result as { configMissing?: boolean })
-          .configMissing;
-        toast.error(
-          isMisconfigured
-            ? "Email provider not configured"
-            : "Failed to send email",
-          {
-            description: isMisconfigured
-              ? "Check Vercel environment variables: add GMAIL_USER + GMAIL_APP_PASSWORD or SMTP_HOST/USER/PASS."
-              : errMsg,
+        const isBrevoIp =
+          errMsg.includes("authorised_ips") ||
+          errMsg.includes("unrecognised IP");
+
+        if (isBrevoIp) {
+          toast.error("Brevo is blocking Vercel — 1 click to fix", {
+            description:
+              "Your Brevo account has an IP restriction. Remove it so Vercel can send emails.",
+            action: {
+              label: "Fix in Brevo →",
+              onClick: () =>
+                window.open(
+                  "https://app.brevo.com/security/authorised_ips",
+                  "_blank",
+                ),
+            },
+            duration: 30000,
+          });
+        } else {
+          toast.error("Failed to send email", {
+            description: errMsg,
             action: {
               label: "Use Email Client",
               onClick: () =>
@@ -139,8 +150,8 @@ export default function CandidatesTable({
                 ),
             },
             duration: 10000,
-          },
-        );
+          });
+        }
       }
     } catch (error) {
       toast.error("An unexpected error occurred.");
