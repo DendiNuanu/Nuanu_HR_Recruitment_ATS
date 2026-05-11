@@ -49,10 +49,27 @@ function wrapInHtml(text: string): string {
 // Provider 1 — Gmail SMTP via Nodemailer
 //
 // Required env vars:
-//   GMAIL_USER         e.g.  hr@nuanu.com  or  dendi@gmail.com
-//   GMAIL_APP_PASSWORD  16-char app password from
-//                       https://myaccount.google.com/apppasswords
-//                       (requires 2-Step Verification to be enabled first)
+//   GMAIL_USER          e.g. dendi@nuanu.com  or  yourname@gmail.com
+//   GMAIL_APP_PASSWORD  The 16-char App Password from Google.
+//
+//   ⚠️  IMPORTANT — App Password format:
+//       Google displays it as  "abcd efgh ijkl mnop"  (with spaces).
+//       When you copy it into Vercel env vars, the spaces are stored too.
+//       The code below strips ALL whitespace automatically, so paste it
+//       exactly as Google shows it — spaces included is fine.
+//
+//   How to create an App Password:
+//     1. Go to https://myaccount.google.com/security
+//     2. Enable 2-Step Verification (required)
+//     3. Go to https://myaccount.google.com/apppasswords
+//     4. App name: "Nuanu ATS" → click Create
+//     5. Copy the 16-char password shown
+//     6. Paste into Vercel → GMAIL_APP_PASSWORD (spaces are fine)
+//
+//   For Google Workspace (e.g. @nuanu.com):
+//     The Workspace admin must allow App Passwords:
+//     Admin Console → Security → Basic settings → "Allow users to manage
+//     their Google Account access"  (or enable 2-SV enforcement)
 //
 // This provider sends to ANY email address — no domain verification needed.
 // ─────────────────────────────────────────────────────────────────────────────
@@ -60,7 +77,11 @@ async function sendViaGmail(
   opts: EmailOptions & { fromDisplay: string },
 ): Promise<EmailResult> {
   const user = process.env.GMAIL_USER?.trim();
-  const pass = process.env.GMAIL_APP_PASSWORD?.trim();
+
+  // ⚠️  Strip ALL whitespace from the App Password.
+  // Google shows it as "abcd efgh ijkl mnop" but SMTP requires "abcdefghijklmnop".
+  // .trim() alone only removes leading/trailing spaces — this removes every space.
+  const pass = process.env.GMAIL_APP_PASSWORD?.replace(/\s+/g, "");
 
   if (!user || !pass) {
     return {
@@ -71,11 +92,55 @@ async function sendViaGmail(
     };
   }
 
+  // Use explicit host/port/TLS instead of service:'gmail'.
+  // service:'gmail' can fail for Google Workspace accounts.
   const transporter = nodemailer.createTransport({
-    service: "gmail",
+    host: "smtp.gmail.com",
+    port: 587,
+    secure: false, // STARTTLS on port 587 (NOT SSL on 465)
+    requireTLS: true,
     auth: { user, pass },
+    tls: { rejectUnauthorized: true },
   });
 
+  // ── Pre-flight credential check ─────────────────────────────────────────
+  try {
+    await transporter.verify();
+  } catch (err) {
+    const raw = err instanceof Error ? err.message : String(err);
+    console.error("[Email] Gmail SMTP verify() failed:", raw);
+
+    // Provide a clear, actionable error instead of the cryptic SMTP code
+    if (
+      raw.includes("535") ||
+      raw.includes("BadCredentials") ||
+      raw.includes("Username and Password not accepted") ||
+      raw.includes("Invalid login")
+    ) {
+      return {
+        success: false,
+        error:
+          "Gmail authentication failed (535). Checklist:\n" +
+          "1. GMAIL_APP_PASSWORD must be the 16-char App Password, NOT your regular Google password.\n" +
+          "2. 2-Step Verification must be ON for the Google account.\n" +
+          "3. For Google Workspace (@nuanu.com): the admin must allow App Passwords.\n" +
+          "4. Re-generate a fresh App Password at https://myaccount.google.com/apppasswords and update the Vercel env var.",
+      };
+    }
+
+    if (raw.includes("534") || raw.includes("Application-specific")) {
+      return {
+        success: false,
+        error:
+          "Gmail requires an App Password, not your regular password. " +
+          "Create one at https://myaccount.google.com/apppasswords",
+      };
+    }
+
+    return { success: false, error: `Gmail SMTP connection failed: ${raw}` };
+  }
+
+  // ── Send ────────────────────────────────────────────────────────────────
   const htmlContent = opts.html || (opts.text ? wrapInHtml(opts.text) : "");
 
   try {
@@ -94,7 +159,7 @@ async function sendViaGmail(
     return { success: true, data: { messageId: info.messageId } };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    console.error("[Email] Gmail SMTP error:", message);
+    console.error("[Email] Gmail SMTP sendMail error:", message);
     return { success: false, error: `Gmail SMTP error: ${message}` };
   }
 }
