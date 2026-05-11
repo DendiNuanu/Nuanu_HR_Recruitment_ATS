@@ -83,6 +83,7 @@ export async function getUsers() {
 
     return await prisma.user.findMany({
       where: {
+        deletedAt: null, // exclude soft-deleted users
         userRoles: {
           some: {
             role: {
@@ -132,42 +133,79 @@ export async function inviteUser(data: {
   departmentId?: string;
 }) {
   try {
-    // Generate a temporary password
-    const tempPassword = Math.random().toString(36).slice(-8);
+    if (!data.name?.trim() || !data.email?.trim() || !data.roleId?.trim()) {
+      return { success: false, error: "Name, email and role are required" };
+    }
+
+    // Generate a strong temporary password
+    const chars =
+      "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    const tempPassword = Array.from(
+      { length: 10 },
+      () => chars[Math.floor(Math.random() * chars.length)],
+    ).join("");
     const hashedPassword = await bcrypt.hash(tempPassword, 10);
 
-    const user = await prisma.user.create({
+    // Normalize departmentId — empty string must become null to avoid FK violation
+    const departmentId = data.departmentId?.trim() || null;
+
+    await prisma.user.create({
       data: {
-        name: data.name,
-        email: data.email,
+        name: data.name.trim(),
+        email: data.email.trim().toLowerCase(),
         password: hashedPassword,
-        departmentId: data.departmentId,
+        isActive: true,
+        departmentId,
         userRoles: {
-          create: {
-            roleId: data.roleId,
-          },
+          create: { roleId: data.roleId },
         },
       },
     });
 
     revalidatePath("/dashboard/settings");
-    return { success: true, tempPassword }; // In real app, send via email
-  } catch (error) {
+    return { success: true, tempPassword };
+  } catch (error: any) {
     console.error("Failed to invite user:", error);
-    return { success: false, error: "Email already exists or invalid data" };
+    if (error?.code === "P2002") {
+      return { success: false, error: "A user with this email already exists" };
+    }
+    if (error?.code === "P2003") {
+      return { success: false, error: "Invalid role or department selected" };
+    }
+    return {
+      success: false,
+      error: `Failed to create user: ${error?.message ?? "unknown error"}`,
+    };
   }
 }
 
 export async function deleteUser(userId: string) {
   try {
-    await prisma.user.delete({
+    // Soft-delete: mark as inactive + set deletedAt.
+    // Hard-deleting fails due to FK constraints on Vacancy, Application,
+    // Interview, LegacyApproval, etc. — none of which have onDelete: Cascade.
+    await prisma.user.update({
       where: { id: userId },
+      data: {
+        isActive: false,
+        deletedAt: new Date(),
+        // Detach from department so the slot is freed
+        departmentId: null,
+      },
     });
+
+    // Also remove the user's role assignments so they no longer appear
+    // in any role-based queries.
+    await prisma.userRole.deleteMany({ where: { userId } });
+
     revalidatePath("/dashboard/settings");
     return { success: true };
-  } catch (error) {
+  } catch (error: any) {
     console.error("Failed to delete user:", error);
-    return { success: false, error: "Failed to delete user" };
+    return {
+      success: false,
+      error: `Failed to remove user: ${error?.message ?? "unknown error"}`,
+    };
   }
 }
 
