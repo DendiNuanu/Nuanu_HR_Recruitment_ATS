@@ -1,5 +1,18 @@
+/**
+ * Nuanu ATS — Universal Email Service
+ *
+ * Tries every configured provider in order until one succeeds:
+ *   1. Generic SMTP  (SMTP_HOST + SMTP_PORT + SMTP_USER + SMTP_PASS)
+ *   2. Gmail SMTP   (GMAIL_USER + GMAIL_APP_PASSWORD)
+ *   3. Resend API   (RESEND_API_KEY)  — works even with @resend.dev for testing
+ *
+ * Set ANY ONE of these three groups in Vercel Environment Variables.
+ */
+
 import nodemailer from "nodemailer";
 import { Resend } from "resend";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 export type EmailOptions = {
   to: string | string[];
@@ -14,10 +27,13 @@ export type EmailResult =
   | { success: true; data: unknown }
   | { success: false; error: string; configMissing?: boolean };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Professional HTML wrapper (used when only plain text is supplied)
-// ─────────────────────────────────────────────────────────────────────────────
+// ─── HTML wrapper ─────────────────────────────────────────────────────────────
+
 function wrapInHtml(text: string): string {
+  const safe = text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
   return `<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
@@ -30,10 +46,7 @@ function wrapInHtml(text: string): string {
           <p style="margin:6px 0 0;color:rgba(16,185,129,0.8);font-size:11px;letter-spacing:3px;text-transform:uppercase;font-weight:600">HR Recruitment</p>
         </td></tr>
         <tr><td style="padding:40px">
-          <div style="color:#334155;font-size:15px;line-height:1.8;white-space:pre-wrap">${text
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")}</div>
+          <div style="color:#334155;font-size:15px;line-height:1.8;white-space:pre-wrap">${safe}</div>
         </td></tr>
         <tr><td style="background:#f8fafc;padding:24px 40px;border-top:1px solid #e2e8f0;text-align:center">
           <p style="margin:0;color:#94a3b8;font-size:12px">© ${new Date().getFullYear()} Nuanu · Enterprise HR Platform · Bali, Indonesia</p>
@@ -45,170 +58,188 @@ function wrapInHtml(text: string): string {
 </html>`;
 }
 
+// ─── Helper: build nodemailer message ────────────────────────────────────────
+
+function buildMailOptions(
+  opts: EmailOptions,
+  fromAddress: string,
+  displayName = "Nuanu Recruitment",
+) {
+  return {
+    from: `${displayName} <${fromAddress}>`,
+    to: Array.isArray(opts.to) ? opts.to.join(", ") : opts.to,
+    subject: opts.subject,
+    text: opts.text ?? "",
+    html: opts.html ?? (opts.text ? wrapInHtml(opts.text) : ""),
+    attachments: opts.attachments?.map((a) => ({
+      filename: a.filename,
+      content: a.content,
+    })),
+  };
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
-// Provider 1 — Gmail SMTP via Nodemailer
+// Provider A — Generic SMTP
+//
+// Works with: Gmail, Outlook, Zoho, Yahoo, any SMTP server.
 //
 // Required env vars:
-//   GMAIL_USER          e.g. dendi@nuanu.com  or  yourname@gmail.com
-//   GMAIL_APP_PASSWORD  The 16-char App Password from Google.
+//   SMTP_HOST   e.g. smtp.gmail.com | smtp-mail.outlook.com | smtp.zoho.com
+//   SMTP_PORT   e.g. 587 (STARTTLS) or 465 (SSL)
+//   SMTP_USER   your email address
+//   SMTP_PASS   your password or App Password
+//   SMTP_FROM   (optional) display address, defaults to SMTP_USER
 //
-//   ⚠️  IMPORTANT — App Password format:
-//       Google displays it as  "abcd efgh ijkl mnop"  (with spaces).
-//       When you copy it into Vercel env vars, the spaces are stored too.
-//       The code below strips ALL whitespace automatically, so paste it
-//       exactly as Google shows it — spaces included is fine.
-//
-//   How to create an App Password:
-//     1. Go to https://myaccount.google.com/security
-//     2. Enable 2-Step Verification (required)
-//     3. Go to https://myaccount.google.com/apppasswords
-//     4. App name: "Nuanu ATS" → click Create
-//     5. Copy the 16-char password shown
-//     6. Paste into Vercel → GMAIL_APP_PASSWORD (spaces are fine)
-//
-//   For Google Workspace (e.g. @nuanu.com):
-//     The Workspace admin must allow App Passwords:
-//     Admin Console → Security → Basic settings → "Allow users to manage
-//     their Google Account access"  (or enable 2-SV enforcement)
-//
-// This provider sends to ANY email address — no domain verification needed.
+// Quick-start examples:
+//   Gmail:   SMTP_HOST=smtp.gmail.com  PORT=587  USER=you@gmail.com
+//            PASS=xxxx-xxxx-xxxx-xxxx  (App Password — no spaces needed here,
+//            code strips them automatically)
+//   Outlook: SMTP_HOST=smtp-mail.outlook.com  PORT=587  USER=you@outlook.com
+//            PASS=your_password
+//   Zoho:    SMTP_HOST=smtp.zoho.com  PORT=587  USER=you@zoho.com
+//            PASS=your_password
 // ─────────────────────────────────────────────────────────────────────────────
-async function sendViaGmail(
-  opts: EmailOptions & { fromDisplay: string },
-): Promise<EmailResult> {
-  const user = process.env.GMAIL_USER?.trim();
+async function sendViaSmtp(opts: EmailOptions): Promise<EmailResult> {
+  const host = process.env.SMTP_HOST?.trim();
+  const port = parseInt(process.env.SMTP_PORT ?? "587", 10);
+  const user = process.env.SMTP_USER?.trim();
+  // Strip ALL whitespace — covers Gmail App Password with spaces
+  const pass = process.env.SMTP_PASS?.replace(/\s+/g, "");
+  const fromEnv = process.env.SMTP_FROM?.trim() || user;
 
-  // ⚠️  Strip ALL whitespace from the App Password.
-  // Google shows it as "abcd efgh ijkl mnop" but SMTP requires "abcdefghijklmnop".
-  // .trim() alone only removes leading/trailing spaces — this removes every space.
-  const pass = process.env.GMAIL_APP_PASSWORD?.replace(/\s+/g, "");
-
-  if (!user || !pass) {
+  if (!host || !user || !pass)
     return {
       success: false,
-      error:
-        "Gmail SMTP not configured (GMAIL_USER / GMAIL_APP_PASSWORD missing)",
       configMissing: true,
+      error: "SMTP not configured",
     };
+
+  const secure = port === 465;
+  const transporter = nodemailer.createTransport({
+    host,
+    port,
+    secure,
+    requireTLS: !secure,
+    auth: { user, pass },
+    tls: { rejectUnauthorized: true },
+  });
+
+  try {
+    await transporter.verify();
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[Email/SMTP] verify failed:", msg);
+    return { success: false, error: `SMTP auth failed: ${msg}` };
   }
 
-  // Use explicit host/port/TLS instead of service:'gmail'.
-  // service:'gmail' can fail for Google Workspace accounts.
+  try {
+    const info = await transporter.sendMail(buildMailOptions(opts, fromEnv!));
+    console.log("[Email] Sent via generic SMTP:", info.messageId);
+    return { success: true, data: { messageId: info.messageId } };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[Email/SMTP] sendMail failed:", msg);
+    return { success: false, error: `SMTP send failed: ${msg}` };
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Provider B — Gmail SMTP (dedicated shorthand)
+//
+// Required env vars:
+//   GMAIL_USER          your Gmail or Google Workspace address
+//   GMAIL_APP_PASSWORD  16-char App Password from
+//                       https://myaccount.google.com/apppasswords
+//                       Paste with or without spaces — stripped automatically.
+//
+// NOTE: Requires 2-Step Verification on the Google account.
+// For Google Workspace: admin must allow App Passwords in Admin Console.
+// ─────────────────────────────────────────────────────────────────────────────
+async function sendViaGmail(opts: EmailOptions): Promise<EmailResult> {
+  const user = process.env.GMAIL_USER?.trim();
+  const pass = process.env.GMAIL_APP_PASSWORD?.replace(/\s+/g, "");
+
+  if (!user || !pass)
+    return {
+      success: false,
+      configMissing: true,
+      error: "Gmail not configured",
+    };
+
   const transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",
     port: 587,
-    secure: false, // STARTTLS on port 587 (NOT SSL on 465)
+    secure: false,
     requireTLS: true,
     auth: { user, pass },
     tls: { rejectUnauthorized: true },
   });
 
-  // ── Pre-flight credential check ─────────────────────────────────────────
   try {
     await transporter.verify();
   } catch (err) {
-    const raw = err instanceof Error ? err.message : String(err);
-    console.error("[Email] Gmail SMTP verify() failed:", raw);
-
-    // Provide a clear, actionable error instead of the cryptic SMTP code
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[Email/Gmail] verify failed:", msg);
     if (
-      raw.includes("535") ||
-      raw.includes("BadCredentials") ||
-      raw.includes("Username and Password not accepted") ||
-      raw.includes("Invalid login")
+      msg.includes("535") ||
+      msg.includes("BadCredentials") ||
+      msg.includes("Invalid login")
     ) {
       return {
         success: false,
         error:
-          "Gmail authentication failed (535). Checklist:\n" +
-          "1. GMAIL_APP_PASSWORD must be the 16-char App Password, NOT your regular Google password.\n" +
-          "2. 2-Step Verification must be ON for the Google account.\n" +
-          "3. For Google Workspace (@nuanu.com): the admin must allow App Passwords.\n" +
-          "4. Re-generate a fresh App Password at https://myaccount.google.com/apppasswords and update the Vercel env var.",
+          "Gmail 535: Wrong App Password. Re-generate at https://myaccount.google.com/apppasswords " +
+          "and update GMAIL_APP_PASSWORD in Vercel. Paste with or without spaces — both work.",
       };
     }
-
-    if (raw.includes("534") || raw.includes("Application-specific")) {
-      return {
-        success: false,
-        error:
-          "Gmail requires an App Password, not your regular password. " +
-          "Create one at https://myaccount.google.com/apppasswords",
-      };
-    }
-
-    return { success: false, error: `Gmail SMTP connection failed: ${raw}` };
+    return { success: false, error: `Gmail SMTP failed: ${msg}` };
   }
 
-  // ── Send ────────────────────────────────────────────────────────────────
-  const htmlContent = opts.html || (opts.text ? wrapInHtml(opts.text) : "");
-
   try {
-    const info = await transporter.sendMail({
-      from: `${opts.fromDisplay} <${user}>`,
-      to: Array.isArray(opts.to) ? opts.to.join(", ") : opts.to,
-      subject: opts.subject,
-      text: opts.text || "",
-      html: htmlContent,
-      attachments: opts.attachments?.map((a) => ({
-        filename: a.filename,
-        content: a.content,
-      })),
-    });
+    const info = await transporter.sendMail(buildMailOptions(opts, user));
     console.log("[Email] Sent via Gmail SMTP:", info.messageId);
     return { success: true, data: { messageId: info.messageId } };
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    console.error("[Email] Gmail SMTP sendMail error:", message);
-    return { success: false, error: `Gmail SMTP error: ${message}` };
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[Email/Gmail] sendMail failed:", msg);
+    return { success: false, error: `Gmail send failed: ${msg}` };
   }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Provider 2 — Resend
+// Provider C — Resend API
 //
 // Required env vars:
-//   RESEND_API_KEY  — get a free key at https://resend.com
-//   RESEND_FROM     — MUST be an @yourdomain.com address after you verify your
-//                     domain at https://resend.com/domains
+//   RESEND_API_KEY  your Resend key
+//   RESEND_FROM     (optional) from address
 //
-// ⚠️  The shared @resend.dev test domain can ONLY deliver to the Resend
-//     account owner's email address.  To send to any recipient you must verify
-//     your own domain and set RESEND_FROM to use it.
+// Without a verified domain, Resend can only deliver to your own account email.
+// Set RESEND_FROM=noreply@yourdomain.com AFTER verifying at resend.com/domains.
+// Used as fallback even without domain verification (will at least log the attempt).
 // ─────────────────────────────────────────────────────────────────────────────
 async function sendViaResend(opts: EmailOptions): Promise<EmailResult> {
   const apiKey = process.env.RESEND_API_KEY?.trim();
-  const fromEnv = process.env.RESEND_FROM?.trim();
-
   if (!apiKey || apiKey === "re_your_api_key_here") {
     return {
       success: false,
-      error: "Resend API key not configured",
       configMissing: true,
+      error: "Resend not configured",
     };
   }
 
-  // Guard: warn loudly when still using the test domain
-  if (!fromEnv || fromEnv.includes("@resend.dev")) {
-    return {
-      success: false,
-      error:
-        "Resend is configured with the @resend.dev test domain which can only " +
-        "deliver to your own account email. Verify your domain at " +
-        "https://resend.com/domains and set RESEND_FROM=noreply@yourdomain.com",
-      configMissing: true,
-    };
-  }
+  const fromEnv =
+    process.env.RESEND_FROM?.trim() ||
+    "Nuanu Recruitment <onboarding@resend.dev>";
 
-  const htmlContent = opts.html || (opts.text ? wrapInHtml(opts.text) : "");
+  const htmlContent = opts.html ?? (opts.text ? wrapInHtml(opts.text) : "");
 
   try {
     const resend = new Resend(apiKey);
     const { data, error } = await resend.emails.send({
-      from: opts.from || fromEnv,
+      from: opts.from ?? fromEnv,
       to: Array.isArray(opts.to) ? opts.to : [opts.to],
       subject: opts.subject,
-      text: opts.text || "",
+      text: opts.text ?? "",
       html: htmlContent,
       attachments: opts.attachments?.map((a) => ({
         filename: a.filename,
@@ -217,84 +248,84 @@ async function sendViaResend(opts: EmailOptions): Promise<EmailResult> {
     });
 
     if (error) {
-      console.error("[Email] Resend API error:", error);
-      return {
-        success: false,
-        error: (error as { message?: string }).message || "Resend API error",
-      };
+      const msg = (error as { message?: string }).message ?? "Resend error";
+      console.error("[Email/Resend] API error:", msg);
+      // If it's the test-domain restriction, return a meaningful error
+      if (
+        msg.includes("testing") ||
+        msg.includes("own email") ||
+        msg.includes("verify a domain")
+      ) {
+        return {
+          success: false,
+          error:
+            "Resend: domain not verified. To send to any recipient, " +
+            "verify your domain at https://resend.com/domains and set " +
+            "RESEND_FROM=noreply@yourdomain.com in Vercel.",
+        };
+      }
+      return { success: false, error: msg };
     }
 
     console.log("[Email] Sent via Resend:", (data as any)?.id);
     return { success: true, data };
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    console.error("[Email] Resend error:", message);
-    return { success: false, error: message };
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[Email/Resend] exception:", msg);
+    return { success: false, error: msg };
   }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Main export — tries Gmail SMTP first, then Resend.
+// Main export
 //
-// Priority order:
-//   1. Gmail SMTP  (GMAIL_USER + GMAIL_APP_PASSWORD)  ← works for any recipient
-//   2. Resend      (RESEND_API_KEY + RESEND_FROM with verified domain)
-//
-// If neither is configured the call returns { success: false, configMissing: true }
-// so callers can surface a helpful message instead of silently failing.
+// Tries every configured provider in sequence.
+// Returns the first success, or the last meaningful error.
+// Never silently swallows failures.
 // ─────────────────────────────────────────────────────────────────────────────
-export async function sendEmail({
-  to,
-  subject,
-  text,
-  html,
-  from,
-  attachments,
-}: EmailOptions): Promise<EmailResult> {
-  const displayName = "Nuanu Recruitment";
-  const opts: EmailOptions & { fromDisplay: string } = {
-    to,
-    subject,
-    text,
-    html,
-    from,
-    attachments,
-    fromDisplay: displayName,
-  };
+export async function sendEmail(opts: EmailOptions): Promise<EmailResult> {
+  const errors: string[] = [];
 
-  // ── Attempt 1: Gmail SMTP ─────────────────────────────────────────────────
-  const gmailUser = process.env.GMAIL_USER?.trim();
-  const gmailPass = process.env.GMAIL_APP_PASSWORD?.trim();
-
-  if (gmailUser && gmailPass) {
-    const result = await sendViaGmail(opts);
-    if (result.success) return result;
-    // If it failed for a real reason (not just missing config) → surface the error
-    if (!result.configMissing) return result;
+  // ── Provider A: Generic SMTP ─────────────────────────────────────────────
+  if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+    const r = await sendViaSmtp(opts);
+    if (r.success) return r;
+    if (!r.configMissing) errors.push(`SMTP: ${r.error}`);
   }
 
-  // ── Attempt 2: Resend (only if domain is verified) ───────────────────────
-  const resendKey = process.env.RESEND_API_KEY?.trim();
-  const resendFrom = process.env.RESEND_FROM?.trim();
-
-  if (resendKey && resendFrom && !resendFrom.includes("@resend.dev")) {
-    const result = await sendViaResend(opts);
-    if (result.success) return result;
-    if (!result.configMissing) return result;
+  // ── Provider B: Gmail ────────────────────────────────────────────────────
+  if (process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD) {
+    const r = await sendViaGmail(opts);
+    if (r.success) return r;
+    if (!r.configMissing) errors.push(`Gmail: ${r.error}`);
   }
 
-  // ── Nothing configured ────────────────────────────────────────────────────
+  // ── Provider C: Resend (always try if key present) ───────────────────────
+  if (process.env.RESEND_API_KEY) {
+    const r = await sendViaResend(opts);
+    if (r.success) return r;
+    errors.push(`Resend: ${r.error}`);
+  }
+
+  // ── Nothing worked ────────────────────────────────────────────────────────
+  if (errors.length > 0) {
+    // At least one provider was tried — return its error
+    const combined = errors.join(" | ");
+    console.error("[Email] All providers failed:", combined);
+    return { success: false, error: combined };
+  }
+
+  // No provider configured at all
   console.warn(
-    "[Email] No working email provider found.\n" +
-      "  Option A (recommended): Add GMAIL_USER + GMAIL_APP_PASSWORD to your environment variables.\n" +
-      "  Option B: Verify your domain at https://resend.com/domains and set RESEND_FROM=noreply@yourdomain.com",
+    "[Email] No provider configured. Add one of these to Vercel env vars:\n" +
+      "  Option 1 — Generic SMTP:  SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS\n" +
+      "  Option 2 — Gmail:         GMAIL_USER, GMAIL_APP_PASSWORD\n" +
+      "  Option 3 — Resend:        RESEND_API_KEY (+ RESEND_FROM after domain verify)",
   );
 
   return {
     success: false,
     configMissing: true,
-    error:
-      "Email delivery is not configured. " +
-      "Add GMAIL_USER + GMAIL_APP_PASSWORD in Vercel → Settings → Environment Variables.",
+    error: "No email provider is configured in environment variables.",
   };
 }

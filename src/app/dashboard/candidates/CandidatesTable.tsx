@@ -110,29 +110,37 @@ export default function CandidatesTable({
 
       if (result.success) {
         setEmailSent(true);
-        toast.success("Email sent successfully!");
+        toast.success("Email sent successfully!", {
+          description: `Message delivered to ${selectedEmail.email}`,
+        });
         setTimeout(() => {
           setEmailSent(false);
           setSelectedEmail(null);
         }, 2000);
-      } else if ((result as { configMissing?: boolean }).configMissing) {
-        // Email service not configured — open mailto: so the user can send
-        // from their own email client as an immediate workaround.
-        toast("Email service not set up. Opening your email client instead.", {
-          description:
-            "To enable in-app email, add RESEND_API_KEY to Vercel environment variables.",
-          action: {
-            label: "Open Email Client",
-            onClick: () =>
-              openMailtoFallback(selectedEmail.email, emailSubject, emailBody),
-          },
-          duration: 8000,
-        });
-        // Also open immediately
-        openMailtoFallback(selectedEmail.email, emailSubject, emailBody);
-        setSelectedEmail(null);
       } else {
-        toast.error(`Failed to send email: ${result.error || "Unknown error"}`);
+        const errMsg = (result as { error?: string }).error || "Unknown error";
+        const isMisconfigured = (result as { configMissing?: boolean })
+          .configMissing;
+        toast.error(
+          isMisconfigured
+            ? "Email provider not configured"
+            : "Failed to send email",
+          {
+            description: isMisconfigured
+              ? "Check Vercel environment variables: add GMAIL_USER + GMAIL_APP_PASSWORD or SMTP_HOST/USER/PASS."
+              : errMsg,
+            action: {
+              label: "Use Email Client",
+              onClick: () =>
+                openMailtoFallback(
+                  selectedEmail.email,
+                  emailSubject,
+                  emailBody,
+                ),
+            },
+            duration: 10000,
+          },
+        );
       }
     } catch (error) {
       toast.error("An unexpected error occurred.");
