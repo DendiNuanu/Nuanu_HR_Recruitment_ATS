@@ -80,7 +80,80 @@ function buildMailOptions(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Provider 0 — Database SMTP (configured via Settings UI — highest priority)
+// Provider 0 — Brevo REST API (highest priority, pure HTTPS, no SMTP needed)
+//
+// Required env vars:
+//   BREVO_API_KEY       xkeysib-... from https://app.brevo.com/settings/keys/api
+//   BREVO_SENDER_EMAIL  verified sender email (e.g. dendi@nuanu.com)
+//   BREVO_SENDER_NAME   (optional) display name, defaults to "Nuanu Recruitment"
+//
+// ⚠️  Go to https://app.brevo.com/security/authorised_ips and REMOVE all IP
+//     entries so Vercel's servers can call the API without restriction.
+// ─────────────────────────────────────────────────────────────────────────────
+async function sendViaBrevo(opts: EmailOptions): Promise<EmailResult> {
+  const apiKey = process.env.BREVO_API_KEY?.trim();
+  const senderEmail = process.env.BREVO_SENDER_EMAIL?.trim();
+  const senderName =
+    process.env.BREVO_SENDER_NAME?.trim() || "Nuanu Recruitment";
+
+  if (!apiKey || !senderEmail) {
+    return {
+      success: false,
+      configMissing: true,
+      error: "Brevo not configured",
+    };
+  }
+
+  const htmlContent = opts.html ?? (opts.text ? wrapInHtml(opts.text) : "");
+  const recipients = (Array.isArray(opts.to) ? opts.to : [opts.to]).map(
+    (e) => ({ email: e }),
+  );
+
+  try {
+    const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: {
+        accept: "application/json",
+        "api-key": apiKey,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        sender: { name: senderName, email: senderEmail },
+        to: recipients,
+        subject: opts.subject,
+        textContent: opts.text ?? "",
+        htmlContent,
+      }),
+    });
+
+    const json = (await res.json()) as any;
+
+    if (!res.ok) {
+      const msg = json?.message ?? `Brevo API error ${res.status}`;
+      console.error("[Email/Brevo] API error:", msg);
+      // IP restriction error
+      if (msg.includes("unrecognised IP") || msg.includes("authorised_ips")) {
+        return {
+          success: false,
+          error:
+            "Brevo IP restriction is blocking Vercel. " +
+            "Go to https://app.brevo.com/security/authorised_ips and remove all IP entries.",
+        };
+      }
+      return { success: false, error: `Brevo: ${msg}` };
+    }
+
+    console.log("[Email] Sent via Brevo API:", json?.messageId);
+    return { success: true, data: json };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[Email/Brevo] fetch error:", msg);
+    return { success: false, error: `Brevo fetch error: ${msg}` };
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Provider 0b — Database SMTP (configured via Settings UI)
 // ─────────────────────────────────────────────────────────────────────────────
 async function sendViaDbSmtp(opts: EmailOptions): Promise<EmailResult> {
   try {
@@ -337,7 +410,14 @@ async function sendViaResend(opts: EmailOptions): Promise<EmailResult> {
 export async function sendEmail(opts: EmailOptions): Promise<EmailResult> {
   const errors: string[] = [];
 
-  // ── Provider 0: Database SMTP (Settings UI) ───────────────────────────────
+  // ── Provider 0: Brevo REST API ─────────────────────────────────────────
+  if (process.env.BREVO_API_KEY) {
+    const r = await sendViaBrevo(opts);
+    if (r.success) return r;
+    if (!r.configMissing) errors.push(r.error!);
+  }
+
+  // ── Provider 0b: Database SMTP (Settings UI) ─────────────────────────
   const dbResult = await sendViaDbSmtp(opts);
   if (dbResult.success) return dbResult;
   if (!dbResult.configMissing) errors.push(`DB-SMTP: ${dbResult.error}`);
