@@ -20,6 +20,12 @@ import {
   Cpu,
   RefreshCw,
   Brain,
+  Trash2,
+  Pencil,
+  Copy,
+  Eye,
+  EyeOff,
+  Check,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
@@ -31,12 +37,13 @@ import {
   getRoles,
   inviteUser,
   deleteUser,
-  updateUserRole,
+  updateUser,
   updateCompanyLogo,
   getCurrentUser,
   getAIStatus,
 } from "@/app/actions/settings";
 import { getDepartments } from "@/app/actions/departments";
+import ConfirmModal from "@/components/ui/ConfirmModal";
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -77,6 +84,25 @@ export default function SettingsPage() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [aiStatus, setAiStatus] = useState<any>(null);
   const [isCheckingAI, setIsCheckingAI] = useState(false);
+
+  // Users & Roles CRUD state
+  const [deleteConfirmUser, setDeleteConfirmUser] = useState<any | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [editingUser, setEditingUser] = useState<any | null>(null);
+  const [editData, setEditData] = useState({
+    name: "",
+    email: "",
+    roleId: "",
+    departmentId: "",
+  });
+  const [isEditSaving, setIsEditSaving] = useState(false);
+  const [showTempPassword, setShowTempPassword] = useState<{
+    name: string;
+    email: string;
+    password: string;
+  } | null>(null);
+  const [tempPasswordVisible, setTempPasswordVisible] = useState(false);
+  const [copiedPassword, setCopiedPassword] = useState(false);
 
   // Show success/error toast after Google Calendar OAuth redirect.
   // Reading window.location.search avoids useSearchParams + Suspense requirement.
@@ -531,25 +557,30 @@ export default function SettingsPage() {
                             </span>
                           </td>
                           <td className="text-right">
-                            <button
-                              onClick={async () => {
-                                if (
-                                  confirm(
-                                    `Are you sure you want to delete ${user.name}?`,
-                                  )
-                                ) {
-                                  const res = await deleteUser(user.id);
-                                  if (res.success) {
-                                    setUsers(
-                                      users.filter((u) => u.id !== user.id),
-                                    );
-                                  }
-                                }
-                              }}
-                              className="p-1.5 text-nuanu-gray-400 hover:text-red-600 transition-colors"
-                            >
-                              <AlertCircle className="w-4 h-4" />
-                            </button>
+                            <div className="flex items-center justify-end gap-1">
+                              <button
+                                onClick={() => {
+                                  setEditingUser(user);
+                                  setEditData({
+                                    name: user.name,
+                                    email: user.email,
+                                    roleId: user.userRoles[0]?.roleId || "",
+                                    departmentId: user.departmentId || "",
+                                  });
+                                }}
+                                className="p-1.5 text-nuanu-gray-400 hover:text-emerald-600 transition-colors rounded-lg hover:bg-emerald-50"
+                                title="Edit user"
+                              >
+                                <Pencil className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => setDeleteConfirmUser(user)}
+                                className="p-1.5 text-nuanu-gray-400 hover:text-red-600 transition-colors rounded-lg hover:bg-red-50"
+                                title="Delete user"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -1159,17 +1190,29 @@ export default function SettingsPage() {
                 onSubmit={async (e) => {
                   e.preventDefault();
                   setIsSaving(true);
+                  const snapshot = { ...inviteData };
                   const res = await inviteUser(inviteData);
                   setIsSaving(false);
                   if (res.success) {
-                    alert(
-                      `User invited! Temporary Password: ${res.tempPassword}`,
-                    );
                     setIsInviteModalOpen(false);
+                    setInviteData({
+                      name: "",
+                      email: "",
+                      roleId: "",
+                      departmentId: "",
+                    });
+                    setShowTempPassword({
+                      name: snapshot.name,
+                      email: snapshot.email,
+                      password: res.tempPassword!,
+                    });
+                    setTempPasswordVisible(false);
                     const updatedUsers = await getUsers();
                     setUsers(updatedUsers);
                   } else {
-                    alert(res.error);
+                    toast.error("Failed to create user", {
+                      description: res.error,
+                    });
                   }
                 }}
                 className="p-6 space-y-4"
@@ -1268,6 +1311,284 @@ export default function SettingsPage() {
                   </button>
                 </div>
               </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ─── Delete Confirmation Modal ───────────────────────────── */}
+      <ConfirmModal
+        isOpen={!!deleteConfirmUser}
+        onClose={() => !isDeleting && setDeleteConfirmUser(null)}
+        onConfirm={async () => {
+          if (!deleteConfirmUser) return;
+          setIsDeleting(true);
+          const res = await deleteUser(deleteConfirmUser.id);
+          setIsDeleting(false);
+          if (res.success) {
+            setUsers((prev) =>
+              prev.filter((u) => u.id !== deleteConfirmUser.id),
+            );
+            toast.success(`${deleteConfirmUser.name} has been removed.`);
+          } else {
+            toast.error("Failed to delete user", { description: res.error });
+          }
+          setDeleteConfirmUser(null);
+        }}
+        title={`Delete ${deleteConfirmUser?.name ?? "User"}?`}
+        message={`${deleteConfirmUser?.name} (${deleteConfirmUser?.email}) will be permanently removed from the system.`}
+        confirmText="YES, DELETE USER"
+        cancelText="Keep User"
+        type="danger"
+        isLoading={isDeleting}
+        requireDoubleConfirm={true}
+      />
+
+      {/* ─── Edit User Modal ──────────────────────────────────────── */}
+      <AnimatePresence>
+        {editingUser && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-nuanu-navy/40 backdrop-blur-sm"
+              onClick={() => !isEditSaving && setEditingUser(null)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden relative z-10 border border-white/20"
+            >
+              <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-nuanu-navy text-white">
+                <h2 className="text-lg font-black flex items-center gap-2">
+                  <Pencil className="w-5 h-5 text-emerald-400" /> Edit Team
+                  Member
+                </h2>
+                <button
+                  onClick={() => setEditingUser(null)}
+                  className="p-1 hover:bg-white/10 rounded-full transition-all"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  setIsEditSaving(true);
+                  const res = await updateUser(editingUser.id, editData);
+                  setIsEditSaving(false);
+                  if (res.success) {
+                    toast.success(`${editData.name} updated successfully!`, {
+                      description: "Role and profile changes have been saved.",
+                    });
+                    setEditingUser(null);
+                    const updatedUsers = await getUsers();
+                    setUsers(updatedUsers);
+                  } else {
+                    toast.error("Failed to update user", {
+                      description: res.error,
+                    });
+                  }
+                }}
+                className="p-6 space-y-4"
+              >
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-black text-nuanu-gray-500 uppercase tracking-widest mb-1.5">
+                      Full Name
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      className="input-field py-2.5"
+                      value={editData.name}
+                      onChange={(e) =>
+                        setEditData({ ...editData, name: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black text-nuanu-gray-500 uppercase tracking-widest mb-1.5">
+                      Email Address
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      className="input-field py-2.5"
+                      value={editData.email}
+                      onChange={(e) =>
+                        setEditData({ ...editData, email: e.target.value })
+                      }
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-black text-nuanu-gray-500 uppercase tracking-widest mb-1.5">
+                      Role
+                    </label>
+                    <select
+                      required
+                      className="input-field py-2.5 text-xs font-bold"
+                      value={editData.roleId}
+                      onChange={(e) =>
+                        setEditData({ ...editData, roleId: e.target.value })
+                      }
+                    >
+                      <option value="" disabled>
+                        Select role...
+                      </option>
+                      {roles.map((role) => (
+                        <option key={role.id} value={role.id}>
+                          {role.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black text-nuanu-gray-500 uppercase tracking-widest mb-1.5">
+                      Department
+                    </label>
+                    <select
+                      className="input-field py-2.5 text-xs font-bold"
+                      value={editData.departmentId}
+                      onChange={(e) =>
+                        setEditData({
+                          ...editData,
+                          departmentId: e.target.value,
+                        })
+                      }
+                    >
+                      <option value="">No department</option>
+                      {departments.map((dept) => (
+                        <option key={dept.id} value={dept.id}>
+                          {dept.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="pt-4 flex justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setEditingUser(null)}
+                    className="px-4 py-2 text-xs font-bold text-nuanu-gray-500"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isEditSaving}
+                    className="btn-primary py-2 px-6 text-xs"
+                  >
+                    {isEditSaving ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />{" "}
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Check className="w-3.5 h-3.5" /> Save Changes
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ─── Temp Password Modal ──────────────────────────────────── */}
+      <AnimatePresence>
+        {showTempPassword && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-nuanu-navy/40 backdrop-blur-sm"
+              onClick={() => setShowTempPassword(null)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.85, y: 24 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.85, y: 24 }}
+              className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden relative z-10"
+            >
+              {/* Header */}
+              <div className="p-6 bg-emerald-500 text-white text-center">
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: "spring", delay: 0.1 }}
+                  className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-3"
+                >
+                  <CheckCircle2 className="w-9 h-9 text-white" />
+                </motion.div>
+                <h2 className="text-xl font-black">User Created!</h2>
+                <p className="text-emerald-100 text-sm mt-1">
+                  {showTempPassword.name} &bull; {showTempPassword.email}
+                </p>
+              </div>
+
+              {/* Body */}
+              <div className="p-6 space-y-4">
+                <div>
+                  <p className="text-[10px] font-black text-nuanu-gray-500 uppercase tracking-widest mb-2">
+                    Temporary Password
+                  </p>
+                  <div className="flex items-center gap-2 bg-nuanu-gray-50 border border-nuanu-gray-200 rounded-xl px-4 py-3">
+                    <span className="flex-1 font-mono text-sm text-nuanu-navy tracking-widest select-all">
+                      {tempPasswordVisible
+                        ? showTempPassword.password
+                        : "••••••••"}
+                    </span>
+                    <button
+                      onClick={() => setTempPasswordVisible((v) => !v)}
+                      className="p-1 text-nuanu-gray-400 hover:text-nuanu-navy transition-colors"
+                    >
+                      {tempPasswordVisible ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
+                    </button>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(
+                          showTempPassword!.password,
+                        );
+                        setCopiedPassword(true);
+                        setTimeout(() => setCopiedPassword(false), 2000);
+                        toast.success("Password copied to clipboard!");
+                      }}
+                      className="p-1 text-nuanu-gray-400 hover:text-emerald-600 transition-colors"
+                    >
+                      {copiedPassword ? (
+                        <Check className="w-4 h-4 text-emerald-500" />
+                      ) : (
+                        <Copy className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-nuanu-gray-400 mt-2">
+                    Share this password securely. The user can change it after
+                    their first login.
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => setShowTempPassword(null)}
+                  className="w-full btn-primary py-2.5 text-sm"
+                >
+                  Done
+                </button>
+              </div>
             </motion.div>
           </div>
         )}
