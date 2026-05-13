@@ -168,20 +168,14 @@ function CopyButton({
     <button
       onClick={handleCopy}
       className={`shrink-0 flex items-center gap-1 rounded-md font-semibold transition-all ${
-        small
-          ? "px-2 py-1 text-[10px]"
-          : "px-2.5 py-1 text-xs"
+        small ? "px-2 py-1 text-[10px]" : "px-2.5 py-1 text-xs"
       } ${
         copied
           ? "bg-emerald-100 text-emerald-700"
           : "bg-nuanu-gray-100 text-nuanu-gray-500 hover:bg-rose-50 hover:text-[#E60278]"
       }`}
     >
-      {copied ? (
-        <Check className="w-3 h-3" />
-      ) : (
-        <Copy className="w-3 h-3" />
-      )}
+      {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
       {copied ? "Copied!" : "Copy"}
     </button>
   );
@@ -570,7 +564,7 @@ export default function JobStreetPoster({
                       </div>
                       <div className="p-5 space-y-3">
                         <a
-                          href="https://id.employer.seek.com/jobs/post"
+                          href="https://id.employer.seek.com/job/managejob/express/create/classify?referrer=createJob"
                           target="_blank"
                           rel="noopener noreferrer"
                           className="flex items-center justify-center gap-2.5 w-full py-3 rounded-xl font-bold text-sm text-white bg-gradient-to-r from-[#E60278] to-[#cc026b] hover:from-[#cc026b] hover:to-[#b50260] shadow-lg shadow-[#E60278]/25 transition-all hover:-translate-y-0.5 active:translate-y-0"
