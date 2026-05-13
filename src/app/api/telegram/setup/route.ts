@@ -15,7 +15,9 @@ export async function GET(req: Request) {
     const requestUrl = new URL(req.url);
     const baseUrl =
       process.env.NEXT_PUBLIC_APP_URL ||
-      `${requestUrl.protocol}//${requestUrl.host}`;
+      (requestUrl.host.includes("localhost")
+        ? "https://nuanu-hr-recruitment-ats.vercel.app"
+        : `${requestUrl.protocol}//${requestUrl.host}`);
 
     const webhookUrl = `${baseUrl}/api/telegram/webhook`;
 
