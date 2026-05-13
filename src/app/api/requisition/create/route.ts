@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
-import { createRequisition, createRequisitionWithVacancy } from "@/lib/requisitionService";
+import {
+  createRequisition,
+  createRequisitionWithVacancy,
+} from "@/lib/requisitionService";
+import { prisma } from "@/lib/prisma";
 
 export async function POST(req: Request) {
   try {
@@ -8,13 +12,44 @@ export async function POST(req: Request) {
 
     if (isFullForm) {
       // Handle the "Job Requisition Form" flow
-      if (!body.title || !body.departmentId || !userId) {
-        return NextResponse.json({ error: "Missing required fields for full form" }, { status: 400 });
+      // Resolve departmentId: use provided id or find/create by name
+      let resolvedDepartmentId: string = body.departmentId || "";
+
+      if (!resolvedDepartmentId && body.departmentName) {
+        // Find-or-create the department by name
+        const existing = await prisma.department.findFirst({
+          where: { name: { equals: body.departmentName, mode: "insensitive" } },
+        });
+        if (existing) {
+          resolvedDepartmentId = existing.id;
+        } else {
+          const created = await prisma.department.create({
+            data: {
+              name: body.departmentName,
+              code:
+                body.departmentName
+                  .toUpperCase()
+                  .replace(/[^A-Z0-9]/g, "")
+                  .slice(0, 12) +
+                "-" +
+                Date.now().toString(36).toUpperCase(),
+              budget: 0,
+            },
+          });
+          resolvedDepartmentId = created.id;
+        }
+      }
+
+      if (!body.title || !resolvedDepartmentId || !userId) {
+        return NextResponse.json(
+          { error: "Missing required fields for full form" },
+          { status: 400 },
+        );
       }
 
       const requisition = await createRequisitionWithVacancy({
         title: body.title,
-        departmentId: body.departmentId,
+        departmentId: resolvedDepartmentId,
         creatorId: userId,
         positionLevel: body.positionLevel,
         employmentType: body.employmentType,
@@ -34,7 +69,10 @@ export async function POST(req: Request) {
     } else {
       // Handle the simple "Vacancy already exists" flow
       if (!vacancyId || !userId) {
-        return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+        return NextResponse.json(
+          { error: "Missing required fields" },
+          { status: 400 },
+        );
       }
 
       const requisition = await createRequisition(vacancyId, userId);
@@ -42,6 +80,9 @@ export async function POST(req: Request) {
     }
   } catch (error: any) {
     console.error("API Error (Requisition Create):", error);
-    return NextResponse.json({ error: error.message || "Failed to create requisition" }, { status: 500 });
+    return NextResponse.json(
+      { error: error.message || "Failed to create requisition" },
+      { status: 500 },
+    );
   }
 }

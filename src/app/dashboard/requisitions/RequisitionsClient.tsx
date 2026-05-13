@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Check,
   X,
@@ -16,6 +16,7 @@ import {
   Send,
   AlertCircle,
   ChevronRight,
+  ChevronDown,
   Briefcase,
   Building2,
   Layers,
@@ -58,6 +59,263 @@ type Requisition = {
   }>;
 };
 
+// ── Nuanu Department Group Map (shared with DepartmentCombobox) ────────────────
+const DEPT_GROUP_CODES: Record<string, string[]> = {
+  "Core Divisions": [
+    "ARTS",
+    "EDU",
+    "WELL",
+    "EXP",
+    "NAT",
+    "TECH",
+    "HOSP",
+    "COMM",
+    "BIZ",
+  ],
+  "HR / Recruitment": ["HR", "TACQ", "ORGDEV", "HROP"],
+  "Engineering & Facilities": [
+    "ENG",
+    "MEP",
+    "BLDMNT",
+    "INFRA",
+    "SITEENG",
+    "UTIL",
+  ],
+  Operations: ["OPS", "SITEOP", "GUESTOP", "EVTOP", "TOUROP"],
+  "Sales & Marketing": ["MKT", "SALES", "PARTNER", "BRAND", "EVTSLS", "DGTMKT"],
+  "Finance & Accounting": ["FIN", "ACCT", "BUDGET"],
+  "IT / Product / Technology": [
+    "PROD",
+    "TECH",
+    "PRODMGMT",
+    "SYSANAL",
+    "UXRES",
+    "PLATDEV",
+    "INTSYS",
+  ],
+  "Creative & Media": [
+    "DES",
+    "CRPROD",
+    "CONTPROD",
+    "MEDIA",
+    "PHOTOVID",
+    "ARTDIR",
+  ],
+  "Safety & Medical": ["EMGR", "NURSE", "HSE"],
+  "Hospitality & F&B": [
+    "HOSP",
+    "RESTOP",
+    "KITCHEN",
+    "CHEF",
+    "ACCOMM",
+    "GUESTEXP",
+  ],
+  "Events & Entertainment": ["EXP", "EVTMGMT", "MUSIC", "EXHIB", "COMMEVT"],
+  "Sustainability & Environment": ["NAT", "WASTE", "REFOR", "MANGR", "BIODIV"],
+  Executive: ["EXEC"],
+};
+
+type DeptOption = { id: string; name: string; code?: string };
+
+function groupDeptOptions(
+  departments: DeptOption[],
+): Array<{ group: string; items: DeptOption[] }> {
+  const placed = new Set<string>();
+  const grouped: Array<{ group: string; items: DeptOption[] }> = [];
+
+  for (const group of Object.keys(DEPT_GROUP_CODES)) {
+    const codes = DEPT_GROUP_CODES[group];
+    const items = departments.filter(
+      (d) => d.code && codes.includes(d.code) && !placed.has(d.id),
+    );
+    if (items.length > 0) {
+      items.forEach((d) => placed.add(d.id));
+      grouped.push({ group, items });
+    }
+  }
+
+  const others = departments.filter((d) => !placed.has(d.id));
+  if (others.length > 0)
+    grouped.push({ group: "Other / Custom", items: others });
+
+  return grouped;
+}
+
+function ReqDepartmentCombobox({
+  departments,
+  value,
+  customName,
+  onSelect,
+  onCustom,
+}: {
+  departments: DeptOption[];
+  value: string;
+  customName: string;
+  onSelect: (id: string) => void;
+  onCustom: (name: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const ref = useRef<HTMLDivElement>(null);
+
+  const selectedDept = departments.find((d) => d.id === value);
+  const displayLabel = selectedDept
+    ? selectedDept.name.toUpperCase()
+    : customName
+      ? customName.toUpperCase()
+      : "";
+
+  const lowerQ = query.toLowerCase();
+  const isSearching = query.length > 0;
+  const filtered = isSearching
+    ? departments.filter((d) => d.name.toLowerCase().includes(lowerQ))
+    : [];
+  const grouped = isSearching ? null : groupDeptOptions(departments);
+  const exactMatch = departments.some((d) => d.name.toLowerCase() === lowerQ);
+  const showCreate = isSearching && !exactMatch;
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node))
+        setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const handleSelect = (dept: DeptOption) => {
+    onSelect(dept.id);
+    onCustom("");
+    setQuery("");
+    setOpen(false);
+  };
+
+  const handleCustom = (name: string) => {
+    onSelect("");
+    onCustom(name);
+    setQuery("");
+    setOpen(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (filtered.length === 1) handleSelect(filtered[0]);
+      else if (showCreate) handleCustom(query);
+    }
+    if (e.key === "Escape") setOpen(false);
+  };
+
+  return (
+    <div className="relative" ref={ref}>
+      {/* Trigger */}
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="input-field !pl-10 !h-12 !text-sm font-bold uppercase w-full flex items-center justify-between appearance-none bg-nuanu-gray-50/30 border-nuanu-gray-200 focus:bg-white focus:border-nuanu-emerald focus:ring-8 focus:ring-emerald-500/5 text-left"
+      >
+        <span
+          className={displayLabel ? "text-nuanu-navy" : "text-nuanu-gray-300"}
+        >
+          {displayLabel || "SELECT DEPARTMENT"}
+        </span>
+        <ChevronDown
+          className={`w-4 h-4 text-nuanu-gray-400 ml-2 flex-shrink-0 transition-transform ${open ? "rotate-180" : ""}`}
+        />
+      </button>
+
+      {open && (
+        <div className="absolute z-[9999] w-full mt-2 bg-white border border-nuanu-gray-200 rounded-xl shadow-2xl overflow-hidden">
+          {/* Search */}
+          <div className="p-2 border-b border-nuanu-gray-100 flex items-center gap-2 bg-nuanu-gray-50">
+            <Search className="w-4 h-4 text-nuanu-gray-400 flex-shrink-0" />
+            <input
+              autoFocus
+              type="text"
+              placeholder="Search department..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={handleKeyDown}
+              className="w-full bg-transparent border-none focus:ring-0 text-sm py-1"
+            />
+          </div>
+
+          <div className="max-h-72 overflow-y-auto">
+            {/* Flat search results */}
+            {isSearching && (
+              <>
+                {filtered.map((d) => (
+                  <button
+                    key={d.id}
+                    type="button"
+                    onClick={() => handleSelect(d)}
+                    className="w-full text-left px-4 py-2.5 text-sm hover:bg-emerald-50 hover:text-emerald-700 transition-colors flex items-center justify-between"
+                  >
+                    {d.name}
+                    {d.code && (
+                      <span className="text-[10px] text-nuanu-gray-300 font-mono ml-2">
+                        {d.code}
+                      </span>
+                    )}
+                  </button>
+                ))}
+                {filtered.length === 0 && !showCreate && (
+                  <div className="px-4 py-6 text-center text-nuanu-gray-400 text-sm">
+                    No matching departments.
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* Grouped view */}
+            {!isSearching &&
+              grouped!.map(({ group, items }) => (
+                <div key={group}>
+                  <div className="px-3 pt-3 pb-1">
+                    <span className="text-[9px] font-black text-nuanu-gray-300 uppercase tracking-[0.2em]">
+                      {group}
+                    </span>
+                  </div>
+                  {items.map((d) => (
+                    <button
+                      key={d.id}
+                      type="button"
+                      onClick={() => handleSelect(d)}
+                      className={`w-full text-left px-4 py-2.5 text-sm transition-colors flex items-center justify-between ${
+                        value === d.id
+                          ? "bg-emerald-50 text-emerald-700 font-bold"
+                          : "hover:bg-emerald-50 hover:text-emerald-700"
+                      }`}
+                    >
+                      {d.name}
+                      {d.code && (
+                        <span className="text-[10px] text-nuanu-gray-300 font-mono ml-2">
+                          {d.code}
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              ))}
+
+            {/* Create custom */}
+            {showCreate && (
+              <button
+                type="button"
+                onClick={() => handleCustom(query)}
+                className="w-full text-left px-4 py-2.5 text-sm text-emerald-600 font-bold hover:bg-emerald-50 transition-colors flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4" /> Create custom: &ldquo;{query}
+                &rdquo;
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function RequisitionsClient({
   initialUser,
   departments,
@@ -79,6 +337,7 @@ export default function RequisitionsClient({
   const [formData, setFormData] = useState({
     title: "",
     departmentId: "",
+    departmentCustomName: "",
     positionLevel: "Mid-Level",
     employmentType: "Full-Time",
     salaryMin: "",
@@ -161,6 +420,10 @@ export default function RequisitionsClient({
           ...formData,
           userId: initialUser.id,
           isFullForm: true,
+          // If no real dept selected but a custom name was typed, send it
+          ...(formData.departmentId === "" && formData.departmentCustomName
+            ? { departmentName: formData.departmentCustomName }
+            : {}),
           responsibilities: formData.responsibilities.filter(
             (r) => r.trim() !== "",
           ),
@@ -181,6 +444,7 @@ export default function RequisitionsClient({
         setFormData({
           title: "",
           departmentId: "",
+          departmentCustomName: "",
           positionLevel: "Mid-Level",
           employmentType: "Full-Time",
           salaryMin: "",
@@ -699,25 +963,26 @@ export default function RequisitionsClient({
                             </span>
                           </label>
                           <div className="relative group">
-                            <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-nuanu-gray-300 group-focus-within:text-nuanu-emerald transition-colors" />
-                            <select
-                              required
+                            <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-nuanu-gray-300 group-focus-within:text-nuanu-emerald transition-colors z-10 pointer-events-none" />
+                            <ReqDepartmentCombobox
+                              departments={departments}
                               value={formData.departmentId}
-                              onChange={(e) =>
+                              customName={formData.departmentCustomName}
+                              onSelect={(id) =>
                                 setFormData({
                                   ...formData,
-                                  departmentId: e.target.value,
+                                  departmentId: id,
+                                  departmentCustomName: "",
                                 })
                               }
-                              className="input-field !pl-10 !h-12 !text-sm font-bold uppercase appearance-none bg-nuanu-gray-50/30 border-nuanu-gray-200 focus:bg-white focus:border-nuanu-emerald focus:ring-8 focus:ring-emerald-500/5"
-                            >
-                              <option value="">SELECT DEPARTMENT</option>
-                              {departments.map((d) => (
-                                <option key={d.id} value={d.id}>
-                                  {d.name.toUpperCase()}
-                                </option>
-                              ))}
-                            </select>
+                              onCustom={(name) =>
+                                setFormData({
+                                  ...formData,
+                                  departmentId: "",
+                                  departmentCustomName: name,
+                                })
+                              }
+                            />
                           </div>
                         </div>
 
