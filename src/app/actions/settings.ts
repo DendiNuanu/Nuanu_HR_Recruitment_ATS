@@ -419,3 +419,97 @@ export async function sendTestEmail(toEmail: string) {
   });
   return result;
 }
+
+/**
+ * Create a new user with an admin-specified password (no temp password).
+ */
+export async function createUser(data: {
+  name: string;
+  email: string;
+  password: string;
+  roleId: string;
+  departmentId?: string;
+}) {
+  try {
+    if (
+      !data.name?.trim() ||
+      !data.email?.trim() ||
+      !data.password?.trim() ||
+      !data.roleId?.trim()
+    ) {
+      return {
+        success: false,
+        error: "Name, email, password and role are required",
+      };
+    }
+    if (data.password.length < 6) {
+      return {
+        success: false,
+        error: "Password must be at least 6 characters",
+      };
+    }
+
+    const hashedPassword = await bcrypt.hash(data.password, 10);
+    const departmentId = data.departmentId?.trim() || null;
+
+    await prisma.user.create({
+      data: {
+        name: data.name.trim(),
+        email: data.email.trim().toLowerCase(),
+        password: hashedPassword,
+        isActive: true,
+        departmentId,
+        userRoles: { create: { roleId: data.roleId } },
+      },
+    });
+
+    revalidatePath("/dashboard/settings");
+    return { success: true };
+  } catch (error: any) {
+    console.error("Failed to create user:", error);
+    if (error?.code === "P2002") {
+      return { success: false, error: "A user with this email already exists" };
+    }
+    if (error?.code === "P2003") {
+      return { success: false, error: "Invalid role or department selected" };
+    }
+    return { success: false, error: error?.message ?? "Failed to create user" };
+  }
+}
+
+/**
+ * Change a user's password (admin action — no old password required).
+ */
+export async function changeUserPassword(userId: string, newPassword: string) {
+  try {
+    const session = await getSession();
+    if (
+      !session ||
+      (!session.roles.includes("admin") &&
+        !session.roles.includes("super-admin"))
+    ) {
+      return { success: false, error: "Unauthorized" };
+    }
+    if (!newPassword || newPassword.length < 6) {
+      return {
+        success: false,
+        error: "Password must be at least 6 characters",
+      };
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await prisma.user.update({
+      where: { id: userId },
+      data: { password: hashedPassword, updatedAt: new Date() },
+    });
+
+    revalidatePath("/dashboard/settings");
+    return { success: true };
+  } catch (error: any) {
+    console.error("Failed to change password:", error);
+    return {
+      success: false,
+      error: error?.message ?? "Failed to change password",
+    };
+  }
+}

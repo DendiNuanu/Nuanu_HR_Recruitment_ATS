@@ -47,6 +47,8 @@ import {
   getEmailConfig,
   saveEmailConfig,
   sendTestEmail,
+  createUser,
+  changeUserPassword,
 } from "@/app/actions/settings";
 import { getDepartments } from "@/app/actions/departments";
 import ConfirmModal from "@/components/ui/ConfirmModal";
@@ -121,6 +123,20 @@ export default function SettingsPage() {
   const [emailPassVisible, setEmailPassVisible] = useState(false);
   const [isEmailSaving, setIsEmailSaving] = useState(false);
   const [isTestingEmail, setIsTestingEmail] = useState(false);
+
+  // Create-user password fields
+  const [createPassword, setCreatePassword] = useState("");
+  const [createConfirmPassword, setCreateConfirmPassword] = useState("");
+  const [showCreatePass, setShowCreatePass] = useState(false);
+  const [showCreateConfirmPass, setShowCreateConfirmPass] = useState(false);
+
+  // Change password modal
+  const [changePwUser, setChangePwUser] = useState<any | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [newPasswordConfirm, setNewPasswordConfirm] = useState("");
+  const [showNewPw, setShowNewPw] = useState(false);
+  const [showNewPwConfirm, setShowNewPwConfirm] = useState(false);
+  const [isChangingPw, setIsChangingPw] = useState(false);
 
   // Show success/error toast after Google Calendar OAuth redirect.
   // Reading window.location.search avoids useSearchParams + Suspense requirement.
@@ -519,10 +535,14 @@ export default function SettingsPage() {
                     </p>
                   </div>
                   <button
-                    onClick={() => setIsInviteModalOpen(true)}
+                    onClick={() => {
+                      setIsInviteModalOpen(true);
+                      setCreatePassword("");
+                      setCreateConfirmPassword("");
+                    }}
                     className="btn-secondary text-sm py-2"
                   >
-                    <UserPlus className="w-4 h-4" /> Invite User
+                    <UserPlus className="w-4 h-4" /> Create User
                   </button>
                 </div>
                 <div className="overflow-x-auto">
@@ -592,6 +612,17 @@ export default function SettingsPage() {
                                 title="Edit user"
                               >
                                 <Pencil className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setChangePwUser(user);
+                                  setNewPassword("");
+                                  setNewPasswordConfirm("");
+                                }}
+                                className="p-1.5 text-nuanu-gray-400 hover:text-blue-600 transition-colors rounded-lg hover:bg-blue-50"
+                                title="Change password"
+                              >
+                                <Key className="w-4 h-4" />
                               </button>
                               <button
                                 onClick={() => setDeleteConfirmUser(user)}
@@ -1464,7 +1495,7 @@ export default function SettingsPage() {
             >
               <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-nuanu-navy text-white">
                 <h2 className="text-lg font-black flex items-center gap-2">
-                  <UserPlus className="w-5 h-5 text-emerald-400" /> Invite Team
+                  <UserPlus className="w-5 h-5 text-emerald-400" /> Create Team
                   Member
                 </h2>
                 <button
@@ -1478,9 +1509,18 @@ export default function SettingsPage() {
               <form
                 onSubmit={async (e) => {
                   e.preventDefault();
+                  if (createPassword !== createConfirmPassword) {
+                    toast.error("Passwords do not match");
+                    return;
+                  }
                   setIsSaving(true);
-                  const snapshot = { ...inviteData };
-                  const res = await inviteUser(inviteData);
+                  const res = await createUser({
+                    name: inviteData.name,
+                    email: inviteData.email,
+                    password: createPassword,
+                    roleId: inviteData.roleId,
+                    departmentId: inviteData.departmentId,
+                  });
                   setIsSaving(false);
                   if (res.success) {
                     setIsInviteModalOpen(false);
@@ -1490,12 +1530,12 @@ export default function SettingsPage() {
                       roleId: "",
                       departmentId: "",
                     });
-                    setShowTempPassword({
-                      name: snapshot.name,
-                      email: snapshot.email,
-                      password: res.tempPassword!,
+                    setCreatePassword("");
+                    setCreateConfirmPassword("");
+                    toast.success(`${inviteData.name} created successfully!`, {
+                      description:
+                        "The user can now log in with their credentials.",
                     });
-                    setTempPasswordVisible(false);
                     const updatedUsers = await getUsers();
                     setUsers(updatedUsers);
                   } else {
@@ -1583,6 +1623,78 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
+                {/* Password fields */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-black text-nuanu-gray-500 uppercase tracking-widest mb-1.5">
+                      Password *
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showCreatePass ? "text" : "password"}
+                        required
+                        placeholder="Min. 6 characters"
+                        className="input-field py-2.5 pr-9"
+                        value={createPassword}
+                        onChange={(e) => setCreatePassword(e.target.value)}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowCreatePass((v) => !v)}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-nuanu-gray-400"
+                      >
+                        {showCreatePass ? (
+                          <EyeOff className="w-4 h-4" />
+                        ) : (
+                          <Eye className="w-4 h-4" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black text-nuanu-gray-500 uppercase tracking-widest mb-1.5">
+                      Confirm Password *
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showCreateConfirmPass ? "text" : "password"}
+                        required
+                        placeholder="Re-enter password"
+                        className={`input-field py-2.5 pr-9 ${
+                          createConfirmPassword &&
+                          createConfirmPassword !== createPassword
+                            ? "border-red-400"
+                            : createConfirmPassword &&
+                                createConfirmPassword === createPassword
+                              ? "border-emerald-400"
+                              : ""
+                        }`}
+                        value={createConfirmPassword}
+                        onChange={(e) =>
+                          setCreateConfirmPassword(e.target.value)
+                        }
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowCreateConfirmPass((v) => !v)}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-nuanu-gray-400"
+                      >
+                        {showCreateConfirmPass ? (
+                          <EyeOff className="w-4 h-4" />
+                        ) : (
+                          <Eye className="w-4 h-4" />
+                        )}
+                      </button>
+                    </div>
+                    {createConfirmPassword &&
+                      createConfirmPassword !== createPassword && (
+                        <p className="text-[10px] text-red-500 font-bold mt-1">
+                          Passwords do not match
+                        </p>
+                      )}
+                  </div>
+                </div>
+
                 <div className="pt-4 flex justify-end gap-3">
                   <button
                     type="button"
@@ -1593,10 +1705,23 @@ export default function SettingsPage() {
                   </button>
                   <button
                     type="submit"
-                    disabled={isSaving}
+                    disabled={
+                      isSaving ||
+                      (!!createConfirmPassword &&
+                        createConfirmPassword !== createPassword)
+                    }
                     className="btn-primary py-2 px-6 text-xs"
                   >
-                    {isSaving ? "Inviting..." : "Send Invitation"}
+                    {isSaving ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />{" "}
+                        Creating...
+                      </>
+                    ) : (
+                      <>
+                        <UserPlus className="w-3.5 h-3.5" /> Create User
+                      </>
+                    )}
                   </button>
                 </div>
               </form>
@@ -1782,6 +1907,165 @@ export default function SettingsPage() {
                     ) : (
                       <>
                         <Check className="w-3.5 h-3.5" /> Save Changes
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ─── Change Password Modal ─────────────────────────────── */}
+      <AnimatePresence>
+        {changePwUser && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-nuanu-navy/40 backdrop-blur-sm"
+              onClick={() => !isChangingPw && setChangePwUser(null)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden relative z-10"
+            >
+              <div className="p-5 border-b border-gray-100 flex items-center justify-between bg-nuanu-navy text-white">
+                <h2 className="text-base font-black flex items-center gap-2">
+                  <Key className="w-4 h-4 text-blue-400" /> Change Password
+                </h2>
+                <div>
+                  <p className="text-xs font-bold text-white/80">
+                    {changePwUser.name}
+                  </p>
+                  <p className="text-[10px] text-white/50">
+                    {changePwUser.email}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setChangePwUser(null)}
+                  className="p-1 hover:bg-white/10 rounded-full transition-all"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  if (newPassword !== newPasswordConfirm) {
+                    toast.error("Passwords do not match");
+                    return;
+                  }
+                  setIsChangingPw(true);
+                  const res = await changeUserPassword(
+                    changePwUser.id,
+                    newPassword,
+                  );
+                  setIsChangingPw(false);
+                  if (res.success) {
+                    toast.success(`Password changed for ${changePwUser.name}`);
+                    setChangePwUser(null);
+                    setNewPassword("");
+                    setNewPasswordConfirm("");
+                  } else {
+                    toast.error("Failed", { description: res.error });
+                  }
+                }}
+                className="p-5 space-y-3"
+              >
+                <div>
+                  <label className="block text-[10px] font-black text-nuanu-gray-500 uppercase tracking-widest mb-1.5">
+                    New Password
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showNewPw ? "text" : "password"}
+                      required
+                      placeholder="Min. 6 characters"
+                      className="input-field py-2.5 pr-9"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPw((v) => !v)}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-nuanu-gray-400"
+                    >
+                      {showNewPw ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black text-nuanu-gray-500 uppercase tracking-widest mb-1.5">
+                    Confirm Password
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showNewPwConfirm ? "text" : "password"}
+                      required
+                      placeholder="Re-enter password"
+                      className={`input-field py-2.5 pr-9 ${
+                        newPasswordConfirm && newPasswordConfirm !== newPassword
+                          ? "border-red-400"
+                          : newPasswordConfirm &&
+                              newPasswordConfirm === newPassword
+                            ? "border-emerald-400"
+                            : ""
+                      }`}
+                      value={newPasswordConfirm}
+                      onChange={(e) => setNewPasswordConfirm(e.target.value)}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPwConfirm((v) => !v)}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-nuanu-gray-400"
+                    >
+                      {showNewPwConfirm ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
+                  {newPasswordConfirm && newPasswordConfirm !== newPassword && (
+                    <p className="text-[10px] text-red-500 font-bold mt-1">
+                      Passwords do not match
+                    </p>
+                  )}
+                </div>
+                <div className="pt-2 flex justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setChangePwUser(null)}
+                    className="px-4 py-2 text-xs font-bold text-nuanu-gray-500"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={
+                      isChangingPw ||
+                      !newPassword ||
+                      newPassword !== newPasswordConfirm
+                    }
+                    className="btn-primary py-2 px-5 text-xs"
+                  >
+                    {isChangingPw ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />{" "}
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Check className="w-3.5 h-3.5" /> Save Password
                       </>
                     )}
                   </button>
