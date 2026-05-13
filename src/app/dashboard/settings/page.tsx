@@ -1113,42 +1113,64 @@ export default function SettingsPage() {
                     </div>
 
                     {/* JobStreet Card */}
-                    <div className="p-5 bg-white rounded-2xl border-2 border-indigo-50 shadow-sm hover:border-indigo-200 transition-all">
+                    {/* JobStreet Smart Post Card */}
+                    <div className="p-5 bg-white rounded-2xl border-2 border-rose-50 shadow-sm hover:border-rose-200 transition-all">
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-indigo-900 text-white flex items-center justify-center font-black text-xs italic">
-                            SEEK
+                          <div className="w-10 h-10 rounded-xl bg-[#E60278] text-white flex items-center justify-center font-black text-xs italic">
+                            JS
                           </div>
                           <div>
                             <h3 className="font-bold text-nuanu-navy text-sm">
                               JobStreet / SEEK
                             </h3>
                             <p className="text-[10px] text-nuanu-gray-400 uppercase font-black">
-                              API Integration
+                              Smart Post Integration
                             </p>
                           </div>
                         </div>
-                        <span className="badge bg-nuanu-gray-100 text-nuanu-gray-500 text-[10px]">
-                          Disabled
+                        <span className="badge bg-emerald-100 text-emerald-700 text-[10px]">
+                          Active
                         </span>
                       </div>
                       <div className="space-y-3">
-                        <input
-                          type="password"
-                          placeholder="API Key"
-                          className="input-field py-1.5 text-xs"
-                        />
-                        <div className="pt-2">
+                        <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-100">
+                          <p className="text-[11px] font-bold text-emerald-700 flex items-center gap-1.5">
+                            ✅ Smart Post Ready — No API Key Required
+                          </p>
+                          <p className="text-[10px] text-emerald-600 mt-1">
+                            Use our guided Smart Post feature from any job card
+                            to post directly to JobStreet.
+                          </p>
+                        </div>
+
+                        <div className="p-3 bg-amber-50 rounded-xl border border-amber-100">
+                          <p className="text-[11px] font-bold text-amber-700 flex items-center gap-1.5">
+                            🔑 Want Full API Automation?
+                          </p>
+                          <p className="text-[10px] text-amber-600 mt-1">
+                            SEEK API partnership gives you automatic job
+                            posting. Apply takes 4–8 weeks.
+                          </p>
+                        </div>
+
+                        <a
+                          href="https://talent.seek.com.au/partners/how-to-integrate"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="w-full py-2 bg-[#E60278]/10 text-[#E60278] rounded-lg text-[10px] font-bold border border-[#E60278]/20 flex items-center justify-center gap-2 hover:bg-[#E60278]/20 transition-colors"
+                        >
+                          Apply for SEEK Partnership →
+                        </a>
+
+                        <div className="pt-1">
                           <p className="text-[10px] font-bold text-nuanu-gray-400 uppercase mb-1">
-                            Application Webhook
+                            Application Webhook (for when approved)
                           </p>
                           <code className="block p-2 bg-nuanu-gray-50 rounded text-[9px] text-nuanu-navy break-all border border-nuanu-gray-100">
-                            https://nuanu-ats.app/api/webhooks/jobstreet
+                            https://nuanu-hr-recruitment-ats.vercel.app/api/webhooks/jobstreet
                           </code>
                         </div>
-                        <button className="w-full py-2 bg-indigo-50 text-indigo-700 rounded-lg text-[10px] font-bold border border-indigo-100">
-                          Configure Mapping
-                        </button>
                       </div>
                     </div>
                   </div>

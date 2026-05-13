@@ -17,6 +17,9 @@ const getCachedJobsData = unstable_cache(
             where: { currentStage: "hired" },
             select: { id: true },
           },
+          jobPostings: {
+            select: { channel: true, status: true, externalUrl: true },
+          },
         },
         orderBy: { createdAt: "desc" },
       }),
