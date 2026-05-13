@@ -66,6 +66,8 @@ export type DashboardMetrics = {
     position: string;
     type: string;
     status: string;
+    scheduledAt: string;
+    location: string;
   }[];
   changes: {
     vacancies: string;
@@ -592,35 +594,59 @@ export default function DashboardClient({
             <h3 className="text-base font-bold text-nuanu-navy mb-4">
               Upcoming Interviews
             </h3>
-            <div className="space-y-3">
-              {metrics.upcomingInterviews.slice(0, 3).map((interview) => (
-                <div
-                  key={interview.id}
-                  className="flex items-center gap-3 p-2 rounded-lg hover:bg-nuanu-gray-50 transition-colors"
-                >
-                  <div className="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center flex-shrink-0">
-                    <Calendar className="w-4 h-4" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-nuanu-navy truncate">
-                      {interview.candidateName}
-                    </p>
-                    <p className="text-xs text-nuanu-gray-400 truncate">
-                      {interview.position}
-                    </p>
-                  </div>
-                  <span
-                    className={`badge ${
-                      interview.status === "confirmed"
-                        ? "bg-emerald-100 text-emerald-700"
-                        : "bg-blue-100 text-blue-700"
-                    }`}
-                  >
-                    {interview.type}
-                  </span>
-                </div>
-              ))}
-            </div>
+            {metrics.upcomingInterviews.length === 0 ? (
+              <p className="text-xs text-nuanu-gray-400 text-center py-4">
+                No upcoming interviews scheduled.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {metrics.upcomingInterviews.slice(0, 5).map((interview) => {
+                  const dt = new Date(interview.scheduledAt);
+                  const dateLabel = dt.toLocaleDateString("en-ID", {
+                    month: "short",
+                    day: "numeric",
+                  });
+                  const timeLabel = dt.toLocaleTimeString("en-ID", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    hour12: true,
+                  });
+                  return (
+                    <div
+                      key={interview.id}
+                      className="flex items-start gap-3 p-2 rounded-lg hover:bg-nuanu-gray-50 transition-colors"
+                    >
+                      <div className="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <Calendar className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-nuanu-navy truncate">
+                          {interview.candidateName}
+                        </p>
+                        <p className="text-xs text-nuanu-gray-400 truncate">
+                          {interview.position}
+                        </p>
+                        <p className="text-xs text-indigo-500 font-semibold mt-0.5">
+                          {dateLabel} · {timeLabel}
+                        </p>
+                        <p className="text-xs text-nuanu-gray-400 truncate">
+                          {interview.location}
+                        </p>
+                      </div>
+                      <span
+                        className={`badge shrink-0 ${
+                          interview.status === "confirmed"
+                            ? "bg-emerald-100 text-emerald-700"
+                            : "bg-blue-100 text-blue-700"
+                        }`}
+                      >
+                        {interview.type}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </motion.div>
       </div>

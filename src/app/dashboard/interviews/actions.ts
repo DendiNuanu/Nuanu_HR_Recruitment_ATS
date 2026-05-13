@@ -9,6 +9,7 @@ import {
 } from "@/lib/google-calendar";
 import { sendEmail } from "@/lib/email";
 import { checkRole } from "@/lib/rbac";
+import { sendTelegramNotification } from "@/lib/telegram";
 
 export async function scheduleInterview(data: {
   applicationId: string;
@@ -141,6 +142,51 @@ export async function scheduleInterview(data: {
         },
       });
     }
+
+    // Send Telegram notification (fire-and-forget)
+    Promise.resolve().then(async () => {
+      try {
+        const candidateName = interview.application.candidate.name;
+        const vacancyTitle =
+          (
+            await prisma.vacancy.findUnique({
+              where: { id: interview.application.vacancyId },
+            })
+          )?.title ?? "Unknown Position";
+        const scheduledDate = new Date(data.scheduledAt);
+        const dateStr = scheduledDate.toLocaleDateString("en-US", {
+          month: "long",
+          day: "numeric",
+          year: "numeric",
+          timeZone: "Asia/Jakarta",
+        });
+        const timeStr = scheduledDate.toLocaleTimeString("en-US", {
+          hour: "numeric",
+          minute: "2-digit",
+          hour12: true,
+          timeZone: "Asia/Jakarta",
+        });
+        const msg = [
+          "🔔 <b>New Interview Scheduled</b>",
+          "",
+          `👤 Candidate: ${candidateName}`,
+          `💼 Position: ${vacancyTitle}`,
+          `📅 Date: ${dateStr}`,
+          `⏰ Time: ${timeStr} WIB`,
+          `📍 Location: ${data.location}`,
+          googleEvent?.meetingLink
+            ? `🔗 Meeting: ${googleEvent.meetingLink}`
+            : "",
+          "",
+          "<i>Nuanu HR Recruitment ATS</i>",
+        ]
+          .filter(Boolean)
+          .join("\n");
+        await sendTelegramNotification(msg);
+      } catch {
+        // Swallow — Telegram must never break interview scheduling
+      }
+    });
 
     revalidatePath("/dashboard/interviews");
     revalidatePath("/dashboard/candidates");
@@ -353,6 +399,36 @@ export async function cancelInterview(interviewId: string) {
         interview.googleEventId,
       );
     }
+
+    // Send Telegram notification (fire-and-forget)
+    Promise.resolve().then(async () => {
+      try {
+        const candidateName =
+          (
+            await prisma.user.findUnique({
+              where: { id: interview.application.candidateId },
+            })
+          )?.name ?? "Unknown Candidate";
+        const vacancyTitle =
+          (
+            await prisma.vacancy.findUnique({
+              where: { id: interview.application.vacancyId },
+            })
+          )?.title ?? "Unknown Position";
+        const msg = [
+          "❌ <b>Interview Cancelled</b>",
+          "",
+          `👤 Candidate: ${candidateName}`,
+          `💼 Position: ${vacancyTitle}`,
+          `📅 Was scheduled: ${interview.scheduledAt.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "Asia/Jakarta" })}`,
+          "",
+          "<i>Nuanu HR Recruitment ATS</i>",
+        ].join("\n");
+        await sendTelegramNotification(msg);
+      } catch {
+        // Swallow — Telegram must never break interview cancellation
+      }
+    });
 
     revalidatePath("/dashboard/interviews");
     return { success: true };

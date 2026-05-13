@@ -96,6 +96,32 @@ export default function Header() {
     if (res) setNotifications(res);
   };
 
+  // Poll notifications every 30 seconds (only when logged in)
+  useEffect(() => {
+    const userId = (() => {
+      try {
+        return JSON.parse(localStorage.getItem("nuanu_user") || "{}").id;
+      } catch {
+        return null;
+      }
+    })();
+    if (!userId) return;
+
+    // Initial fetch on mount — populates the unread badge immediately
+    getNotifications(userId).then((res) => {
+      if (res) setNotifications(res);
+    });
+
+    // Re-fetch every 30 seconds
+    const interval = setInterval(() => {
+      getNotifications(userId).then((res) => {
+        if (res) setNotifications(res);
+      });
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   useEffect(() => {
     // Close dropdowns on outside click
     const handleClickOutside = (event: MouseEvent) => {
@@ -121,12 +147,6 @@ export default function Header() {
     };
   }, []);
 
-  useEffect(() => {
-    if (showNotifications && notifications.length === 0) {
-      fetchNotifications();
-    }
-  }, [showNotifications]);
-
   const handleMarkRead = async (id: string) => {
     markAsRead(id);
     await markNotificationAsRead(id);
@@ -134,7 +154,14 @@ export default function Header() {
 
   const handleMarkAllRead = async () => {
     markAllAsRead();
-    await markAllNotificationsAsRead("");
+    const userId = (() => {
+      try {
+        return JSON.parse(localStorage.getItem("nuanu_user") || "{}").id ?? "";
+      } catch {
+        return "";
+      }
+    })();
+    await markAllNotificationsAsRead(userId);
   };
 
   const breadcrumbs = pathname.split("/").filter(Boolean);

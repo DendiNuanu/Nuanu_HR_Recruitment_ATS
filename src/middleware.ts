@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 import { jwtVerify } from "jose";
 
 const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || "nuanu-hr-secret-key-2026"
+  process.env.JWT_SECRET || "nuanu-hr-secret-key-2026",
 );
 
 export async function middleware(request: NextRequest) {
@@ -12,10 +12,12 @@ export async function middleware(request: NextRequest) {
 
   // 1. Allow public routes
   if (
-    pathname === "/login" || 
-    pathname.startsWith("/careers") || 
+    pathname === "/login" ||
+    pathname.startsWith("/careers") ||
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/api/careers") ||
+    pathname.startsWith("/api/telegram") ||
+    pathname.startsWith("/api/apply") ||
     pathname === "/"
   ) {
     return NextResponse.next();
@@ -44,8 +46,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    "/dashboard/:path*",
-    "/api/:path*",
-  ],
+  matcher: ["/dashboard/:path*", "/api/:path*"],
 };

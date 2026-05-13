@@ -1,9 +1,32 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Calendar as CalendarIcon, Clock, ChevronLeft, ChevronRight, Check, X, RotateCcw } from "lucide-react";
+import {
+  Calendar as CalendarIcon,
+  Clock,
+  ChevronLeft,
+  ChevronRight,
+  Check,
+  X,
+  RotateCcw,
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { format, addMonths, subMonths, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSameDay, isSameMonth, setHours, setMinutes, parseISO, isValid } from "date-fns";
+import {
+  format,
+  addMonths,
+  subMonths,
+  startOfMonth,
+  endOfMonth,
+  startOfWeek,
+  endOfWeek,
+  addDays,
+  isSameDay,
+  isSameMonth,
+  setHours,
+  setMinutes,
+  parseISO,
+  isValid,
+} from "date-fns";
 
 interface DateTimePickerProps {
   value: string;
@@ -11,7 +34,11 @@ interface DateTimePickerProps {
   label?: string;
 }
 
-export default function DateTimePicker({ value, onChange, label }: DateTimePickerProps) {
+export default function DateTimePicker({
+  value,
+  onChange,
+  label,
+}: DateTimePickerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const containerRef = useRef<HTMLDivElement>(null);
@@ -24,13 +51,13 @@ export default function DateTimePicker({ value, onChange, label }: DateTimePicke
   };
 
   const selectedDate = parseValue(value);
-  
+
   // Local state for the picker before "Saving"
   const [tempDate, setTempDate] = useState(selectedDate);
   const [tempTime, setTempTime] = useState({
     hours: selectedDate.getHours() % 12 || 12,
     minutes: Math.floor(selectedDate.getMinutes() / 5) * 5,
-    ampm: selectedDate.getHours() >= 12 ? "PM" : "AM"
+    ampm: selectedDate.getHours() >= 12 ? "PM" : "AM",
   });
 
   useEffect(() => {
@@ -40,14 +67,17 @@ export default function DateTimePicker({ value, onChange, label }: DateTimePicke
       setTempTime({
         hours: d.getHours() % 12 || 12,
         minutes: Math.floor(d.getMinutes() / 5) * 5,
-        ampm: d.getHours() >= 12 ? "PM" : "AM"
+        ampm: d.getHours() >= 12 ? "PM" : "AM",
       });
     }
   }, [value, isOpen]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
       }
     }
@@ -60,16 +90,15 @@ export default function DateTimePicker({ value, onChange, label }: DateTimePicke
     let hours = tempTime.hours;
     if (tempTime.ampm === "PM" && hours < 12) hours += 12;
     if (tempTime.ampm === "AM" && hours === 12) hours = 0;
-    
+
     finalDate.setHours(hours);
     finalDate.setMinutes(tempTime.minutes);
     finalDate.setSeconds(0);
     finalDate.setMilliseconds(0);
-    
-    // Format to ISO string for datetime-local compatibility (YYYY-MM-DDTHH:mm)
-    const offset = finalDate.getTimezoneOffset();
-    const adjustedDate = new Date(finalDate.getTime() - (offset * 60 * 1000));
-    onChange(adjustedDate.toISOString().slice(0, 16));
+
+    // Pass a true UTC ISO string. The server stores UTC and all display
+    // sites use new Date(value) / toLocaleString() which converts UTC → local.
+    onChange(finalDate.toISOString());
     setIsOpen(false);
   };
 
@@ -79,7 +108,7 @@ export default function DateTimePicker({ value, onChange, label }: DateTimePicke
     setTempTime({
       hours: now.getHours() % 12 || 12,
       minutes: Math.floor(now.getMinutes() / 5) * 5,
-      ampm: now.getHours() >= 12 ? "PM" : "AM"
+      ampm: now.getHours() >= 12 ? "PM" : "AM",
     });
     setCurrentMonth(now);
   };
@@ -106,9 +135,11 @@ export default function DateTimePicker({ value, onChange, label }: DateTimePicke
           <div
             key={day.toString()}
             className={`w-9 h-9 flex items-center justify-center text-sm cursor-pointer rounded-xl transition-all relative ${
-              !isCurrentMonth ? "text-gray-300 opacity-50" : 
-              isSelected ? "bg-emerald-600 text-white font-bold shadow-lg shadow-emerald-600/30" : 
-              "hover:bg-emerald-50 hover:text-emerald-700 text-nuanu-navy"
+              !isCurrentMonth
+                ? "text-gray-300 opacity-50"
+                : isSelected
+                  ? "bg-emerald-600 text-white font-bold shadow-lg shadow-emerald-600/30"
+                  : "hover:bg-emerald-50 hover:text-emerald-700 text-nuanu-navy"
             }`}
             onClick={() => setTempDate(cloneDay)}
           >
@@ -116,14 +147,14 @@ export default function DateTimePicker({ value, onChange, label }: DateTimePicke
             {isToday && !isSelected && (
               <div className="absolute bottom-1 w-1 h-1 bg-emerald-500 rounded-full" />
             )}
-          </div>
+          </div>,
         );
         day = addDays(day, 1);
       }
       rows.push(
         <div className="grid grid-cols-7 gap-1" key={day.toString()}>
           {days}
-        </div>
+        </div>,
       );
       days = [];
     }
@@ -132,23 +163,41 @@ export default function DateTimePicker({ value, onChange, label }: DateTimePicke
 
   return (
     <div className="relative" ref={containerRef}>
-      {label && <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">{label}</label>}
+      {label && (
+        <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">
+          {label}
+        </label>
+      )}
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className={`w-full flex items-center justify-between input-field py-3 px-4 transition-all duration-300 ${
-          isOpen ? "ring-2 ring-emerald-500 border-emerald-500 bg-emerald-50/10" : "bg-white border-gray-200"
+          isOpen
+            ? "ring-2 ring-emerald-500 border-emerald-500 bg-emerald-50/10"
+            : "bg-white border-gray-200"
         }`}
       >
         <div className="flex items-center gap-3">
-          <div className={`p-2 rounded-lg transition-colors ${isOpen ? "bg-emerald-100 text-emerald-600" : "bg-gray-100 text-gray-400"}`}>
+          <div
+            className={`p-2 rounded-lg transition-colors ${isOpen ? "bg-emerald-100 text-emerald-600" : "bg-gray-100 text-gray-400"}`}
+          >
             <CalendarIcon className="w-4 h-4" />
           </div>
-          <span className={value ? "text-nuanu-navy font-bold text-sm" : "text-gray-400 font-medium"}>
-            {value ? format(parseISO(value), "EEE, MMM d, yyyy • hh:mm a") : "Choose Date & Time"}
+          <span
+            className={
+              value
+                ? "text-nuanu-navy font-bold text-sm"
+                : "text-gray-400 font-medium"
+            }
+          >
+            {value
+              ? format(new Date(value), "EEE, MMM d, yyyy • hh:mm a")
+              : "Choose Date & Time"}
           </span>
         </div>
-        <Clock className={`w-4 h-4 transition-transform duration-300 ${isOpen ? "rotate-180 text-emerald-500" : "text-gray-400"}`} />
+        <Clock
+          className={`w-4 h-4 transition-transform duration-300 ${isOpen ? "rotate-180 text-emerald-500" : "text-gray-400"}`}
+        />
       </button>
 
       <AnimatePresence>
@@ -163,19 +212,23 @@ export default function DateTimePicker({ value, onChange, label }: DateTimePicke
             {/* Popover Header */}
             <div className="flex items-center justify-between mb-6">
               <div className="flex flex-col">
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">Select Schedule</span>
-                <h3 className="font-extrabold text-nuanu-navy text-lg">{format(currentMonth, "MMMM yyyy")}</h3>
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">
+                  Select Schedule
+                </span>
+                <h3 className="font-extrabold text-nuanu-navy text-lg">
+                  {format(currentMonth, "MMMM yyyy")}
+                </h3>
               </div>
               <div className="flex gap-2">
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
                   className="p-2 hover:bg-gray-100 rounded-xl text-nuanu-navy transition-colors"
                 >
                   <ChevronLeft className="w-5 h-5" />
                 </button>
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
                   className="p-2 hover:bg-gray-100 rounded-xl text-nuanu-navy transition-colors"
                 >
@@ -186,26 +239,29 @@ export default function DateTimePicker({ value, onChange, label }: DateTimePicke
 
             {/* Weekdays */}
             <div className="grid grid-cols-7 gap-1 mb-3">
-              {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map(d => (
-                <div key={d} className="w-9 text-center text-[10px] font-black text-gray-300 uppercase">
+              {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((d) => (
+                <div
+                  key={d}
+                  className="w-9 text-center text-[10px] font-black text-gray-300 uppercase"
+                >
                   {d}
                 </div>
               ))}
             </div>
 
             {/* Days Grid */}
-            <div className="mb-6">
-              {renderCalendar()}
-            </div>
+            <div className="mb-6">{renderCalendar()}</div>
 
             {/* Time Selector Area */}
             <div className="bg-nuanu-gray-50 rounded-2xl p-4 border border-nuanu-gray-100 mb-6">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <Clock className="w-4 h-4 text-emerald-600" />
-                  <span className="text-xs font-bold text-nuanu-navy uppercase tracking-wider">Set Interview Time</span>
+                  <span className="text-xs font-bold text-nuanu-navy uppercase tracking-wider">
+                    Set Interview Time
+                  </span>
                 </div>
-                <button 
+                <button
                   type="button"
                   onClick={handleReset}
                   className="text-[10px] font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
@@ -213,44 +269,68 @@ export default function DateTimePicker({ value, onChange, label }: DateTimePicke
                   <RotateCcw className="w-3 h-3" /> Reset to Now
                 </button>
               </div>
-              
+
               <div className="flex items-center justify-center gap-4">
                 <div className="flex flex-col items-center">
-                  <select 
+                  <select
                     value={tempTime.hours}
-                    onChange={e => setTempTime({...tempTime, hours: parseInt(e.target.value)})}
+                    onChange={(e) =>
+                      setTempTime({
+                        ...tempTime,
+                        hours: parseInt(e.target.value),
+                      })
+                    }
                     className="appearance-none bg-white border-2 border-transparent hover:border-emerald-200 rounded-xl py-2 px-3 text-lg font-black text-nuanu-navy text-center focus:ring-0 focus:border-emerald-500 outline-none transition-all shadow-sm cursor-pointer"
                   >
-                    {Array.from({length: 12}, (_, i) => i + 1).map(h => (
-                      <option key={h} value={h}>{h.toString().padStart(2, '0')}</option>
+                    {Array.from({ length: 12 }, (_, i) => i + 1).map((h) => (
+                      <option key={h} value={h}>
+                        {h.toString().padStart(2, "0")}
+                      </option>
                     ))}
                   </select>
-                  <span className="text-[9px] font-bold text-gray-400 uppercase mt-1">Hours</span>
+                  <span className="text-[9px] font-bold text-gray-400 uppercase mt-1">
+                    Hours
+                  </span>
                 </div>
-                
-                <span className="text-xl font-black text-gray-300 -mt-5">:</span>
-                
+
+                <span className="text-xl font-black text-gray-300 -mt-5">
+                  :
+                </span>
+
                 <div className="flex flex-col items-center">
-                  <select 
+                  <select
                     value={tempTime.minutes}
-                    onChange={e => setTempTime({...tempTime, minutes: parseInt(e.target.value)})}
+                    onChange={(e) =>
+                      setTempTime({
+                        ...tempTime,
+                        minutes: parseInt(e.target.value),
+                      })
+                    }
                     className="appearance-none bg-white border-2 border-transparent hover:border-emerald-200 rounded-xl py-2 px-3 text-lg font-black text-nuanu-navy text-center focus:ring-0 focus:border-emerald-500 outline-none transition-all shadow-sm cursor-pointer"
                   >
-                    {Array.from({length: 12}, (_, i) => i * 5).map(m => (
-                      <option key={m} value={m}>{m.toString().padStart(2, '0')}</option>
+                    {Array.from({ length: 12 }, (_, i) => i * 5).map((m) => (
+                      <option key={m} value={m}>
+                        {m.toString().padStart(2, "0")}
+                      </option>
                     ))}
                   </select>
-                  <span className="text-[9px] font-bold text-gray-400 uppercase mt-1">Mins</span>
+                  <span className="text-[9px] font-bold text-gray-400 uppercase mt-1">
+                    Mins
+                  </span>
                 </div>
 
                 <div className="flex flex-col items-center gap-1.5 ml-2">
-                  {["AM", "PM"].map(p => (
+                  {["AM", "PM"].map((p) => (
                     <button
                       key={p}
                       type="button"
-                      onClick={() => setTempTime({...tempTime, ampm: p as "AM" | "PM"})}
+                      onClick={() =>
+                        setTempTime({ ...tempTime, ampm: p as "AM" | "PM" })
+                      }
                       className={`px-3 py-1 text-[10px] font-black rounded-lg transition-all ${
-                        tempTime.ampm === p ? "bg-nuanu-navy text-white shadow-md scale-110" : "bg-white text-gray-400 hover:bg-gray-100"
+                        tempTime.ampm === p
+                          ? "bg-nuanu-navy text-white shadow-md scale-110"
+                          : "bg-white text-gray-400 hover:bg-gray-100"
                       }`}
                     >
                       {p}
@@ -274,7 +354,7 @@ export default function DateTimePicker({ value, onChange, label }: DateTimePicke
                 onClick={handleSave}
                 className="py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-xl shadow-emerald-600/20 active:scale-95 group"
               >
-                <Check className="w-4 h-4 group-hover:scale-125 transition-transform" /> 
+                <Check className="w-4 h-4 group-hover:scale-125 transition-transform" />
                 APPLY SCHEDULE
               </button>
             </div>

@@ -69,12 +69,19 @@ const getDashboardMetrics = unstable_cache(
         take: 4,
       }),
       prisma.interview.findMany({
-        where: { scheduledAt: { gte: now } },
+        where: {
+          status: { in: ["scheduled", "confirmed"] },
+          // Include from 24 hours ago to handle timezone edge cases where a
+          // server UTC "now" might fall slightly ahead of WIB-based entries.
+          scheduledAt: {
+            gte: new Date(Date.now() - 24 * 60 * 60 * 1000),
+          },
+        },
         include: {
           application: { include: { candidate: true, vacancy: true } },
         },
         orderBy: { scheduledAt: "asc" },
-        take: 3,
+        take: 5,
       }),
       prisma.vacancy.count({ where: { createdAt: { gte: thirtyDaysAgo } } }),
       prisma.offer.count({ where: { createdAt: { gte: thirtyDaysAgo } } }),
@@ -252,6 +259,8 @@ const getDashboardMetrics = unstable_cache(
       position: i.application.vacancy.title,
       type: i.type.charAt(0).toUpperCase() + i.type.slice(1),
       status: i.status,
+      scheduledAt: i.scheduledAt.toISOString(),
+      location: i.location || "Remote",
     }));
 
     const changes = {
@@ -283,7 +292,7 @@ const getDashboardMetrics = unstable_cache(
     };
   },
   ["dashboard-metrics"],
-  { revalidate: 300, tags: ["dashboard"] },
+  { revalidate: 30, tags: ["dashboard", "interviews"] },
 );
 
 export default async function DashboardPage() {
