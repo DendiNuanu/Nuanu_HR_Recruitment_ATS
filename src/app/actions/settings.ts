@@ -477,6 +477,231 @@ export async function createUser(data: {
   }
 }
 
+// ─── Role Management Actions ──────────────────────────────────────────────────
+
+export async function createRole(data: {
+  name: string;
+  slug: string;
+  description?: string;
+}) {
+  try {
+    const session = await getSession();
+    if (
+      !session ||
+      (!session.roles.includes("admin") &&
+        !session.roles.includes("super-admin"))
+    ) {
+      return { success: false, error: "Unauthorized" };
+    }
+
+    if (!data.name?.trim() || !data.slug?.trim()) {
+      return { success: false, error: "Name and slug are required" };
+    }
+
+    await prisma.role.create({
+      data: {
+        name: data.name.trim(),
+        slug: data.slug.trim().toLowerCase(),
+        description: data.description?.trim() || null,
+        isSystem: false,
+      },
+    });
+
+    revalidatePath("/dashboard/settings");
+    return { success: true };
+  } catch (error: any) {
+    console.error("Failed to create role:", error);
+    if (error?.code === "P2002") {
+      return {
+        success: false,
+        error: "A role with this name or slug already exists",
+      };
+    }
+    return { success: false, error: error?.message ?? "Failed to create role" };
+  }
+}
+
+export async function updateRole(
+  roleId: string,
+  data: { name: string; description?: string },
+) {
+  try {
+    const session = await getSession();
+    if (
+      !session ||
+      (!session.roles.includes("admin") &&
+        !session.roles.includes("super-admin"))
+    ) {
+      return { success: false, error: "Unauthorized" };
+    }
+
+    const role = await prisma.role.findUnique({ where: { id: roleId } });
+    if (!role) return { success: false, error: "Role not found" };
+    if (role.isSystem)
+      return { success: false, error: "System roles cannot be edited" };
+
+    await prisma.role.update({
+      where: { id: roleId },
+      data: {
+        name: data.name.trim(),
+        description: data.description?.trim() || null,
+        updatedAt: new Date(),
+      },
+    });
+
+    revalidatePath("/dashboard/settings");
+    return { success: true };
+  } catch (error: any) {
+    console.error("Failed to update role:", error);
+    if (error?.code === "P2002") {
+      return { success: false, error: "A role with this name already exists" };
+    }
+    return { success: false, error: error?.message ?? "Failed to update role" };
+  }
+}
+
+export async function deleteRole(roleId: string) {
+  try {
+    const session = await getSession();
+    if (
+      !session ||
+      (!session.roles.includes("admin") &&
+        !session.roles.includes("super-admin"))
+    ) {
+      return { success: false, error: "Unauthorized" };
+    }
+
+    const role = await prisma.role.findUnique({ where: { id: roleId } });
+    if (!role) return { success: false, error: "Role not found" };
+    if (role.isSystem)
+      return { success: false, error: "System roles cannot be deleted" };
+
+    await prisma.role.delete({ where: { id: roleId } });
+
+    revalidatePath("/dashboard/settings");
+    return { success: true };
+  } catch (error: any) {
+    console.error("Failed to delete role:", error);
+    return { success: false, error: error?.message ?? "Failed to delete role" };
+  }
+}
+
+// ─── Department Management Actions ────────────────────────────────────────────
+
+export async function createDepartment(data: {
+  name: string;
+  code: string;
+  description?: string;
+}) {
+  try {
+    const session = await getSession();
+    if (
+      !session ||
+      (!session.roles.includes("admin") &&
+        !session.roles.includes("super-admin"))
+    ) {
+      return { success: false, error: "Unauthorized" };
+    }
+
+    if (!data.name?.trim() || !data.code?.trim()) {
+      return { success: false, error: "Name and code are required" };
+    }
+
+    await prisma.department.create({
+      data: {
+        name: data.name.trim(),
+        code: data.code.trim().toUpperCase(),
+        description: data.description?.trim() || null,
+        isActive: true,
+      },
+    });
+
+    revalidatePath("/dashboard/settings");
+    return { success: true };
+  } catch (error: any) {
+    console.error("Failed to create department:", error);
+    if (error?.code === "P2002") {
+      return {
+        success: false,
+        error: "A department with this name or code already exists",
+      };
+    }
+    return {
+      success: false,
+      error: error?.message ?? "Failed to create department",
+    };
+  }
+}
+
+export async function updateDepartment(
+  id: string,
+  data: { name: string; code: string; description?: string },
+) {
+  try {
+    const session = await getSession();
+    if (
+      !session ||
+      (!session.roles.includes("admin") &&
+        !session.roles.includes("super-admin"))
+    ) {
+      return { success: false, error: "Unauthorized" };
+    }
+
+    await prisma.department.update({
+      where: { id },
+      data: {
+        name: data.name.trim(),
+        code: data.code.trim().toUpperCase(),
+        description: data.description?.trim() || null,
+        updatedAt: new Date(),
+      },
+    });
+
+    revalidatePath("/dashboard/settings");
+    return { success: true };
+  } catch (error: any) {
+    console.error("Failed to update department:", error);
+    if (error?.code === "P2002") {
+      return {
+        success: false,
+        error: "A department with this name or code already exists",
+      };
+    }
+    return {
+      success: false,
+      error: error?.message ?? "Failed to update department",
+    };
+  }
+}
+
+export async function deleteDepartment(id: string) {
+  try {
+    const session = await getSession();
+    if (
+      !session ||
+      (!session.roles.includes("admin") &&
+        !session.roles.includes("super-admin"))
+    ) {
+      return { success: false, error: "Unauthorized" };
+    }
+
+    // Soft delete: mark as inactive
+    await prisma.department.update({
+      where: { id },
+      data: { isActive: false, deletedAt: new Date() },
+    });
+
+    revalidatePath("/dashboard/settings");
+    return { success: true };
+  } catch (error: any) {
+    console.error("Failed to delete department:", error);
+    return {
+      success: false,
+      error: error?.message ?? "Failed to delete department",
+    };
+  }
+}
+
 /**
  * Change a user's password (admin action — no old password required).
  */

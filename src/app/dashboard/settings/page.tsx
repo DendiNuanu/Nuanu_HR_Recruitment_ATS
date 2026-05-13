@@ -49,6 +49,12 @@ import {
   sendTestEmail,
   createUser,
   changeUserPassword,
+  createRole,
+  updateRole,
+  deleteRole,
+  createDepartment,
+  updateDepartment,
+  deleteDepartment,
 } from "@/app/actions/settings";
 import { getDepartments } from "@/app/actions/departments";
 import ConfirmModal from "@/components/ui/ConfirmModal";
@@ -137,6 +143,38 @@ export default function SettingsPage() {
   const [showNewPw, setShowNewPw] = useState(false);
   const [showNewPwConfirm, setShowNewPwConfirm] = useState(false);
   const [isChangingPw, setIsChangingPw] = useState(false);
+
+  // Roles management state
+  const [rolesExpanded, setRolesExpanded] = useState(false);
+  const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
+  const [newRoleData, setNewRoleData] = useState({ name: "", description: "" });
+  const [isCreatingRole, setIsCreatingRole] = useState(false);
+  const [editingRole, setEditingRole] = useState<any | null>(null);
+  const [editRoleData, setEditRoleData] = useState({
+    name: "",
+    description: "",
+  });
+  const [isEditRoleSaving, setIsEditRoleSaving] = useState(false);
+  const [deleteConfirmRole, setDeleteConfirmRole] = useState<any | null>(null);
+  const [isDeletingRole, setIsDeletingRole] = useState(false);
+
+  // Departments management state
+  const [isDeptModalOpen, setIsDeptModalOpen] = useState(false);
+  const [newDeptData, setNewDeptData] = useState({
+    name: "",
+    code: "",
+    description: "",
+  });
+  const [isCreatingDept, setIsCreatingDept] = useState(false);
+  const [editingDept, setEditingDept] = useState<any | null>(null);
+  const [editDeptData, setEditDeptData] = useState({
+    name: "",
+    code: "",
+    description: "",
+  });
+  const [isEditDeptSaving, setIsEditDeptSaving] = useState(false);
+  const [deleteConfirmDept, setDeleteConfirmDept] = useState<any | null>(null);
+  const [isDeletingDept, setIsDeletingDept] = useState(false);
 
   // Show success/error toast after Google Calendar OAuth redirect.
   // Reading window.location.search avoids useSearchParams + Suspense requirement.
@@ -264,6 +302,9 @@ export default function SettingsPage() {
   const tabs = [
     { id: "general", label: "General Information", icon: Building },
     ...(isAdmin ? [{ id: "users", label: "Users & Roles", icon: Users }] : []),
+    ...(isAdmin
+      ? [{ id: "departments", label: "Departments", icon: Building }]
+      : []),
     { id: "notifications", label: "Notifications", icon: Bell },
     { id: "security", label: "Security", icon: Shield },
     { id: "integrations", label: "Integrations", icon: Webhook },
@@ -642,6 +683,231 @@ export default function SettingsPage() {
                             className="text-center py-12 text-nuanu-gray-400 italic"
                           >
                             No users found.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* ─── Roles Section ─────────────────────────────────────── */}
+                <div className="border-t border-nuanu-gray-100 pt-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <button
+                      onClick={() => setRolesExpanded((v) => !v)}
+                      className="flex items-center gap-2 text-sm font-black text-nuanu-navy uppercase tracking-widest hover:text-nuanu-emerald transition-colors"
+                    >
+                      <Shield className="w-4 h-4" />
+                      Roles Management
+                      <span className="text-[10px] bg-nuanu-gray-100 text-nuanu-gray-500 px-2 py-0.5 rounded-full">
+                        {roles.length}
+                      </span>
+                      <span className="text-nuanu-gray-400 text-xs">
+                        {rolesExpanded ? "▲" : "▼"}
+                      </span>
+                    </button>
+                    {rolesExpanded && (
+                      <button
+                        onClick={() => {
+                          setNewRoleData({ name: "", description: "" });
+                          setIsRoleModalOpen(true);
+                        }}
+                        className="btn-secondary text-xs py-1.5 px-3"
+                      >
+                        <Plus className="w-3.5 h-3.5" /> New Role
+                      </button>
+                    )}
+                  </div>
+
+                  {rolesExpanded && (
+                    <div className="overflow-x-auto">
+                      <table className="data-table">
+                        <thead>
+                          <tr>
+                            <th>Name</th>
+                            <th>Slug</th>
+                            <th>Description</th>
+                            <th>Type</th>
+                            <th className="text-right">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {roles.map((role) => (
+                            <tr key={role.id}>
+                              <td className="font-medium text-nuanu-navy">
+                                {role.name}
+                              </td>
+                              <td>
+                                <code className="text-[11px] bg-nuanu-gray-50 border border-nuanu-gray-100 px-2 py-0.5 rounded text-nuanu-gray-600">
+                                  {role.slug}
+                                </code>
+                              </td>
+                              <td className="text-sm text-nuanu-gray-500">
+                                {role.description || "—"}
+                              </td>
+                              <td>
+                                <span
+                                  className={`badge text-[10px] ${
+                                    role.isSystem
+                                      ? "bg-blue-50 text-blue-700"
+                                      : "bg-emerald-50 text-emerald-700"
+                                  }`}
+                                >
+                                  {role.isSystem ? "System" : "Custom"}
+                                </span>
+                              </td>
+                              <td className="text-right">
+                                <div className="flex items-center justify-end gap-1">
+                                  <button
+                                    disabled={role.isSystem}
+                                    onClick={() => {
+                                      setEditingRole(role);
+                                      setEditRoleData({
+                                        name: role.name,
+                                        description: role.description || "",
+                                      });
+                                    }}
+                                    className="p-1.5 text-nuanu-gray-400 hover:text-emerald-600 transition-colors rounded-lg hover:bg-emerald-50 disabled:opacity-30 disabled:cursor-not-allowed"
+                                    title={
+                                      role.isSystem
+                                        ? "System roles cannot be edited"
+                                        : "Edit role"
+                                    }
+                                  >
+                                    <Pencil className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    disabled={role.isSystem}
+                                    onClick={() => setDeleteConfirmRole(role)}
+                                    className="p-1.5 text-nuanu-gray-400 hover:text-red-600 transition-colors rounded-lg hover:bg-red-50 disabled:opacity-30 disabled:cursor-not-allowed"
+                                    title={
+                                      role.isSystem
+                                        ? "System roles cannot be deleted"
+                                        : "Delete role"
+                                    }
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                          {roles.length === 0 && (
+                            <tr>
+                              <td
+                                colSpan={5}
+                                className="text-center py-8 text-nuanu-gray-400 italic"
+                              >
+                                No roles found.
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            )}
+
+            {activeTab === "departments" && isAdmin && (
+              <motion.div
+                key="departments"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="card space-y-6"
+              >
+                <div className="flex items-center justify-between border-b border-nuanu-gray-100 pb-4">
+                  <div>
+                    <h2 className="text-lg font-bold text-nuanu-navy">
+                      Departments
+                    </h2>
+                    <p className="text-sm text-nuanu-gray-500">
+                      Manage company departments
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setNewDeptData({ name: "", code: "", description: "" });
+                      setIsDeptModalOpen(true);
+                    }}
+                    className="btn-secondary text-sm py-2"
+                  >
+                    <Plus className="w-4 h-4" /> New Department
+                  </button>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>Name</th>
+                        <th>Code</th>
+                        <th>Description</th>
+                        <th>Status</th>
+                        <th className="text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {departments.map((dept) => (
+                        <tr key={dept.id}>
+                          <td className="font-medium text-nuanu-navy">
+                            {dept.name}
+                          </td>
+                          <td>
+                            <code className="text-[11px] bg-nuanu-gray-50 border border-nuanu-gray-100 px-2 py-0.5 rounded text-nuanu-gray-600">
+                              {dept.code}
+                            </code>
+                          </td>
+                          <td className="text-sm text-nuanu-gray-500">
+                            {dept.description || "—"}
+                          </td>
+                          <td>
+                            <span
+                              className={`badge text-[10px] ${
+                                dept.isActive
+                                  ? "bg-emerald-100 text-emerald-700"
+                                  : "bg-red-100 text-red-700"
+                              }`}
+                            >
+                              {dept.isActive ? "Active" : "Inactive"}
+                            </span>
+                          </td>
+                          <td className="text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              <button
+                                onClick={() => {
+                                  setEditingDept(dept);
+                                  setEditDeptData({
+                                    name: dept.name,
+                                    code: dept.code,
+                                    description: dept.description || "",
+                                  });
+                                }}
+                                className="p-1.5 text-nuanu-gray-400 hover:text-emerald-600 transition-colors rounded-lg hover:bg-emerald-50"
+                                title="Edit department"
+                              >
+                                <Pencil className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => setDeleteConfirmDept(dept)}
+                                className="p-1.5 text-nuanu-gray-400 hover:text-red-600 transition-colors rounded-lg hover:bg-red-50"
+                                title="Deactivate department"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                      {departments.length === 0 && (
+                        <tr>
+                          <td
+                            colSpan={5}
+                            className="text-center py-12 text-nuanu-gray-400 italic"
+                          >
+                            No departments found.
                           </td>
                         </tr>
                       )}
@@ -2166,6 +2432,566 @@ export default function SettingsPage() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* ─── Create Role Modal ────────────────────────────────────── */}
+      <AnimatePresence>
+        {isRoleModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-nuanu-navy/40 backdrop-blur-sm"
+              onClick={() => !isCreatingRole && setIsRoleModalOpen(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden relative z-10 border border-white/20"
+            >
+              <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-nuanu-navy text-white">
+                <h2 className="text-lg font-black flex items-center gap-2">
+                  <Shield className="w-5 h-5 text-emerald-400" /> Create New
+                  Role
+                </h2>
+                <button
+                  onClick={() => setIsRoleModalOpen(false)}
+                  className="p-1 hover:bg-white/10 rounded-full transition-all"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  setIsCreatingRole(true);
+                  const slug = newRoleData.name
+                    .trim()
+                    .toLowerCase()
+                    .replace(/\s+/g, "-");
+                  const res = await createRole({
+                    name: newRoleData.name,
+                    slug,
+                    description: newRoleData.description,
+                  });
+                  setIsCreatingRole(false);
+                  if (res.success) {
+                    toast.success(`Role "${newRoleData.name}" created!`);
+                    setIsRoleModalOpen(false);
+                    const updatedRoles = await getRoles();
+                    setRoles(updatedRoles);
+                  } else {
+                    toast.error("Failed to create role", {
+                      description: res.error,
+                    });
+                  }
+                }}
+                className="p-6 space-y-4"
+              >
+                <div>
+                  <label className="block text-[10px] font-black text-nuanu-gray-500 uppercase tracking-widest mb-1.5">
+                    Role Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Department Head"
+                    className="input-field py-2.5"
+                    value={newRoleData.name}
+                    onChange={(e) =>
+                      setNewRoleData({ ...newRoleData, name: e.target.value })
+                    }
+                  />
+                  {newRoleData.name && (
+                    <p className="text-[10px] text-nuanu-gray-400 mt-1">
+                      Slug:{" "}
+                      <code className="font-mono">
+                        {newRoleData.name.toLowerCase().replace(/\s+/g, "-")}
+                      </code>
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black text-nuanu-gray-500 uppercase tracking-widest mb-1.5">
+                    Description
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Optional description"
+                    className="input-field py-2.5"
+                    value={newRoleData.description}
+                    onChange={(e) =>
+                      setNewRoleData({
+                        ...newRoleData,
+                        description: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <div className="pt-4 flex justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsRoleModalOpen(false)}
+                    className="px-4 py-2 text-xs font-bold text-nuanu-gray-500"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isCreatingRole}
+                    className="btn-primary py-2 px-6 text-xs"
+                  >
+                    {isCreatingRole ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />{" "}
+                        Creating...
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="w-3.5 h-3.5" /> Create Role
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ─── Edit Role Modal ──────────────────────────────────────── */}
+      <AnimatePresence>
+        {editingRole && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-nuanu-navy/40 backdrop-blur-sm"
+              onClick={() => !isEditRoleSaving && setEditingRole(null)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden relative z-10 border border-white/20"
+            >
+              <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-nuanu-navy text-white">
+                <h2 className="text-lg font-black flex items-center gap-2">
+                  <Pencil className="w-5 h-5 text-emerald-400" /> Edit Role
+                </h2>
+                <button
+                  onClick={() => setEditingRole(null)}
+                  className="p-1 hover:bg-white/10 rounded-full transition-all"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  setIsEditRoleSaving(true);
+                  const res = await updateRole(editingRole.id, editRoleData);
+                  setIsEditRoleSaving(false);
+                  if (res.success) {
+                    toast.success(`Role "${editRoleData.name}" updated!`);
+                    setEditingRole(null);
+                    const updatedRoles = await getRoles();
+                    setRoles(updatedRoles);
+                  } else {
+                    toast.error("Failed to update role", {
+                      description: res.error,
+                    });
+                  }
+                }}
+                className="p-6 space-y-4"
+              >
+                <div>
+                  <label className="block text-[10px] font-black text-nuanu-gray-500 uppercase tracking-widest mb-1.5">
+                    Role Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    className="input-field py-2.5"
+                    value={editRoleData.name}
+                    onChange={(e) =>
+                      setEditRoleData({ ...editRoleData, name: e.target.value })
+                    }
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black text-nuanu-gray-500 uppercase tracking-widest mb-1.5">
+                    Description
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Optional description"
+                    className="input-field py-2.5"
+                    value={editRoleData.description}
+                    onChange={(e) =>
+                      setEditRoleData({
+                        ...editRoleData,
+                        description: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <div className="pt-4 flex justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setEditingRole(null)}
+                    className="px-4 py-2 text-xs font-bold text-nuanu-gray-500"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isEditRoleSaving}
+                    className="btn-primary py-2 px-6 text-xs"
+                  >
+                    {isEditRoleSaving ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />{" "}
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Check className="w-3.5 h-3.5" /> Save Changes
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ─── Delete Role Confirmation ───────────────────────────────── */}
+      <ConfirmModal
+        isOpen={!!deleteConfirmRole}
+        onClose={() => !isDeletingRole && setDeleteConfirmRole(null)}
+        onConfirm={async () => {
+          if (!deleteConfirmRole) return;
+          setIsDeletingRole(true);
+          const res = await deleteRole(deleteConfirmRole.id);
+          setIsDeletingRole(false);
+          if (res.success) {
+            toast.success(`Role "${deleteConfirmRole.name}" deleted.`);
+            setRoles((prev) =>
+              prev.filter((r) => r.id !== deleteConfirmRole.id),
+            );
+          } else {
+            toast.error("Failed to delete role", { description: res.error });
+          }
+          setDeleteConfirmRole(null);
+        }}
+        title={`Delete Role "${deleteConfirmRole?.name ?? ""}"?`}
+        message={`This will permanently remove the "${deleteConfirmRole?.name}" role. Users with this role will lose it. This cannot be undone.`}
+        confirmText="YES, DELETE ROLE"
+        cancelText="Keep Role"
+        type="danger"
+        isLoading={isDeletingRole}
+      />
+
+      {/* ─── Create Department Modal ───────────────────────────────── */}
+      <AnimatePresence>
+        {isDeptModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-nuanu-navy/40 backdrop-blur-sm"
+              onClick={() => !isCreatingDept && setIsDeptModalOpen(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden relative z-10 border border-white/20"
+            >
+              <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-nuanu-navy text-white">
+                <h2 className="text-lg font-black flex items-center gap-2">
+                  <Building className="w-5 h-5 text-emerald-400" /> Create
+                  Department
+                </h2>
+                <button
+                  onClick={() => setIsDeptModalOpen(false)}
+                  className="p-1 hover:bg-white/10 rounded-full transition-all"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  setIsCreatingDept(true);
+                  const res = await createDepartment(newDeptData);
+                  setIsCreatingDept(false);
+                  if (res.success) {
+                    toast.success(`Department "${newDeptData.name}" created!`);
+                    setIsDeptModalOpen(false);
+                    const updatedDepts = await getDepartments();
+                    setDepartments(updatedDepts);
+                  } else {
+                    toast.error("Failed to create department", {
+                      description: res.error,
+                    });
+                  }
+                }}
+                className="p-6 space-y-4"
+              >
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-black text-nuanu-gray-500 uppercase tracking-widest mb-1.5">
+                      Department Name *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Engineering"
+                      className="input-field py-2.5"
+                      value={newDeptData.name}
+                      onChange={(e) =>
+                        setNewDeptData({ ...newDeptData, name: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black text-nuanu-gray-500 uppercase tracking-widest mb-1.5">
+                      Code *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. ENG"
+                      className="input-field py-2.5 uppercase"
+                      value={newDeptData.code}
+                      onChange={(e) =>
+                        setNewDeptData({
+                          ...newDeptData,
+                          code: e.target.value.toUpperCase(),
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black text-nuanu-gray-500 uppercase tracking-widest mb-1.5">
+                    Description
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Optional description"
+                    className="input-field py-2.5"
+                    value={newDeptData.description}
+                    onChange={(e) =>
+                      setNewDeptData({
+                        ...newDeptData,
+                        description: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <div className="pt-4 flex justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsDeptModalOpen(false)}
+                    className="px-4 py-2 text-xs font-bold text-nuanu-gray-500"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isCreatingDept}
+                    className="btn-primary py-2 px-6 text-xs"
+                  >
+                    {isCreatingDept ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />{" "}
+                        Creating...
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="w-3.5 h-3.5" /> Create Department
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ─── Edit Department Modal ─────────────────────────────────── */}
+      <AnimatePresence>
+        {editingDept && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-nuanu-navy/40 backdrop-blur-sm"
+              onClick={() => !isEditDeptSaving && setEditingDept(null)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden relative z-10 border border-white/20"
+            >
+              <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-nuanu-navy text-white">
+                <h2 className="text-lg font-black flex items-center gap-2">
+                  <Pencil className="w-5 h-5 text-emerald-400" /> Edit
+                  Department
+                </h2>
+                <button
+                  onClick={() => setEditingDept(null)}
+                  className="p-1 hover:bg-white/10 rounded-full transition-all"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  setIsEditDeptSaving(true);
+                  const res = await updateDepartment(
+                    editingDept.id,
+                    editDeptData,
+                  );
+                  setIsEditDeptSaving(false);
+                  if (res.success) {
+                    toast.success(`Department "${editDeptData.name}" updated!`);
+                    setEditingDept(null);
+                    const updatedDepts = await getDepartments();
+                    setDepartments(updatedDepts);
+                  } else {
+                    toast.error("Failed to update department", {
+                      description: res.error,
+                    });
+                  }
+                }}
+                className="p-6 space-y-4"
+              >
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-black text-nuanu-gray-500 uppercase tracking-widest mb-1.5">
+                      Department Name *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      className="input-field py-2.5"
+                      value={editDeptData.name}
+                      onChange={(e) =>
+                        setEditDeptData({
+                          ...editDeptData,
+                          name: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black text-nuanu-gray-500 uppercase tracking-widest mb-1.5">
+                      Code *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      className="input-field py-2.5 uppercase"
+                      value={editDeptData.code}
+                      onChange={(e) =>
+                        setEditDeptData({
+                          ...editDeptData,
+                          code: e.target.value.toUpperCase(),
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black text-nuanu-gray-500 uppercase tracking-widest mb-1.5">
+                    Description
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Optional description"
+                    className="input-field py-2.5"
+                    value={editDeptData.description}
+                    onChange={(e) =>
+                      setEditDeptData({
+                        ...editDeptData,
+                        description: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <div className="pt-4 flex justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setEditingDept(null)}
+                    className="px-4 py-2 text-xs font-bold text-nuanu-gray-500"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isEditDeptSaving}
+                    className="btn-primary py-2 px-6 text-xs"
+                  >
+                    {isEditDeptSaving ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />{" "}
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Check className="w-3.5 h-3.5" /> Save Changes
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ─── Delete Department Confirmation ─────────────────────────── */}
+      <ConfirmModal
+        isOpen={!!deleteConfirmDept}
+        onClose={() => !isDeletingDept && setDeleteConfirmDept(null)}
+        onConfirm={async () => {
+          if (!deleteConfirmDept) return;
+          setIsDeletingDept(true);
+          const res = await deleteDepartment(deleteConfirmDept.id);
+          setIsDeletingDept(false);
+          if (res.success) {
+            toast.success(
+              `Department "${deleteConfirmDept.name}" deactivated.`,
+            );
+            setDepartments((prev) =>
+              prev.filter((d) => d.id !== deleteConfirmDept.id),
+            );
+          } else {
+            toast.error("Failed to deactivate department", {
+              description: res.error,
+            });
+          }
+          setDeleteConfirmDept(null);
+        }}
+        title={`Deactivate "${deleteConfirmDept?.name ?? ""}"?`}
+        message={`"${deleteConfirmDept?.name}" will be marked as inactive. Existing users and vacancies in this department will not be affected.`}
+        confirmText="YES, DEACTIVATE"
+        cancelText="Keep Active"
+        type="danger"
+        isLoading={isDeletingDept}
+      />
     </div>
   );
 }

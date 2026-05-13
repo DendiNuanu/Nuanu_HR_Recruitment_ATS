@@ -238,16 +238,30 @@ export async function approveStep(
         );
       }
 
-      if (!isSuperAdmin && currentApproval.approverId !== approverId) {
+      const userHasMatchingRole = user?.userRoles.some(
+        (ur) => ur.role.slug.toLowerCase() === currentRole.toLowerCase(),
+      );
+
+      if (
+        !isSuperAdmin &&
+        !userHasMatchingRole &&
+        currentApproval.approverId !== approverId
+      ) {
         throw new Error(
           `AUTHORIZED ERROR: This step currently requires approval from ${currentRole}. Please wait for them to approve or login as an Administrator.`,
         );
       }
 
-      // Mark current step approved
+      // Mark current step approved, updating approverId to the actual user who approved
+      // (in case role-match was used instead of direct approverId assignment)
       await tx.approval.update({
         where: { id: currentApproval.id },
-        data: { status: "APPROVED", comment, approvedAt: new Date() },
+        data: {
+          status: "APPROVED",
+          comment,
+          approvedAt: new Date(),
+          approverId,
+        },
       });
 
       let pendingNotification: NotificationPayload | null = null;

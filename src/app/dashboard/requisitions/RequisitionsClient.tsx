@@ -385,8 +385,18 @@ export default function RequisitionsClient({
               const currentApproval = req.approvals.find(
                 (a) => a.role === currentRole && a.status === "PENDING",
               );
+              const userRoles = initialUser.roles || [];
               const isMyTurn =
-                isSuperAdmin || currentApproval?.approverId === initialUser.id;
+                isSuperAdmin ||
+                currentApproval?.approverId === initialUser.id ||
+                (currentRole === "MANAGER" &&
+                  userRoles.some(
+                    (r: string) => r.toLowerCase() === "manager",
+                  )) ||
+                (currentRole === "HR" &&
+                  userRoles.some((r: string) => r.toLowerCase() === "hr")) ||
+                (currentRole === "FINANCE" &&
+                  userRoles.some((r: string) => r.toLowerCase() === "finance"));
 
               return (
                 <motion.div
