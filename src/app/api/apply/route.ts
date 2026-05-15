@@ -10,6 +10,8 @@ export async function POST(request: Request) {
     const lastName = formData.get("lastName") as string;
     const email = formData.get("email") as string;
     const phone = formData.get("phone") as string;
+    const gender = formData.get("gender") as string | null;
+    const dateOfBirth = formData.get("dateOfBirth") as string | null;
     const resumeFile = formData.get("resume") as File | null;
 
     if (!jobId || !firstName || !lastName || !email || !resumeFile) {
@@ -138,11 +140,15 @@ export async function POST(request: Request) {
       update: {
         ...(resumeUrl && { resumeUrl }),
         ...(resumeText && { resumeText }),
+        ...(gender && { gender }),
+        ...(dateOfBirth && { dateOfBirth: new Date(dateOfBirth) }),
       },
       create: {
         userId: user.id,
         resumeUrl: resumeUrl || undefined,
         resumeText: resumeText || undefined,
+        ...(gender && { gender }),
+        ...(dateOfBirth && { dateOfBirth: new Date(dateOfBirth) }),
       },
     });
 

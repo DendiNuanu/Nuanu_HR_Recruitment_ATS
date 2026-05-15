@@ -176,6 +176,7 @@ export default function InterviewsClient({
           scheduledAt: "",
           location: "Google Meet",
           meetingUrl: "https://meet.google.com/new",
+          syncWithGoogle: false,
         });
       } else {
         toast.error(res.error || "Failed to schedule interview");

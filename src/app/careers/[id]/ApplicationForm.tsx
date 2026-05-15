@@ -14,6 +14,8 @@ export default function ApplicationForm({ jobId }: { jobId: string }) {
     lastName: "",
     email: "",
     phone: "",
+    gender: "",
+    dateOfBirth: "",
   });
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -40,6 +42,8 @@ export default function ApplicationForm({ jobId }: { jobId: string }) {
       submitData.append("lastName", formData.lastName);
       submitData.append("email", formData.email);
       submitData.append("phone", formData.phone);
+      submitData.append("gender", formData.gender);
+      submitData.append("dateOfBirth", formData.dateOfBirth);
       submitData.append("resume", file);
 
       // Real API route handles the actual upload and DB creation
@@ -142,6 +146,40 @@ export default function ApplicationForm({ jobId }: { jobId: string }) {
             value={formData.phone}
             onChange={(e) =>
               setFormData({ ...formData, phone: e.target.value })
+            }
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-xs font-semibold text-nuanu-gray-600 mb-1">
+            Gender
+          </label>
+          <select
+            className="input-field py-2.5 text-sm"
+            value={formData.gender}
+            onChange={(e) =>
+              setFormData({ ...formData, gender: e.target.value })
+            }
+          >
+            <option value="">Prefer not to say</option>
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-xs font-semibold text-nuanu-gray-600 mb-1">
+            Date of Birth
+          </label>
+          <input
+            type="date"
+            className="input-field py-2.5 text-sm"
+            max={new Date().toISOString().split("T")[0]}
+            value={formData.dateOfBirth}
+            onChange={(e) =>
+              setFormData({ ...formData, dateOfBirth: e.target.value })
             }
           />
         </div>

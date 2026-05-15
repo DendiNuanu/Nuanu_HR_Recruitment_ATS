@@ -144,8 +144,7 @@ export default async function AnalyticsPage() {
     }),
 
     prisma.candidateProfile.findMany({
-      select: { location: true },
-      where: { location: { not: null } },
+      select: { location: true, gender: true, dateOfBirth: true },
     }),
   ]);
 
@@ -361,7 +360,9 @@ export default async function AnalyticsPage() {
     return { month: MONTHS[m], days: avgDays, hires: monthEntries.length };
   });
 
-  // ─── 9. DIVERSITY (location) ──────────────────
+  // ─── 9. DIVERSITY — Domicile, Gender, Age ──────
+
+  // 9a. Location / Domicile
   const locMap = new Map<string, number>();
   for (const profile of allCandidateProfiles) {
     const loc = (profile.location ?? "Unknown").trim();
@@ -376,6 +377,58 @@ export default async function AnalyticsPage() {
       percentage: totalLocs > 0 ? (count / totalLocs) * 100 : 0,
     }))
     .sort((a, b) => b.count - a.count);
+
+  // 9b. Gender breakdown
+  const genderMap = new Map<string, number>();
+  for (const profile of allCandidateProfiles) {
+    const g = (profile.gender ?? "not_specified").toLowerCase().trim();
+    const label =
+      g === "male"
+        ? "Male"
+        : g === "female"
+          ? "Female"
+          : g === "other"
+            ? "Other"
+            : g === "prefer_not_to_say"
+              ? "Prefer Not to Say"
+              : "Not Specified";
+    genderMap.set(label, (genderMap.get(label) ?? 0) + 1);
+  }
+  const totalGender = Array.from(genderMap.values()).reduce((a, b) => a + b, 0);
+  const genderBreakdown = Array.from(genderMap.entries())
+    .map(([gender, count]) => ({
+      gender,
+      count,
+      percentage: totalGender > 0 ? (count / totalGender) * 100 : 0,
+    }))
+    .sort((a, b) => b.count - a.count);
+
+  // 9c. Age group breakdown (from dateOfBirth)
+  const ageGroupMap = new Map<string, number>();
+  const ageOrder = ["Under 25", "25–34", "35–44", "45–54", "55+", "Unknown"];
+  for (const profile of allCandidateProfiles) {
+    let label = "Unknown";
+    if (profile.dateOfBirth) {
+      const ageDays =
+        (now.getTime() - new Date(profile.dateOfBirth).getTime()) / 86_400_000;
+      const ageYears = ageDays / 365.25;
+      if (ageYears < 25) label = "Under 25";
+      else if (ageYears < 35) label = "25–34";
+      else if (ageYears < 45) label = "35–44";
+      else if (ageYears < 55) label = "45–54";
+      else label = "55+";
+    }
+    ageGroupMap.set(label, (ageGroupMap.get(label) ?? 0) + 1);
+  }
+  const totalAge = Array.from(ageGroupMap.values()).reduce((a, b) => a + b, 0);
+  const ageBreakdown = ageOrder
+    .filter((g) => ageGroupMap.has(g))
+    .map((group) => ({
+      group,
+      count: ageGroupMap.get(group) ?? 0,
+      percentage:
+        totalAge > 0 ? ((ageGroupMap.get(group) ?? 0) / totalAge) * 100 : 0,
+    }));
 
   // ─── 10. COST PER HIRE ────────────────────────
   // Total channel costs / total hires
@@ -612,6 +665,8 @@ export default async function AnalyticsPage() {
     qualityOfHire6Months,
     costPerHire,
     locationBreakdown,
+    genderBreakdown,
+    ageBreakdown,
     monthlyTrend,
     overview,
   };

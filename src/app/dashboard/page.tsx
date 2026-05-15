@@ -35,6 +35,8 @@ const getDashboardMetrics = unstable_cache(
       interviews,
       newVacancies30d,
       newOffers30d,
+      interviewedGroups,
+      hiredBySource,
     ] = await Promise.all([
       prisma.vacancy.count({ where: { status: "published" } }),
       prisma.vacancy.count(),
@@ -50,7 +52,14 @@ const getDashboardMetrics = unstable_cache(
       }),
       prisma.application.findMany({
         where: { currentStage: "hired" },
-        select: { createdAt: true, updatedAt: true },
+        select: {
+          createdAt: true,
+          updatedAt: true,
+          source: true,
+          appliedAt: true,
+          rejectedAt: true,
+          offer: { select: { status: true, respondedAt: true } },
+        },
       }),
       prisma.vacancy.findMany({
         where: { status: "published" },
@@ -85,6 +94,17 @@ const getDashboardMetrics = unstable_cache(
       }),
       prisma.vacancy.count({ where: { createdAt: { gte: thirtyDaysAgo } } }),
       prisma.offer.count({ where: { createdAt: { gte: thirtyDaysAgo } } }),
+      // Count apps that had at least one non-cancelled interview (for yield ratio)
+      prisma.interview.groupBy({
+        by: ["applicationId"],
+        where: { status: { not: "cancelled" } },
+      }),
+      // Channel cost lookup (for channel effectiveness)
+      prisma.application.groupBy({
+        by: ["source"],
+        where: { currentStage: "hired" },
+        _count: true,
+      }),
     ]);
 
     // ── Secondary query (depends on activities result) ──────────────────────
@@ -203,6 +223,117 @@ const getDashboardMetrics = unstable_cache(
     const averageCostPerHire =
       totalHires > 0 ? Math.round(avgSalary * 0.15) : 0;
 
+    // ── NEW METRICS ────────────────────────────────────────────────────────────
+    const totalHiresCount = hiredApplications.length;
+
+    // M2/M3/M4: Sourcing rates
+    const referralHires = hiredApplications.filter(
+      (a) => a.source?.toLowerCase() === "referral",
+    ).length;
+    const linkedinHires = hiredApplications.filter(
+      (a) => a.source?.toLowerCase() === "linkedin",
+    ).length;
+    const jobstreetHires = hiredApplications.filter(
+      (a) => a.source?.toLowerCase() === "jobstreet",
+    ).length;
+    const referralRate =
+      totalHiresCount > 0
+        ? Math.round((referralHires / totalHiresCount) * 100)
+        : 0;
+    const linkedinRate =
+      totalHiresCount > 0
+        ? Math.round((linkedinHires / totalHiresCount) * 100)
+        : 0;
+    const jobstreetRate =
+      totalHiresCount > 0
+        ? Math.round((jobstreetHires / totalHiresCount) * 100)
+        : 0;
+
+    // M5: Channel Effectiveness — hires per channel with estimated cost
+    const CHANNEL_COST_IDR: Record<string, number> = {
+      referral: 0,
+      direct: 0,
+      internal: 0,
+      linkedin: 5_000_000,
+      jobstreet: 3_000_000,
+      loker_bali: 1_000_000,
+      other: 500_000,
+    };
+    const channelEffectiveness = hiredBySource
+      .map((row) => {
+        const src = (row.source || "direct").toLowerCase();
+        const count = row._count;
+        const costPerHire = CHANNEL_COST_IDR[src] ?? CHANNEL_COST_IDR.other;
+        const totalCost = count * costPerHire;
+        return {
+          channel:
+            src.charAt(0).toUpperCase() + src.slice(1).replace(/_/g, " "),
+          hires: count,
+          costPerHire,
+          totalCost,
+        };
+      })
+      .sort((a, b) => b.hires - a.hires);
+
+    // M6: Yield Ratio — hires / uniquely-interviewed × 100
+    const interviewedCount = interviewedGroups.length;
+    const yieldRatio =
+      interviewedCount > 0
+        ? Math.round((totalHiresCount / interviewedCount) * 100)
+        : 0;
+
+    // M7: Time-to-Fill — appliedAt → offer.respondedAt
+    const ttfDays = hiredApplications
+      .filter((a) => a.offer?.status === "accepted" && a.offer?.respondedAt)
+      .map((a) => {
+        const start = a.appliedAt ?? a.createdAt;
+        const end = a.offer!.respondedAt!;
+        return Math.round(
+          Math.abs(end.getTime() - start.getTime()) / 86_400_000,
+        );
+      })
+      .filter((d) => d > 0 && d < 500);
+    const avgTimeToFill =
+      ttfDays.length > 0
+        ? Math.round(ttfDays.reduce((a, b) => a + b, 0) / ttfDays.length)
+        : 0;
+
+    // M12: 90-Day Retention
+    const cutoff90 = new Date(now.getTime() - 90 * 86_400_000);
+    const hires90 = hiredApplications.filter((a) => {
+      const hiredAt = a.offer?.respondedAt ?? a.updatedAt;
+      return hiredAt < cutoff90;
+    });
+    const retained90 = hires90.filter((a) => {
+      if (a.rejectedAt) {
+        const hiredAt = a.offer?.respondedAt ?? a.updatedAt;
+        return a.rejectedAt < hiredAt;
+      }
+      return true;
+    });
+    const retention90Days =
+      hires90.length > 0
+        ? Math.round((retained90.length / hires90.length) * 100)
+        : 0;
+
+    // M13: Quality of Hire — 6-month retention
+    const cutoff180 = new Date(now.getTime() - 180 * 86_400_000);
+    const hires180 = hiredApplications.filter((a) => {
+      const hiredAt = a.offer?.respondedAt ?? a.updatedAt;
+      return hiredAt < cutoff180;
+    });
+    const retained180 = hires180.filter((a) => {
+      if (a.rejectedAt) {
+        const hiredAt = a.offer?.respondedAt ?? a.updatedAt;
+        return a.rejectedAt < hiredAt;
+      }
+      return true;
+    });
+    const qualityOfHire =
+      hires180.length > 0
+        ? Math.round((retained180.length / hires180.length) * 100)
+        : 0;
+
     // Match score distribution
     let range90_100 = 0,
       range80_89 = 0,
@@ -289,6 +420,14 @@ const getDashboardMetrics = unstable_cache(
       topCandidates,
       upcomingInterviews,
       changes,
+      referralRate,
+      linkedinRate,
+      jobstreetRate,
+      channelEffectiveness,
+      yieldRatio,
+      avgTimeToFill,
+      retention90Days,
+      qualityOfHire,
     };
   },
   ["dashboard-metrics"],

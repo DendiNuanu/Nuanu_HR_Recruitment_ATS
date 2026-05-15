@@ -14,6 +14,10 @@ import {
   Banknote,
   UserCheck,
   Activity,
+  Filter,
+  Award,
+  HeartHandshake,
+  MapPin,
 } from "lucide-react";
 import {
   BarChart,
@@ -77,6 +81,19 @@ export type DashboardMetrics = {
     aiScore: string;
     costPerHire: string;
   };
+  referralRate: number;
+  linkedinRate: number;
+  jobstreetRate: number;
+  channelEffectiveness: {
+    channel: string;
+    hires: number;
+    costPerHire: number;
+    totalCost: number;
+  }[];
+  yieldRatio: number;
+  avgTimeToFill: number;
+  retention90Days: number;
+  qualityOfHire: number;
 };
 
 const container = {
@@ -186,7 +203,6 @@ export default function DashboardClient({
       value: metrics.activeVacancies,
       total: metrics.totalVacancies,
       suffix: ` / ${metrics.totalVacancies}`,
-      suffix: ` / ${metrics.totalVacancies}`,
       change: metrics.changes.vacancies,
       up: metrics.changes.vacancies.startsWith("+"),
       icon: Briefcase,
@@ -288,6 +304,194 @@ export default function DashboardClient({
               )}
             </p>
             <p className="text-xs text-nuanu-gray-400 mt-1">{stat.label}</p>
+          </motion.div>
+        ))}
+      </div>
+
+      {/* ── M2/M3/M4: Sourcing Rates + M5: Channel Effectiveness ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Sourcing Rate Cards */}
+        <motion.div variants={item} className="card">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-base font-bold text-nuanu-navy">
+                Sourcing Rates
+              </h3>
+              <p className="text-xs text-nuanu-gray-400 mt-0.5">
+                % of total hires by channel (M2 · M3 · M4)
+              </p>
+            </div>
+          </div>
+          <div className="space-y-4">
+            {[
+              {
+                label: "Referral Rate",
+                value: metrics.referralRate,
+                color: "#10B981",
+                badge: "M2",
+              },
+              {
+                label: "LinkedIn Rate",
+                value: metrics.linkedinRate,
+                color: "#3B82F6",
+                badge: "M3",
+              },
+              {
+                label: "Jobstreet Rate",
+                value: metrics.jobstreetRate,
+                color: "#8B5CF6",
+                badge: "M4",
+              },
+            ].map((item) => (
+              <div key={item.label}>
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-nuanu-navy">
+                      {item.label}
+                    </span>
+                    <span
+                      className="badge text-[10px]"
+                      style={{
+                        background: `${item.color}18`,
+                        color: item.color,
+                      }}
+                    >
+                      {item.badge}
+                    </span>
+                  </div>
+                  <span
+                    className="text-lg font-bold"
+                    style={{ color: item.color }}
+                  >
+                    {item.value}%
+                  </span>
+                </div>
+                <div className="h-2 bg-nuanu-gray-100 rounded-full overflow-hidden">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${Math.min(100, item.value)}%` }}
+                    transition={{ duration: 1, ease: "easeOut" }}
+                    className="h-full rounded-full"
+                    style={{ background: item.color }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* Channel Effectiveness Table — M5 */}
+        <motion.div variants={item} className="card">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-base font-bold text-nuanu-navy">
+                Channel Effectiveness
+              </h3>
+              <p className="text-xs text-nuanu-gray-400 mt-0.5">
+                Hires vs. cost per channel (M5)
+              </p>
+            </div>
+          </div>
+          {metrics.channelEffectiveness.length === 0 ? (
+            <p className="text-xs text-nuanu-gray-400 py-4 text-center">
+              No hire data yet
+            </p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Channel</th>
+                    <th className="text-right">Hires</th>
+                    <th className="text-right">Cost/Hire</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {metrics.channelEffectiveness.map((row, i) => (
+                    <tr key={i}>
+                      <td className="font-medium text-nuanu-navy capitalize">
+                        {row.channel}
+                      </td>
+                      <td className="text-right font-semibold text-nuanu-navy">
+                        {row.hires}
+                      </td>
+                      <td className="text-right">
+                        {row.costPerHire === 0 ? (
+                          <span className="text-emerald-600 font-medium">
+                            Free
+                          </span>
+                        ) : (
+                          <span className="text-nuanu-navy">
+                            Rp {row.costPerHire.toLocaleString("id-ID")}
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </motion.div>
+      </div>
+
+      {/* ── M6 Yield Ratio · M7 Time-to-Fill · M12 Retention · M13 Quality ── */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        {[
+          {
+            label: "Yield Ratio",
+            value: metrics.yieldRatio > 0 ? `${metrics.yieldRatio}%` : "—",
+            sub: "Hires ÷ Interviewed",
+            icon: Filter,
+            color: "text-purple-600",
+            bg: "bg-purple-100",
+            badge: "M6",
+          },
+          {
+            label: "Avg. Time-to-Fill",
+            value:
+              metrics.avgTimeToFill > 0 ? `${metrics.avgTimeToFill}d` : "—",
+            sub: "Apply → Offer accepted",
+            icon: Clock,
+            color: "text-emerald-600",
+            bg: "bg-emerald-100",
+            badge: "M7",
+          },
+          {
+            label: "90-Day Retention",
+            value:
+              metrics.retention90Days > 0 ? `${metrics.retention90Days}%` : "—",
+            sub: "New hires still active",
+            icon: Award,
+            color: "text-blue-600",
+            bg: "bg-blue-100",
+            badge: "M12",
+          },
+          {
+            label: "Quality of Hire",
+            value:
+              metrics.qualityOfHire > 0 ? `${metrics.qualityOfHire}%` : "—",
+            sub: "Retained after 6 months",
+            icon: HeartHandshake,
+            color: "text-rose-600",
+            bg: "bg-rose-100",
+            badge: "M13",
+          },
+        ].map((kpi) => (
+          <motion.div key={kpi.label} variants={item} className="card p-5">
+            <div className="flex items-center justify-between mb-3">
+              <div
+                className={`w-9 h-9 rounded-xl ${kpi.bg} ${kpi.color} flex items-center justify-center`}
+              >
+                <kpi.icon className="w-4 h-4" />
+              </div>
+              <span className="badge bg-nuanu-gray-100 text-nuanu-gray-500 text-[10px]">
+                {kpi.badge}
+              </span>
+            </div>
+            <p className="text-2xl font-bold text-nuanu-navy">{kpi.value}</p>
+            <p className="text-xs text-nuanu-gray-400 mt-1">{kpi.label}</p>
+            <p className="text-[10px] text-nuanu-gray-300 mt-0.5">{kpi.sub}</p>
           </motion.div>
         ))}
       </div>

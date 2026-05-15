@@ -17,7 +17,8 @@ export async function createNotification({
 }) {
   try {
     const notification = await prisma.notification.create({
-      data: { userId, type, title, message, link, metadata },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      data: { userId, type, title, message, link, metadata: metadata as any },
     });
 
     // Map type → emoji for Telegram message

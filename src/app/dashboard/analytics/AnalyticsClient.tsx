@@ -94,6 +94,8 @@ export type AnalyticsData = {
   qualityOfHire6Months: number;
   costPerHire: number;
   locationBreakdown: { location: string; count: number; percentage: number }[];
+  genderBreakdown: { gender: string; count: number; percentage: number }[];
+  ageBreakdown: { group: string; count: number; percentage: number }[];
   monthlyTrend: {
     month: string;
     applications: number;
@@ -1398,7 +1400,7 @@ export default function AnalyticsClient({
 
       {/* ══════════════════════════════════════
           SECTION 6: DIVERSITY METRICS
-          Metric 9: Domicile / Location breakdown
+          Metric 9: Domicile, Gender, Age
       ══════════════════════════════════════ */}
       <motion.div
         initial={{ opacity: 0 }}
@@ -1409,11 +1411,12 @@ export default function AnalyticsClient({
         <SectionHeader
           icon={<MapPin className="w-4 h-4" />}
           title="Diversity Metrics"
-          subtitle="Metric 9: Candidate domicile & location distribution"
+          subtitle="Metric 9: Domicile, Gender & Age distribution across candidates"
         />
 
+        {/* ── Row 1: Domicile ─────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {/* Pie chart */}
+          {/* Domicile pie chart */}
           <div className="card">
             <div className="flex items-center justify-between mb-4">
               <div>
@@ -1421,10 +1424,12 @@ export default function AnalyticsClient({
                   Location / Domicile Distribution
                 </h3>
                 <p className="text-xs text-nuanu-gray-400 mt-0.5">
-                  From CandidateProfile.location
+                  Where candidates are based
                 </p>
               </div>
-              <span className="badge bg-teal-50 text-teal-700">Metric 9</span>
+              <span className="badge bg-teal-50 text-teal-700">
+                M9 — Domicile
+              </span>
             </div>
 
             {d.locationBreakdown.length === 0 ? (
@@ -1468,7 +1473,7 @@ export default function AnalyticsClient({
             )}
           </div>
 
-          {/* Location ranked list */}
+          {/* Domicile ranked list */}
           <div className="card">
             <h3 className="font-bold text-nuanu-navy mb-4">
               Top Candidate Locations
@@ -1518,6 +1523,218 @@ export default function AnalyticsClient({
                 )}
               </div>
             )}
+          </div>
+        </div>
+
+        {/* ── Row 2: Gender + Age ─────────────────── */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* Gender breakdown */}
+          <div className="card">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="font-bold text-nuanu-navy">
+                  Gender Distribution
+                </h3>
+                <p className="text-xs text-nuanu-gray-400 mt-0.5">
+                  Self-reported gender across all candidates
+                </p>
+              </div>
+              <span className="badge bg-pink-50 text-pink-700">
+                M9 — Gender
+              </span>
+            </div>
+
+            {d.genderBreakdown.length === 0 ? (
+              <EmptyState message="No gender data yet — collected at application" />
+            ) : (
+              <div className="space-y-4">
+                {/* Donut chart */}
+                <div className="h-48">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={d.genderBreakdown}
+                        dataKey="count"
+                        nameKey="gender"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={80}
+                        innerRadius={36}
+                        paddingAngle={3}
+                        label={({ gender, percentage }) =>
+                          `${gender} ${percentage.toFixed(0)}%`
+                        }
+                        labelLine={false}
+                      >
+                        {d.genderBreakdown.map((_, i) => (
+                          <Cell
+                            key={i}
+                            fill={
+                              [
+                                "#6366f1",
+                                "#ec4899",
+                                "#14b8a6",
+                                "#f59e0b",
+                                "#94a3b8",
+                              ][i % 5]
+                            }
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        formatter={(v: number, name: string) => [v, name]}
+                        contentStyle={{
+                          borderRadius: 12,
+                          border: "1px solid #E2E8F0",
+                          fontSize: 12,
+                        }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Ranked bars */}
+                <div className="space-y-2">
+                  {d.genderBreakdown.map((item, i) => (
+                    <div key={i} className="flex items-center gap-3">
+                      <span
+                        className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                        style={{
+                          background: [
+                            "#6366f1",
+                            "#ec4899",
+                            "#14b8a6",
+                            "#f59e0b",
+                            "#94a3b8",
+                          ][i % 5],
+                        }}
+                      />
+                      <span className="text-sm font-medium text-nuanu-navy w-32 flex-shrink-0">
+                        {item.gender}
+                      </span>
+                      <div className="flex-1 h-2 bg-nuanu-gray-100 rounded-full overflow-hidden">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          whileInView={{ width: `${item.percentage}%` }}
+                          viewport={{ once: true }}
+                          transition={{ duration: 0.6, delay: i * 0.08 }}
+                          className="h-full rounded-full"
+                          style={{
+                            background: [
+                              "#6366f1",
+                              "#ec4899",
+                              "#14b8a6",
+                              "#f59e0b",
+                              "#94a3b8",
+                            ][i % 5],
+                          }}
+                        />
+                      </div>
+                      <span className="text-xs font-bold text-nuanu-navy w-16 text-right">
+                        {item.count} ({item.percentage.toFixed(1)}%)
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Age group breakdown */}
+          <div className="card">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="font-bold text-nuanu-navy">
+                  Age Group Distribution
+                </h3>
+                <p className="text-xs text-nuanu-gray-400 mt-0.5">
+                  Derived from date of birth at application
+                </p>
+              </div>
+              <span className="badge bg-amber-50 text-amber-700">M9 — Age</span>
+            </div>
+
+            {d.ageBreakdown.length === 0 ? (
+              <EmptyState message="No age data yet — collected at application" />
+            ) : (
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={d.ageBreakdown}
+                    margin={{ top: 4, right: 8, bottom: 0, left: 0 }}
+                  >
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      vertical={false}
+                      stroke="#F1F5F9"
+                    />
+                    <XAxis
+                      dataKey="group"
+                      tick={{ fontSize: 11, fill: "#64748B" }}
+                    />
+                    <YAxis tick={{ fontSize: 11, fill: "#64748B" }} />
+                    <Tooltip
+                      formatter={(v: number) => [v, "Candidates"]}
+                      contentStyle={{
+                        borderRadius: 12,
+                        border: "1px solid #E2E8F0",
+                        fontSize: 12,
+                      }}
+                    />
+                    <Bar
+                      dataKey="count"
+                      name="Candidates"
+                      radius={[6, 6, 0, 0]}
+                      maxBarSize={56}
+                    >
+                      {d.ageBreakdown.map((_, i) => (
+                        <Cell
+                          key={i}
+                          fill={CHART_COLORS[i % CHART_COLORS.length]}
+                        />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+
+            {/* Age summary badges */}
+            {d.ageBreakdown.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-nuanu-gray-100">
+                {d.ageBreakdown.map((item, i) => (
+                  <span
+                    key={i}
+                    className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold"
+                    style={{
+                      background: `${CHART_COLORS[i % CHART_COLORS.length]}18`,
+                      color: CHART_COLORS[i % CHART_COLORS.length],
+                    }}
+                  >
+                    {item.group}: {item.count}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ── Diversity summary note ─────────────── */}
+        <div className="card bg-gradient-to-r from-teal-50/60 to-blue-50/60 border border-teal-100">
+          <div className="flex items-start gap-3">
+            <Users className="w-5 h-5 text-teal-600 mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="text-sm font-semibold text-nuanu-navy">
+                Diversity Data Collection
+              </p>
+              <p className="text-xs text-nuanu-gray-500 mt-1">
+                Gender and age data are collected{" "}
+                <span className="font-medium">optionally</span> during the job
+                application process. Candidates may choose &quot;Prefer not to
+                say&quot; for gender or leave date of birth blank. All data is
+                used solely for internal inclusive hiring analytics.
+              </p>
+            </div>
           </div>
         </div>
       </motion.div>

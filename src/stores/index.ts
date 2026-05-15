@@ -80,7 +80,7 @@ export const useNotificationStore = create<NotificationState>((set) => ({
   markAsRead: (id) =>
     set((state) => {
       const notifications = state.notifications.map((n) =>
-        n.id === id ? { ...n, isRead: true } : n
+        n.id === id ? { ...n, isRead: true } : n,
       );
       return {
         notifications,
@@ -112,13 +112,19 @@ interface PipelineCandidate {
   appliedAt: string;
   stage: string;
   tags: string[];
+  vacancyId?: string;
 }
 
 interface PipelineState {
   candidates: Record<string, PipelineCandidate[]>;
   isLoading: boolean;
   setCandidates: (candidates: Record<string, PipelineCandidate[]>) => void;
-  moveCandidate: (candidateId: string, fromStage: string, toStage: string, index: number) => void;
+  moveCandidate: (
+    candidateId: string,
+    fromStage: string,
+    toStage: string,
+    index: number,
+  ) => void;
   setLoading: (loading: boolean) => void;
 }
 
@@ -137,7 +143,8 @@ export const usePipelineStore = create<PipelineState>((set) => ({
   moveCandidate: (candidateId, fromStage, toStage, index) =>
     set((state) => {
       const from = [...(state.candidates[fromStage] || [])];
-      const to = fromStage === toStage ? from : [...(state.candidates[toStage] || [])];
+      const to =
+        fromStage === toStage ? from : [...(state.candidates[toStage] || [])];
       const candidateIndex = from.findIndex((c) => c.id === candidateId);
       if (candidateIndex === -1) return state;
       const [candidate] = from.splice(candidateIndex, 1);

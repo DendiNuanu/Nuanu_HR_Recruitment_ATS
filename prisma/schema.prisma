@@ -213,7 +213,7 @@ model JobRequisition {
 
   vacancy         Vacancy  @relation(fields: [vacancyId], references: [id], onDelete: Cascade)
   approvals       Approval[]
-  
+
   @@map("job_requisitions")
 }
 
@@ -228,7 +228,7 @@ model Approval {
 
   requisition     JobRequisition @relation(fields: [requisitionId], references: [id], onDelete: Cascade)
   approver        User           @relation(fields: [approverId], references: [id])
-  
+
   @@map("approvals")
 }
 
@@ -307,6 +307,8 @@ model CandidateProfile {
   willingToRelocate Boolean  @default(false)
   expectedSalary    Float?
   noticePeriod      String?
+  gender            String?
+  dateOfBirth       DateTime?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 

@@ -1,14 +1,25 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
+import {
+  DragDropContext,
+  Droppable,
+  Draggable,
+  DropResult,
+} from "@hello-pangea/dnd";
 import { usePipelineStore } from "@/stores";
 import { moveApplication } from "./actions";
 import { PIPELINE_STAGES } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { Calendar, MoreHorizontal, User, Brain, Search } from "lucide-react";
 
-export default function PipelineBoard({ initialCandidates, vacancies }: { initialCandidates: Record<string, any[]>, vacancies: any[] }) {
+export default function PipelineBoard({
+  initialCandidates,
+  vacancies,
+}: {
+  initialCandidates: Record<string, any[]>;
+  vacancies: any[];
+}) {
   const { candidates, setCandidates, moveCandidate } = usePipelineStore();
   const [search, setSearch] = useState("");
   const [selectedVacancy, setSelectedVacancy] = useState("all");
@@ -35,12 +46,17 @@ export default function PipelineBoard({ initialCandidates, vacancies }: { initia
 
     // Find the candidate object to get the applicationId
     const stageCandidates = candidates[source.droppableId];
-    const candidate = stageCandidates.find(c => c.id === draggableId);
-    
+    const candidate = stageCandidates.find((c) => c.id === draggableId);
+
     if (candidate) {
       // Optimistic update in UI
-      moveCandidate(draggableId, source.droppableId, destination.droppableId, destination.index);
-      
+      moveCandidate(
+        draggableId,
+        source.droppableId,
+        destination.droppableId,
+        destination.index,
+      );
+
       // Update in DB
       await moveApplication(candidate.applicationId, destination.droppableId);
     }
@@ -49,14 +65,21 @@ export default function PipelineBoard({ initialCandidates, vacancies }: { initia
   if (!isMounted) return null;
 
   // Filter candidates by search and selected vacancy
-  const filteredCandidates = Object.keys(candidates).reduce((acc, stageId) => {
-    acc[stageId] = candidates[stageId]?.filter(c => {
-      const matchSearch = c.name.toLowerCase().includes(search.toLowerCase());
-      const matchVacancy = selectedVacancy === "all" || c.vacancyId === selectedVacancy;
-      return matchSearch && matchVacancy;
-    }) || [];
-    return acc;
-  }, {} as Record<string, any[]>);
+  const filteredCandidates = Object.keys(candidates).reduce(
+    (acc, stageId) => {
+      acc[stageId] =
+        candidates[stageId]?.filter((c) => {
+          const matchSearch = c.name
+            .toLowerCase()
+            .includes(search.toLowerCase());
+          const matchVacancy =
+            selectedVacancy === "all" || c.vacancyId === selectedVacancy;
+          return matchSearch && matchVacancy;
+        }) || [];
+      return acc;
+    },
+    {} as Record<string, any[]>,
+  );
 
   return (
     <div className="h-[calc(100vh-8rem)] flex flex-col">
@@ -66,24 +89,26 @@ export default function PipelineBoard({ initialCandidates, vacancies }: { initia
             <div className="absolute left-4 top-1/2 -translate-y-1/2 text-nuanu-gray-400 group-focus-within:text-emerald-500 transition-colors pointer-events-none">
               <Search className="w-5 h-5" />
             </div>
-            <input 
-              type="text" 
-              placeholder="Search candidates..." 
+            <input
+              type="text"
+              placeholder="Search candidates..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="input-field pl-12 h-12"
             />
           </div>
-          
+
           <div className="relative min-w-[200px]">
-            <select 
+            <select
               value={selectedVacancy}
               onChange={(e) => setSelectedVacancy(e.target.value)}
               className="input-field h-12 pl-10 appearance-none bg-white font-medium"
             >
               <option value="all">All Vacancies</option>
-              {vacancies.map(v => (
-                <option key={v.id} value={v.id}>{v.title}</option>
+              {vacancies.map((v) => (
+                <option key={v.id} value={v.id}>
+                  {v.title}
+                </option>
               ))}
             </select>
             <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-nuanu-gray-400 pointer-events-none" />
@@ -102,14 +127,22 @@ export default function PipelineBoard({ initialCandidates, vacancies }: { initia
           <div className="flex h-full items-start gap-4 px-1 min-w-max">
             {PIPELINE_STAGES.map((stage) => {
               const columnCandidates = filteredCandidates[stage.id] || [];
-              
+
               return (
-                <div key={stage.id} className="w-80 flex flex-col h-full bg-nuanu-gray-100 rounded-xl overflow-hidden border border-nuanu-gray-200">
+                <div
+                  key={stage.id}
+                  className="w-80 flex flex-col h-full bg-nuanu-gray-100 rounded-xl overflow-hidden border border-nuanu-gray-200"
+                >
                   {/* Column Header */}
                   <div className="p-3 border-b border-nuanu-gray-200 bg-white flex justify-between items-center shadow-sm z-10">
                     <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: stage.color }} />
-                      <h3 className="font-semibold text-nuanu-navy text-sm">{stage.label}</h3>
+                      <div
+                        className="w-3 h-3 rounded-full"
+                        style={{ backgroundColor: stage.color }}
+                      />
+                      <h3 className="font-semibold text-nuanu-navy text-sm">
+                        {stage.label}
+                      </h3>
                     </div>
                     <span className="bg-nuanu-gray-100 text-nuanu-gray-600 text-xs font-bold px-2 py-0.5 rounded-full">
                       {columnCandidates.length}
@@ -127,14 +160,20 @@ export default function PipelineBoard({ initialCandidates, vacancies }: { initia
                         }`}
                       >
                         {columnCandidates.map((candidate, index) => (
-                          <Draggable key={candidate.id} draggableId={candidate.id} index={index}>
+                          <Draggable
+                            key={candidate.id}
+                            draggableId={candidate.id}
+                            index={index}
+                          >
                             {(provided, snapshot) => (
                               <div
                                 ref={provided.innerRef}
                                 {...provided.draggableProps}
                                 {...provided.dragHandleProps}
                                 className={`kanban-card bg-white p-4 rounded-xl border ${
-                                  snapshot.isDragging ? "border-nuanu-emerald shadow-lg ring-1 ring-nuanu-emerald/50" : "border-nuanu-gray-200"
+                                  snapshot.isDragging
+                                    ? "border-nuanu-emerald shadow-lg ring-1 ring-nuanu-emerald/50"
+                                    : "border-nuanu-gray-200"
                                 }`}
                                 style={{
                                   ...provided.draggableProps.style,
@@ -146,8 +185,12 @@ export default function PipelineBoard({ initialCandidates, vacancies }: { initia
                                       {candidate.name.charAt(0)}
                                     </div>
                                     <div>
-                                      <h4 className="font-semibold text-sm text-nuanu-navy line-clamp-1">{candidate.name}</h4>
-                                      <p className="text-[11px] text-nuanu-gray-400">{candidate.position}</p>
+                                      <h4 className="font-semibold text-sm text-nuanu-navy line-clamp-1">
+                                        {candidate.name}
+                                      </h4>
+                                      <p className="text-[11px] text-nuanu-gray-400">
+                                        {candidate.position}
+                                      </p>
                                     </div>
                                   </div>
                                   <button className="text-nuanu-gray-400 hover:text-nuanu-navy">
@@ -161,11 +204,16 @@ export default function PipelineBoard({ initialCandidates, vacancies }: { initia
                                     {candidate.score}%
                                   </div>
                                   <div className="flex flex-wrap gap-1">
-                                    {candidate.tags.slice(0, 2).map(tag => (
-                                      <span key={tag} className="text-[10px] bg-nuanu-gray-100 text-nuanu-gray-600 px-1.5 py-0.5 rounded uppercase tracking-wider">
-                                        {tag.replace("_", " ")}
-                                      </span>
-                                    ))}
+                                    {candidate.tags
+                                      .slice(0, 2)
+                                      .map((tag: string) => (
+                                        <span
+                                          key={tag}
+                                          className="text-[10px] bg-nuanu-gray-100 text-nuanu-gray-600 px-1.5 py-0.5 rounded uppercase tracking-wider"
+                                        >
+                                          {tag.replace("_", " ")}
+                                        </span>
+                                      ))}
                                   </div>
                                 </div>
                               </div>
@@ -173,12 +221,15 @@ export default function PipelineBoard({ initialCandidates, vacancies }: { initia
                           </Draggable>
                         ))}
                         {provided.placeholder}
-                        
-                        {columnCandidates.length === 0 && !snapshot.isDraggingOver && (
-                          <div className="h-24 flex items-center justify-center border-2 border-dashed border-nuanu-gray-300 rounded-xl mt-2">
-                            <span className="text-sm text-nuanu-gray-400">Drop candidate here</span>
-                          </div>
-                        )}
+
+                        {columnCandidates.length === 0 &&
+                          !snapshot.isDraggingOver && (
+                            <div className="h-24 flex items-center justify-center border-2 border-dashed border-nuanu-gray-300 rounded-xl mt-2">
+                              <span className="text-sm text-nuanu-gray-400">
+                                Drop candidate here
+                              </span>
+                            </div>
+                          )}
                       </div>
                     )}
                   </Droppable>
