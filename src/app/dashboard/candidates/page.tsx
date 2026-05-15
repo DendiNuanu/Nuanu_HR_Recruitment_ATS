@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { unstable_cache } from "next/cache";
 import CandidatesTable from "./CandidatesTable";
 import ExportButton from "./ExportButton";
+import UploadCVButton from "./UploadCVButton";
 
 const getCachedCandidatesData = unstable_cache(
   async () => {
@@ -92,7 +93,14 @@ const getCachedCandidatesData = unstable_cache(
 );
 
 export default async function CandidatesPage() {
-  const candidates = await getCachedCandidatesData();
+  const [candidates, vacancies] = await Promise.all([
+    getCachedCandidatesData(),
+    prisma.vacancy.findMany({
+      where: { status: { in: ["published", "approved"] } },
+      select: { id: true, title: true, status: true },
+      orderBy: { title: "asc" },
+    }),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -104,6 +112,7 @@ export default async function CandidatesPage() {
           </p>
         </div>
         <div className="flex gap-3">
+          <UploadCVButton vacancies={vacancies} />
           <ExportButton candidates={candidates} />
         </div>
       </div>
