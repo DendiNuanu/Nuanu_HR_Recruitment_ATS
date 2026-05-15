@@ -37,6 +37,7 @@ const getDashboardMetrics = unstable_cache(
       newOffers30d,
       interviewedGroups,
       hiredBySource,
+      candidateProfiles,
     ] = await Promise.all([
       prisma.vacancy.count({ where: { status: "published" } }),
       prisma.vacancy.count(),
@@ -104,6 +105,10 @@ const getDashboardMetrics = unstable_cache(
         by: ["source"],
         where: { currentStage: "hired" },
         _count: true,
+      }),
+      // M9: Diversity — location, gender, date of birth
+      prisma.candidateProfile.findMany({
+        select: { location: true, gender: true, dateOfBirth: true },
       }),
     ]);
 
@@ -316,6 +321,118 @@ const getDashboardMetrics = unstable_cache(
         ? Math.round((retained90.length / hires90.length) * 100)
         : 0;
 
+    // M2/M3/M4: Quarterly sourcing rates (per 3 months)
+    function quarterOf(d: Date) {
+      return Math.floor(d.getMonth() / 3) + 1;
+    }
+    const currentYear = now.getFullYear();
+    const quarterlyRates = [1, 2, 3, 4].map((q) => {
+      const qHires = hiredApplications.filter((a) => {
+        const hiredAt = a.offer?.respondedAt ?? a.updatedAt;
+        return (
+          hiredAt.getFullYear() === currentYear && quarterOf(hiredAt) === q
+        );
+      });
+      const qTotal = qHires.length;
+      return {
+        quarter: `Q${q}`,
+        totalHires: qTotal,
+        referral:
+          qTotal > 0
+            ? Math.round(
+                (qHires.filter((a) => a.source?.toLowerCase() === "referral")
+                  .length /
+                  qTotal) *
+                  100,
+              )
+            : 0,
+        linkedin:
+          qTotal > 0
+            ? Math.round(
+                (qHires.filter((a) => a.source?.toLowerCase() === "linkedin")
+                  .length /
+                  qTotal) *
+                  100,
+              )
+            : 0,
+        jobstreet:
+          qTotal > 0
+            ? Math.round(
+                (qHires.filter((a) => a.source?.toLowerCase() === "jobstreet")
+                  .length /
+                  qTotal) *
+                  100,
+              )
+            : 0,
+      };
+    });
+
+    // M9: Diversity — Domicile, Gender, Age
+    const locMap = new Map<string, number>();
+    const genderMap = new Map<string, number>();
+    const ageMap = new Map<string, number>();
+    const ageOrder = ["Under 25", "25-34", "35-44", "45-54", "55+"];
+    for (const p of candidateProfiles) {
+      // Domicile
+      const loc = (p.location ?? "Unknown").trim();
+      locMap.set(loc, (locMap.get(loc) ?? 0) + 1);
+      // Gender
+      const g = (p.gender ?? "").toLowerCase();
+      const gLabel =
+        g === "male"
+          ? "Male"
+          : g === "female"
+            ? "Female"
+            : g === "other"
+              ? "Other"
+              : "Not Specified";
+      genderMap.set(gLabel, (genderMap.get(gLabel) ?? 0) + 1);
+      // Age
+      if (p.dateOfBirth) {
+        const ageYears =
+          (now.getTime() - new Date(p.dateOfBirth).getTime()) /
+          (365.25 * 86_400_000);
+        const ag =
+          ageYears < 25
+            ? "Under 25"
+            : ageYears < 35
+              ? "25-34"
+              : ageYears < 45
+                ? "35-44"
+                : ageYears < 55
+                  ? "45-54"
+                  : "55+";
+        ageMap.set(ag, (ageMap.get(ag) ?? 0) + 1);
+      }
+    }
+    const totalProfiles = candidateProfiles.length || 1;
+    const domicileBreakdown = Array.from(locMap.entries())
+      .map(([location, count]) => ({
+        location,
+        count,
+        percentage: Math.round((count / totalProfiles) * 100),
+      }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+    const totalGender =
+      Array.from(genderMap.values()).reduce((a, b) => a + b, 0) || 1;
+    const genderBreakdown = Array.from(genderMap.entries())
+      .map(([gender, count]) => ({
+        gender,
+        count,
+        percentage: Math.round((count / totalGender) * 100),
+      }))
+      .sort((a, b) => b.count - a.count);
+    const totalAge =
+      Array.from(ageMap.values()).reduce((a, b) => a + b, 0) || 1;
+    const ageBreakdown = ageOrder
+      .filter((g) => ageMap.has(g))
+      .map((group) => ({
+        group,
+        count: ageMap.get(group) ?? 0,
+        percentage: Math.round(((ageMap.get(group) ?? 0) / totalAge) * 100),
+      }));
+
     // M13: Quality of Hire — 6-month retention
     const cutoff180 = new Date(now.getTime() - 180 * 86_400_000);
     const hires180 = hiredApplications.filter((a) => {
@@ -423,11 +540,15 @@ const getDashboardMetrics = unstable_cache(
       referralRate,
       linkedinRate,
       jobstreetRate,
+      quarterlyRates,
       channelEffectiveness,
       yieldRatio,
       avgTimeToFill,
       retention90Days,
       qualityOfHire,
+      domicileBreakdown,
+      genderBreakdown,
+      ageBreakdown,
     };
   },
   ["dashboard-metrics"],

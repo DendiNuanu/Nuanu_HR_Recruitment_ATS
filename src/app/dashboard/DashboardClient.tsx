@@ -94,6 +94,16 @@ export type DashboardMetrics = {
   avgTimeToFill: number;
   retention90Days: number;
   qualityOfHire: number;
+  quarterlyRates: {
+    quarter: string;
+    totalHires: number;
+    referral: number;
+    linkedin: number;
+    jobstreet: number;
+  }[];
+  domicileBreakdown: { location: string; count: number; percentage: number }[];
+  genderBreakdown: { gender: string; count: number; percentage: number }[];
+  ageBreakdown: { group: string; count: number; percentage: number }[];
 };
 
 const container = {
@@ -322,58 +332,81 @@ export default function DashboardClient({
               </p>
             </div>
           </div>
-          <div className="space-y-4">
+          <div className="space-y-5">
             {[
               {
                 label: "Referral Rate",
-                value: metrics.referralRate,
+                annual: metrics.referralRate,
                 color: "#10B981",
                 badge: "M2",
+                qKey: "referral" as const,
               },
               {
                 label: "LinkedIn Rate",
-                value: metrics.linkedinRate,
+                annual: metrics.linkedinRate,
                 color: "#3B82F6",
                 badge: "M3",
+                qKey: "linkedin" as const,
               },
               {
                 label: "Jobstreet Rate",
-                value: metrics.jobstreetRate,
+                annual: metrics.jobstreetRate,
                 color: "#8B5CF6",
                 badge: "M4",
+                qKey: "jobstreet" as const,
               },
-            ].map((item) => (
-              <div key={item.label}>
+            ].map((ch) => (
+              <div key={ch.label}>
+                {/* Annual row */}
                 <div className="flex items-center justify-between mb-1">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-semibold text-nuanu-navy">
-                      {item.label}
+                      {ch.label}
                     </span>
                     <span
                       className="badge text-[10px]"
-                      style={{
-                        background: `${item.color}18`,
-                        color: item.color,
-                      }}
+                      style={{ background: `${ch.color}18`, color: ch.color }}
                     >
-                      {item.badge}
+                      {ch.badge}
                     </span>
                   </div>
                   <span
                     className="text-lg font-bold"
-                    style={{ color: item.color }}
+                    style={{ color: ch.color }}
                   >
-                    {item.value}%
+                    {ch.annual}%{" "}
+                    <span className="text-[10px] font-normal text-nuanu-gray-400">
+                      annual
+                    </span>
                   </span>
                 </div>
-                <div className="h-2 bg-nuanu-gray-100 rounded-full overflow-hidden">
+                <div className="h-2 bg-nuanu-gray-100 rounded-full overflow-hidden mb-2">
                   <motion.div
                     initial={{ width: 0 }}
-                    animate={{ width: `${Math.min(100, item.value)}%` }}
+                    animate={{ width: `${Math.min(100, ch.annual)}%` }}
                     transition={{ duration: 1, ease: "easeOut" }}
                     className="h-full rounded-full"
-                    style={{ background: item.color }}
+                    style={{ background: ch.color }}
                   />
+                </div>
+                {/* Quarterly breakdown */}
+                <div className="grid grid-cols-4 gap-1">
+                  {metrics.quarterlyRates.map((q) => (
+                    <div key={q.quarter} className="text-center">
+                      <div className="h-1 rounded-full mb-0.5 overflow-hidden bg-nuanu-gray-100">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${Math.min(100, q[ch.qKey])}%` }}
+                          transition={{ duration: 0.8 }}
+                          className="h-full rounded-full"
+                          style={{ background: `${ch.color}99` }}
+                        />
+                      </div>
+                      <span className="text-[9px] text-nuanu-gray-400">
+                        {q.quarter} {q[ch.qKey]}%
+                      </span>
+                    </div>
+                  ))}
                 </div>
               </div>
             ))}
@@ -495,6 +528,138 @@ export default function DashboardClient({
           </motion.div>
         ))}
       </div>
+
+      {/* ── M9: Diversity Metrics — Domicile · Gender · Age ── */}
+      <motion.div variants={item} className="card">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="text-base font-bold text-nuanu-navy flex items-center gap-2">
+              <MapPin className="w-4 h-4 text-teal-500" /> Diversity Metrics
+            </h3>
+            <p className="text-xs text-nuanu-gray-400 mt-0.5">
+              Domicile · Gender · Age — (M9)
+            </p>
+          </div>
+          <span className="badge bg-teal-50 text-teal-700 text-[10px]">M9</span>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          {/* Domicile */}
+          <div>
+            <p className="text-xs font-semibold text-nuanu-gray-500 uppercase tracking-wide mb-3">
+              Top Domicile
+            </p>
+            {metrics.domicileBreakdown.length === 0 ? (
+              <p className="text-xs text-nuanu-gray-300">
+                No location data yet
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {metrics.domicileBreakdown.map((d, i) => (
+                  <div key={i}>
+                    <div className="flex justify-between mb-0.5">
+                      <span className="text-xs text-nuanu-navy font-medium truncate max-w-[120px]">
+                        {d.location}
+                      </span>
+                      <span className="text-xs font-bold text-nuanu-navy">
+                        {d.percentage}%
+                      </span>
+                    </div>
+                    <div className="h-1.5 bg-nuanu-gray-100 rounded-full overflow-hidden">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        whileInView={{ width: `${d.percentage}%` }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.6, delay: i * 0.05 }}
+                        className="h-full bg-teal-400 rounded-full"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          {/* Gender */}
+          <div>
+            <p className="text-xs font-semibold text-nuanu-gray-500 uppercase tracking-wide mb-3">
+              Gender Split
+            </p>
+            {metrics.genderBreakdown.length === 0 ? (
+              <p className="text-xs text-nuanu-gray-300">
+                Collected at application
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {metrics.genderBreakdown.map((g, i) => {
+                  const colors = ["#6366f1", "#ec4899", "#14b8a6", "#94a3b8"];
+                  return (
+                    <div key={i}>
+                      <div className="flex justify-between mb-0.5">
+                        <span className="text-xs text-nuanu-navy font-medium">
+                          {g.gender}
+                        </span>
+                        <span
+                          className="text-xs font-bold"
+                          style={{ color: colors[i % 4] }}
+                        >
+                          {g.percentage}%
+                        </span>
+                      </div>
+                      <div className="h-1.5 bg-nuanu-gray-100 rounded-full overflow-hidden">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          whileInView={{ width: `${g.percentage}%` }}
+                          viewport={{ once: true }}
+                          transition={{ duration: 0.6, delay: i * 0.07 }}
+                          className="h-full rounded-full"
+                          style={{ background: colors[i % 4] }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+          {/* Age */}
+          <div>
+            <p className="text-xs font-semibold text-nuanu-gray-500 uppercase tracking-wide mb-3">
+              Age Groups
+            </p>
+            {metrics.ageBreakdown.length === 0 ? (
+              <p className="text-xs text-nuanu-gray-300">
+                Collected at application
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {metrics.ageBreakdown.map((a, i) => (
+                  <div key={i}>
+                    <div className="flex justify-between mb-0.5">
+                      <span className="text-xs text-nuanu-navy font-medium">
+                        {a.group}
+                      </span>
+                      <span className="text-xs font-bold text-amber-600">
+                        {a.count}{" "}
+                        <span className="text-nuanu-gray-400 font-normal">
+                          ({a.percentage}%)
+                        </span>
+                      </span>
+                    </div>
+                    <div className="h-1.5 bg-nuanu-gray-100 rounded-full overflow-hidden">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        whileInView={{ width: `${a.percentage}%` }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.6, delay: i * 0.06 }}
+                        className="h-full bg-amber-400 rounded-full"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </motion.div>
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
