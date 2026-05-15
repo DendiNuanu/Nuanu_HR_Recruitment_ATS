@@ -17,9 +17,27 @@ import {
   User,
   ExternalLink,
   AlertCircle,
+  StickyNote,
+  Tag,
+  Plus,
+  Pencil,
+  Trash2,
+  UploadCloud,
+  CheckCircle2,
+  Edit,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { updateCandidateStage, sendCandidateEmail } from "./actions";
+import {
+  updateCandidateStage,
+  sendCandidateEmail,
+  addNote,
+  editNote,
+  deleteNote,
+  addCustomField,
+  updateCustomField,
+  deleteCustomField,
+  uploadCandidateResume,
+} from "./actions";
 import { formatDate } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -39,6 +57,20 @@ export type Candidate = {
   coverLetter?: string;
   resumeUrl?: string;
   resumeText?: string;
+  notes: {
+    id: string;
+    content: string;
+    authorName: string;
+    authorId: string;
+    createdAt: string;
+    updatedAt: string;
+  }[];
+  customFields: {
+    id: string;
+    fieldName: string;
+    fieldValue: string;
+    createdAt: string;
+  }[];
 };
 
 export default function CandidatesTable({
@@ -52,9 +84,9 @@ export default function CandidatesTable({
   const [loadingActionId, setLoadingActionId] = useState<string | null>(null);
 
   // Profile tab
-  const [profileTab, setProfileTab] = useState<"overview" | "resume">(
-    "overview",
-  );
+  const [profileTab, setProfileTab] = useState<
+    "overview" | "resume" | "notes" | "fields"
+  >("overview");
 
   // Modals state
   const [selectedProfile, setSelectedProfile] = useState<Candidate | null>(
@@ -67,6 +99,28 @@ export default function CandidatesTable({
   const [emailBody, setEmailBody] = useState("");
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+
+  // Notes state
+  const [noteText, setNoteText] = useState("");
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [editNoteText, setEditNoteText] = useState("");
+  const [savingNote, setSavingNote] = useState(false);
+
+  // Custom fields state
+  const [newFieldName, setNewFieldName] = useState("");
+  const [newFieldValue, setNewFieldValue] = useState("");
+  const [editingFieldId, setEditingFieldId] = useState<string | null>(null);
+  const [editFieldName, setEditFieldName] = useState("");
+  const [editFieldValue, setEditFieldValue] = useState("");
+  const [savingField, setSavingField] = useState(false);
+
+  // CV Upload state
+  const [uploadingCv, setUploadingCv] = useState(false);
+  const [cvFile, setCvFile] = useState<File | null>(null);
+
+  // Local state for live notes/fields (so UI updates without full reload)
+  const [localNotes, setLocalNotes] = useState<Candidate["notes"]>([]);
+  const [localFields, setLocalFields] = useState<Candidate["customFields"]>([]);
 
   const filteredCandidates = candidates.filter((c) => {
     const matchSearch =
@@ -164,6 +218,10 @@ export default function CandidatesTable({
   const openProfile = (c: Candidate) => {
     setSelectedProfile(c);
     setProfileTab("overview");
+    setLocalNotes(c.notes);
+    setLocalFields(c.customFields);
+    setNoteText("");
+    setCvFile(null);
   };
 
   const openEmailModal = (c: Candidate) => {
@@ -175,6 +233,152 @@ export default function CandidatesTable({
       `Hi ${c.name},\n\nThank you for applying for the ${c.vacancyTitle} position. We wanted to reach out regarding the next steps in our process.\n\nBest regards,\nNuanu Recruitment Team`,
     );
     setEmailSent(false);
+  };
+
+  // ── Notes handlers ─────────────────────────────────────────
+  const handleAddNote = async () => {
+    if (!selectedProfile || !noteText.trim()) return;
+    setSavingNote(true);
+    const res = await addNote(selectedProfile.id, noteText.trim());
+    if (res.success && res.note) {
+      const newNote = {
+        id: res.note.id,
+        content: res.note.content,
+        authorName: res.note.author.name,
+        authorId: res.note.authorId,
+        createdAt: res.note.createdAt.toString(),
+        updatedAt: res.note.updatedAt.toString(),
+      };
+      setLocalNotes([newNote, ...localNotes]);
+      setNoteText("");
+      toast.success("Note added");
+    } else {
+      toast.error(res.error || "Failed to add note");
+    }
+    setSavingNote(false);
+  };
+
+  const handleEditNote = async (noteId: string) => {
+    if (!editNoteText.trim()) return;
+    setSavingNote(true);
+    const res = await editNote(noteId, editNoteText.trim());
+    if (res.success && res.note) {
+      setLocalNotes(
+        localNotes.map((n) =>
+          n.id === noteId
+            ? {
+                ...n,
+                content: res.note!.content,
+                updatedAt: res.note!.updatedAt.toString(),
+              }
+            : n,
+        ),
+      );
+      setEditingNoteId(null);
+      setEditNoteText("");
+      toast.success("Note updated");
+    } else {
+      toast.error(res.error || "Failed to edit note");
+    }
+    setSavingNote(false);
+  };
+
+  const handleDeleteNote = async (noteId: string) => {
+    if (!confirm("Delete this note?")) return;
+    const res = await deleteNote(noteId);
+    if (res.success) {
+      setLocalNotes(localNotes.filter((n) => n.id !== noteId));
+      toast.success("Note deleted");
+    } else {
+      toast.error("Failed to delete note");
+    }
+  };
+
+  // ── Custom field handlers ───────────────────────────────────
+  const handleAddField = async () => {
+    if (!selectedProfile || !newFieldName.trim() || !newFieldValue.trim())
+      return;
+    setSavingField(true);
+    const res = await addCustomField(
+      selectedProfile.id,
+      newFieldName.trim(),
+      newFieldValue.trim(),
+    );
+    if (res.success && res.field) {
+      setLocalFields([
+        ...localFields,
+        {
+          id: res.field.id,
+          fieldName: res.field.fieldName,
+          fieldValue: res.field.fieldValue,
+          createdAt: res.field.createdAt.toString(),
+        },
+      ]);
+      setNewFieldName("");
+      setNewFieldValue("");
+      toast.success("Field added");
+    } else {
+      toast.error(res.error || "Failed to add field");
+    }
+    setSavingField(false);
+  };
+
+  const handleUpdateField = async (fieldId: string) => {
+    if (!editFieldName.trim() || !editFieldValue.trim()) return;
+    setSavingField(true);
+    const res = await updateCustomField(
+      fieldId,
+      editFieldName.trim(),
+      editFieldValue.trim(),
+    );
+    if (res.success && res.field) {
+      setLocalFields(
+        localFields.map((f) =>
+          f.id === fieldId
+            ? {
+                ...f,
+                fieldName: res.field!.fieldName,
+                fieldValue: res.field!.fieldValue,
+              }
+            : f,
+        ),
+      );
+      setEditingFieldId(null);
+      toast.success("Field updated");
+    } else {
+      toast.error(res.error || "Failed to update field");
+    }
+    setSavingField(false);
+  };
+
+  const handleDeleteField = async (fieldId: string) => {
+    if (!confirm("Delete this field?")) return;
+    const res = await deleteCustomField(fieldId);
+    if (res.success) {
+      setLocalFields(localFields.filter((f) => f.id !== fieldId));
+      toast.success("Field deleted");
+    } else {
+      toast.error("Failed to delete field");
+    }
+  };
+
+  // ── CV Upload handler ───────────────────────────────────────
+  const handleCvUpload = async () => {
+    if (!selectedProfile || !cvFile) return;
+    setUploadingCv(true);
+    const fd = new FormData();
+    fd.append("resume", cvFile);
+    const res = await uploadCandidateResume(selectedProfile.id, fd);
+    if (res.success) {
+      toast.success("CV uploaded successfully!");
+      if (res.resumeUrl && selectedProfile) {
+        setSelectedProfile({ ...selectedProfile, resumeUrl: res.resumeUrl });
+      }
+      setCvFile(null);
+    } else {
+      toast.error(res.error || "Upload failed");
+    }
+    setUploadingCv(false);
   };
 
   return (
@@ -463,6 +667,36 @@ export default function CandidatesTable({
                     <span className="ml-1 w-2 h-2 rounded-full bg-emerald-500" />
                   )}
                 </button>
+                <button
+                  onClick={() => setProfileTab("notes")}
+                  className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-all border-b-2 ${
+                    profileTab === "notes"
+                      ? "border-emerald-500 text-emerald-700 bg-white"
+                      : "border-transparent text-nuanu-gray-400 hover:text-nuanu-navy hover:bg-white/60"
+                  }`}
+                >
+                  <StickyNote className="w-4 h-4" /> Notes
+                  {localNotes.length > 0 && (
+                    <span className="ml-1 bg-emerald-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                      {localNotes.length}
+                    </span>
+                  )}
+                </button>
+                <button
+                  onClick={() => setProfileTab("fields")}
+                  className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-all border-b-2 ${
+                    profileTab === "fields"
+                      ? "border-emerald-500 text-emerald-700 bg-white"
+                      : "border-transparent text-nuanu-gray-400 hover:text-nuanu-navy hover:bg-white/60"
+                  }`}
+                >
+                  <Tag className="w-4 h-4" /> Custom Fields
+                  {localFields.length > 0 && (
+                    <span className="ml-1 bg-purple-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                      {localFields.length}
+                    </span>
+                  )}
+                </button>
               </div>
 
               {/* ── Tab: Profile Overview ──────────────────────────────── */}
@@ -661,7 +895,7 @@ export default function CandidatesTable({
                     </div>
                   )}
 
-                  {/* Empty state — no resume at all */}
+                  {/* Empty state — no resume at all, show upload option */}
                   {!selectedProfile.resumeUrl &&
                     !selectedProfile.resumeText && (
                       <div className="flex-1 flex flex-col items-center justify-center gap-4 p-12 text-center">
@@ -677,6 +911,58 @@ export default function CandidatesTable({
                             application, or the file could not be processed.
                           </p>
                         </div>
+
+                        {/* CV Upload UI */}
+                        <div className="mt-2">
+                          {cvFile ? (
+                            <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-100 rounded-xl px-4 py-3">
+                              <FileText className="w-5 h-5 text-emerald-600" />
+                              <span className="text-sm font-medium text-emerald-700">
+                                {cvFile.name}
+                              </span>
+                              <button
+                                onClick={() => setCvFile(null)}
+                                className="p-1 text-emerald-500 hover:text-emerald-700"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+                          ) : (
+                            <label className="cursor-pointer btn-primary px-6 py-3 flex items-center gap-2">
+                              <UploadCloud className="w-5 h-5" />
+                              <span>Upload CV / Resume</span>
+                              <input
+                                type="file"
+                                accept=".pdf,.doc,.docx"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) setCvFile(file);
+                                }}
+                                className="hidden"
+                              />
+                            </label>
+                          )}
+                          {cvFile && (
+                            <button
+                              onClick={handleCvUpload}
+                              disabled={uploadingCv}
+                              className="btn-primary w-full mt-3 flex items-center justify-center gap-2"
+                            >
+                              {uploadingCv ? (
+                                <>
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                  Uploading...
+                                </>
+                              ) : (
+                                <>
+                                  <UploadCloud className="w-4 h-4" />
+                                  Upload Resume
+                                </>
+                              )}
+                            </button>
+                          )}
+                        </div>
+
                         <div className="flex items-center gap-2 text-xs text-amber-600 bg-amber-50 border border-amber-100 rounded-xl px-4 py-2.5">
                           <AlertCircle className="w-4 h-4 shrink-0" />
                           Resume storage requires Supabase to be configured
@@ -684,6 +970,283 @@ export default function CandidatesTable({
                         </div>
                       </div>
                     )}
+                </div>
+              )}
+
+              {/* ── Tab: Notes ──────────────────────────────────────────── */}
+              {profileTab === "notes" && (
+                <div className="flex-1 flex flex-col overflow-hidden">
+                  <div className="p-6 border-b border-gray-100 bg-white">
+                    <div className="flex gap-3">
+                      <input
+                        type="text"
+                        value={noteText}
+                        onChange={(e) => setNoteText(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && handleAddNote()}
+                        placeholder="Add a new note..."
+                        className="flex-1 input-field"
+                      />
+                      <button
+                        onClick={handleAddNote}
+                        disabled={!noteText.trim() || savingNote}
+                        className="btn-primary px-4 py-2 flex items-center gap-2"
+                      >
+                        {savingNote ? (
+                          <Loader className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Plus className="w-4 h-4" />
+                        )}
+                        Add Note
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                    {localNotes.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-12 text-center">
+                        <div className="w-16 h-16 rounded-full bg-amber-50 flex items-center justify-center mb-4">
+                          <StickyNote className="w-8 h-8 text-amber-400" />
+                        </div>
+                        <p className="text-lg font-bold text-nuanu-navy mb-1">
+                          No Notes Yet
+                        </p>
+                        <p className="text-sm text-nuanu-gray-400 max-w-xs">
+                          Add notes to keep track of important information about
+                          this candidate.
+                        </p>
+                      </div>
+                    ) : (
+                      localNotes.map((note) => (
+                        <div
+                          key={note.id}
+                          className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm"
+                        >
+                          {editingNoteId === note.id ? (
+                            <div className="space-y-3">
+                              <textarea
+                                value={editNoteText}
+                                onChange={(e) =>
+                                  setEditNoteText(e.target.value)
+                                }
+                                className="w-full input-field min-h-[100px]"
+                                autoFocus
+                              />
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => handleEditNote(note.id)}
+                                  disabled={savingNote || !editNoteText.trim()}
+                                  className="btn-primary px-3 py-1.5 text-xs"
+                                >
+                                  {savingNote ? "Saving..." : "Save"}
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setEditingNoteId(null);
+                                    setEditNoteText("");
+                                  }}
+                                  className="btn-secondary px-3 py-1.5 text-xs"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <>
+                              <div className="flex items-start justify-between mb-3">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-xs font-bold">
+                                    {note.authorName
+                                      .split(" ")
+                                      .map((n) => n[0])
+                                      .join("")
+                                      .substring(0, 2)
+                                      .toUpperCase()}
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-bold text-nuanu-navy">
+                                      {note.authorName}
+                                    </p>
+                                    <p className="text-xs text-nuanu-gray-400">
+                                      {formatDate(note.createdAt)}
+                                      {note.updatedAt !== note.createdAt &&
+                                        ` (edited ${formatDate(note.updatedAt)})`}
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <button
+                                    onClick={() => {
+                                      setEditingNoteId(note.id);
+                                      setEditNoteText(note.content);
+                                    }}
+                                    className="p-1.5 text-nuanu-gray-400 hover:text-nuanu-navy hover:bg-gray-100 rounded-lg transition-colors"
+                                  >
+                                    <Edit className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteNote(note.id)}
+                                    className="p-1.5 text-nuanu-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              </div>
+                              <div className="text-sm text-nuanu-gray-700 whitespace-pre-wrap">
+                                {note.content}
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* ── Tab: Custom Fields ────────────────────────────────────── */}
+              {profileTab === "fields" && (
+                <div className="flex-1 flex flex-col overflow-hidden">
+                  <div className="p-6 border-b border-gray-100 bg-white">
+                    <div className="flex gap-3">
+                      <input
+                        type="text"
+                        value={newFieldName}
+                        onChange={(e) => setNewFieldName(e.target.value)}
+                        placeholder="Field name (e.g., LinkedIn, Portfolio)"
+                        className="flex-1 input-field"
+                      />
+                      <input
+                        type="text"
+                        value={newFieldValue}
+                        onChange={(e) => setNewFieldValue(e.target.value)}
+                        placeholder="Field value"
+                        className="flex-1 input-field"
+                        onKeyDown={(e) => e.key === "Enter" && handleAddField()}
+                      />
+                      <button
+                        onClick={handleAddField}
+                        disabled={
+                          !newFieldName.trim() ||
+                          !newFieldValue.trim() ||
+                          savingField
+                        }
+                        className="btn-primary px-4 py-2 flex items-center gap-2"
+                      >
+                        {savingField ? (
+                          <Loader className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Plus className="w-4 h-4" />
+                        )}
+                        Add Field
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto p-6">
+                    {localFields.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-12 text-center">
+                        <div className="w-16 h-16 rounded-full bg-purple-50 flex items-center justify-center mb-4">
+                          <Tag className="w-8 h-8 text-purple-400" />
+                        </div>
+                        <p className="text-lg font-bold text-nuanu-navy mb-1">
+                          No Custom Fields
+                        </p>
+                        <p className="text-sm text-nuanu-gray-400 max-w-xs">
+                          Add custom fields to store additional information
+                          about this candidate.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {localFields.map((field) => (
+                          <div
+                            key={field.id}
+                            className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm"
+                          >
+                            {editingFieldId === field.id ? (
+                              <div className="space-y-3">
+                                <input
+                                  type="text"
+                                  value={editFieldName}
+                                  onChange={(e) =>
+                                    setEditFieldName(e.target.value)
+                                  }
+                                  className="w-full input-field"
+                                  placeholder="Field name"
+                                />
+                                <input
+                                  type="text"
+                                  value={editFieldValue}
+                                  onChange={(e) =>
+                                    setEditFieldValue(e.target.value)
+                                  }
+                                  className="w-full input-field"
+                                  placeholder="Field value"
+                                />
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={() => handleUpdateField(field.id)}
+                                    disabled={
+                                      savingField ||
+                                      !editFieldName.trim() ||
+                                      !editFieldValue.trim()
+                                    }
+                                    className="btn-primary px-3 py-1.5 text-xs"
+                                  >
+                                    {savingField ? "Saving..." : "Save"}
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      setEditingFieldId(null);
+                                      setEditFieldName("");
+                                      setEditFieldValue("");
+                                    }}
+                                    className="btn-secondary px-3 py-1.5 text-xs"
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <>
+                                <div className="flex items-start justify-between mb-2">
+                                  <p className="text-xs font-bold text-nuanu-gray-400 uppercase tracking-wider">
+                                    {field.fieldName}
+                                  </p>
+                                  <div className="flex items-center gap-1">
+                                    <button
+                                      onClick={() => {
+                                        setEditingFieldId(field.id);
+                                        setEditFieldName(field.fieldName);
+                                        setEditFieldValue(field.fieldValue);
+                                      }}
+                                      className="p-1.5 text-nuanu-gray-400 hover:text-nuanu-navy hover:bg-gray-100 rounded-lg transition-colors"
+                                    >
+                                      <Edit className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                      onClick={() =>
+                                        handleDeleteField(field.id)
+                                      }
+                                      className="p-1.5 text-nuanu-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  </div>
+                                </div>
+                                <p className="text-base font-bold text-nuanu-navy">
+                                  {field.fieldValue}
+                                </p>
+                                <p className="text-xs text-nuanu-gray-400 mt-2">
+                                  Added {formatDate(field.createdAt)}
+                                </p>
+                              </>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 

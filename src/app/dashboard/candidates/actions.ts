@@ -122,6 +122,224 @@ export async function updateCandidateStage(
   }
 }
 
+// ─────────────────────────────────────────────────────────────
+// NOTE CRUD
+// ─────────────────────────────────────────────────────────────
+
+/** Fetch notes for an application (used server-side in page.tsx) */
+export async function getNotes(applicationId: string) {
+  return prisma.candidateNote.findMany({
+    where: { applicationId },
+    include: { author: { select: { id: true, name: true, avatar: true } } },
+    orderBy: { createdAt: "desc" },
+  });
+}
+
+export async function addNote(applicationId: string, content: string) {
+  "use server";
+  try {
+    const { getSession } = await import("@/lib/auth");
+    const session = await getSession();
+    if (!session) return { success: false, error: "Unauthorized" };
+
+    const note = await prisma.candidateNote.create({
+      data: { applicationId, content: content.trim(), authorId: session.id },
+      include: { author: { select: { id: true, name: true, avatar: true } } },
+    });
+    revalidatePath("/dashboard/candidates");
+    return { success: true, note };
+  } catch (e) {
+    console.error(e);
+    return { success: false, error: "Failed to add note" };
+  }
+}
+
+export async function editNote(noteId: string, content: string) {
+  "use server";
+  try {
+    const note = await prisma.candidateNote.update({
+      where: { id: noteId },
+      data: { content: content.trim(), updatedAt: new Date() },
+      include: { author: { select: { id: true, name: true, avatar: true } } },
+    });
+    revalidatePath("/dashboard/candidates");
+    return { success: true, note };
+  } catch (e) {
+    console.error(e);
+    return { success: false, error: "Failed to edit note" };
+  }
+}
+
+export async function deleteNote(noteId: string) {
+  "use server";
+  try {
+    await prisma.candidateNote.delete({ where: { id: noteId } });
+    revalidatePath("/dashboard/candidates");
+    return { success: true };
+  } catch (e) {
+    console.error(e);
+    return { success: false, error: "Failed to delete note" };
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// CUSTOM FIELD CRUD
+// ─────────────────────────────────────────────────────────────
+
+export async function addCustomField(
+  applicationId: string,
+  fieldName: string,
+  fieldValue: string,
+) {
+  "use server";
+  try {
+    const field = await prisma.applicationCustomField.create({
+      data: {
+        applicationId,
+        fieldName: fieldName.trim(),
+        fieldValue: fieldValue.trim(),
+      },
+    });
+    revalidatePath("/dashboard/candidates");
+    return { success: true, field };
+  } catch (e) {
+    console.error(e);
+    return { success: false, error: "Failed to add field" };
+  }
+}
+
+export async function updateCustomField(
+  fieldId: string,
+  fieldName: string,
+  fieldValue: string,
+) {
+  "use server";
+  try {
+    const field = await prisma.applicationCustomField.update({
+      where: { id: fieldId },
+      data: {
+        fieldName: fieldName.trim(),
+        fieldValue: fieldValue.trim(),
+        updatedAt: new Date(),
+      },
+    });
+    revalidatePath("/dashboard/candidates");
+    return { success: true, field };
+  } catch (e) {
+    console.error(e);
+    return { success: false, error: "Failed to update field" };
+  }
+}
+
+export async function deleteCustomField(fieldId: string) {
+  "use server";
+  try {
+    await prisma.applicationCustomField.delete({ where: { id: fieldId } });
+    revalidatePath("/dashboard/candidates");
+    return { success: true };
+  } catch (e) {
+    console.error(e);
+    return { success: false, error: "Failed to delete field" };
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// CV / RESUME UPLOAD (server action wrapping Supabase)
+// ─────────────────────────────────────────────────────────────
+
+export async function uploadCandidateResume(
+  applicationId: string,
+  formData: FormData,
+) {
+  "use server";
+  try {
+    const file = formData.get("resume") as File | null;
+    if (!file) return { success: false, error: "No file provided" };
+
+    // Get the candidate userId from the application
+    const app = await prisma.application.findUnique({
+      where: { id: applicationId },
+      select: { candidateId: true, candidate: { select: { name: true } } },
+    });
+    if (!app) return { success: false, error: "Application not found" };
+
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
+
+    let resumeUrl = "";
+    let resumeText = "";
+
+    // Upload to Supabase Storage
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (supabaseUrl && supabaseKey) {
+      const { getSupabaseAdmin } = await import("@/lib/supabase");
+      const supabase = getSupabaseAdmin();
+      const safeFilename = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
+      const storagePath = `resumes/${safeFilename}`;
+      const { error: uploadError } = await supabase.storage
+        .from("resumes")
+        .upload(storagePath, buffer, {
+          contentType: file.type || "application/octet-stream",
+          upsert: false,
+        });
+      if (!uploadError) {
+        const { data } = supabase.storage
+          .from("resumes")
+          .getPublicUrl(storagePath);
+        resumeUrl = data.publicUrl;
+      }
+    }
+
+    // Extract text if PDF
+    if (
+      file.type === "application/pdf" ||
+      file.name.toLowerCase().endsWith(".pdf")
+    ) {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const pdfParse = require("pdf-parse");
+        const parsed = await pdfParse(buffer);
+        resumeText = parsed.text || "";
+      } catch {
+        /* non-fatal */
+      }
+    }
+
+    // Create Document record
+    await prisma.document.create({
+      data: {
+        applicationId,
+        name: file.name,
+        type: "resume",
+        fileUrl: resumeUrl || "pending",
+        fileSize: buffer.byteLength,
+        mimeType: file.type || "application/octet-stream",
+      },
+    });
+
+    // Update CandidateProfile
+    await prisma.candidateProfile.upsert({
+      where: { userId: app.candidateId },
+      update: {
+        ...(resumeUrl && { resumeUrl }),
+        ...(resumeText && { resumeText }),
+      },
+      create: {
+        userId: app.candidateId,
+        ...(resumeUrl && { resumeUrl }),
+        ...(resumeText && { resumeText }),
+      },
+    });
+
+    revalidatePath("/dashboard/candidates");
+    return { success: true, resumeUrl };
+  } catch (e) {
+    console.error("Resume upload error:", e);
+    return { success: false, error: "Upload failed" };
+  }
+}
+
 export async function sendCandidateEmail(data: {
   candidateId: string;
   to: string;

@@ -23,6 +23,19 @@ const getCachedCandidatesData = unstable_cache(
       where: { userId: { in: candidateIds } },
     });
 
+    // Fetch notes and custom fields for all applications
+    const [notesAll, customFieldsAll] = await Promise.all([
+      prisma.candidateNote.findMany({
+        where: { applicationId: { in: applications.map((a) => a.id) } },
+        include: { author: { select: { id: true, name: true } } },
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.applicationCustomField.findMany({
+        where: { applicationId: { in: applications.map((a) => a.id) } },
+        orderBy: { createdAt: "asc" },
+      }),
+    ]);
+
     const candidates = applications.map((app) => {
       const profile = profiles.find((p) => p.userId === app.candidateId);
       return {
@@ -41,6 +54,24 @@ const getCachedCandidatesData = unstable_cache(
         coverLetter: app.coverLetter ?? undefined,
         resumeUrl: profile?.resumeUrl ?? undefined,
         resumeText: profile?.resumeText ?? undefined,
+        notes: notesAll
+          .filter((n) => n.applicationId === app.id)
+          .map((n) => ({
+            id: n.id,
+            content: n.content,
+            authorName: n.author.name,
+            authorId: n.authorId,
+            createdAt: n.createdAt.toISOString(),
+            updatedAt: n.updatedAt.toISOString(),
+          })),
+        customFields: customFieldsAll
+          .filter((f) => f.applicationId === app.id)
+          .map((f) => ({
+            id: f.id,
+            fieldName: f.fieldName,
+            fieldValue: f.fieldValue,
+            createdAt: f.createdAt.toISOString(),
+          })),
       };
     });
 
