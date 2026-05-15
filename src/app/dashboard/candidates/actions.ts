@@ -5,6 +5,8 @@ import { revalidatePath } from "next/cache";
 import { createNotification } from "@/lib/notifications";
 import { sendEmail } from "@/lib/email";
 import { delCache } from "@/lib/cache";
+import { getSession } from "@/lib/auth";
+import { getSupabaseAdmin } from "@/lib/supabase";
 
 const STAGES = [
   "applied",
@@ -136,9 +138,7 @@ export async function getNotes(applicationId: string) {
 }
 
 export async function addNote(applicationId: string, content: string) {
-  "use server";
   try {
-    const { getSession } = await import("@/lib/auth");
     const session = await getSession();
     if (!session) return { success: false, error: "Unauthorized" };
 
@@ -167,7 +167,6 @@ export async function addNote(applicationId: string, content: string) {
 }
 
 export async function editNote(noteId: string, content: string) {
-  "use server";
   try {
     const note = await prisma.candidateNote.update({
       where: { id: noteId },
@@ -194,7 +193,6 @@ export async function editNote(noteId: string, content: string) {
 }
 
 export async function deleteNote(noteId: string) {
-  "use server";
   try {
     await prisma.candidateNote.delete({ where: { id: noteId } });
     revalidatePath("/dashboard/candidates");
@@ -226,7 +224,6 @@ export async function addCustomField(
   fieldName: string,
   fieldValue: string,
 ) {
-  "use server";
   try {
     const field = await prisma.applicationCustomField.create({
       data: {
@@ -259,7 +256,6 @@ export async function updateCustomField(
   fieldName: string,
   fieldValue: string,
 ) {
-  "use server";
   try {
     const field = await prisma.applicationCustomField.update({
       where: { id: fieldId },
@@ -290,7 +286,6 @@ export async function updateCustomField(
 }
 
 export async function deleteCustomField(fieldId: string) {
-  "use server";
   try {
     await prisma.applicationCustomField.delete({ where: { id: fieldId } });
     revalidatePath("/dashboard/candidates");
@@ -321,7 +316,6 @@ export async function uploadCandidateResume(
   applicationId: string,
   formData: FormData,
 ) {
-  "use server";
   try {
     const file = formData.get("resume") as File | null;
     if (!file) return { success: false, error: "No file provided" };
@@ -343,7 +337,6 @@ export async function uploadCandidateResume(
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
     if (supabaseUrl && supabaseKey) {
-      const { getSupabaseAdmin } = await import("@/lib/supabase");
       const supabase = getSupabaseAdmin();
       const safeFilename = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
       const storagePath = `resumes/${safeFilename}`;
