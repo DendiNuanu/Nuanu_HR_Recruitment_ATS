@@ -992,7 +992,7 @@ export default function CandidatesTable({
                         className="btn-primary px-4 py-2 flex items-center gap-2"
                       >
                         {savingNote ? (
-                          <Loader className="w-4 h-4 animate-spin" />
+                          <Loader2 className="w-4 h-4 animate-spin" />
                         ) : (
                           <Plus className="w-4 h-4" />
                         )}
@@ -1133,7 +1133,7 @@ export default function CandidatesTable({
                         className="btn-primary px-4 py-2 flex items-center gap-2"
                       >
                         {savingField ? (
-                          <Loader className="w-4 h-4 animate-spin" />
+                          <Loader2 className="w-4 h-4 animate-spin" />
                         ) : (
                           <Plus className="w-4 h-4" />
                         )}
