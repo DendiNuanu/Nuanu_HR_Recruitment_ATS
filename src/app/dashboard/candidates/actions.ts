@@ -148,8 +148,20 @@ export async function addNote(applicationId: string, content: string) {
     });
     revalidatePath("/dashboard/candidates");
     return { success: true, note };
-  } catch (e) {
-    console.error(e);
+  } catch (e: unknown) {
+    console.error("Failed to add note:", e);
+    const errorMessage = e instanceof Error ? e.message : "Failed to add note";
+    // Check if it's a table不存在 error
+    if (
+      errorMessage.includes("relation") ||
+      errorMessage.includes("table") ||
+      errorMessage.includes("does not exist")
+    ) {
+      return {
+        success: false,
+        error: "Database tables not set up. Please run the migration.",
+      };
+    }
     return { success: false, error: "Failed to add note" };
   }
 }
@@ -164,8 +176,19 @@ export async function editNote(noteId: string, content: string) {
     });
     revalidatePath("/dashboard/candidates");
     return { success: true, note };
-  } catch (e) {
-    console.error(e);
+  } catch (e: unknown) {
+    console.error("Failed to edit note:", e);
+    const errorMessage = e instanceof Error ? e.message : "Failed to edit note";
+    if (
+      errorMessage.includes("relation") ||
+      errorMessage.includes("table") ||
+      errorMessage.includes("does not exist")
+    ) {
+      return {
+        success: false,
+        error: "Database tables not set up. Please run the migration.",
+      };
+    }
     return { success: false, error: "Failed to edit note" };
   }
 }
@@ -176,8 +199,20 @@ export async function deleteNote(noteId: string) {
     await prisma.candidateNote.delete({ where: { id: noteId } });
     revalidatePath("/dashboard/candidates");
     return { success: true };
-  } catch (e) {
-    console.error(e);
+  } catch (e: unknown) {
+    console.error("Failed to delete note:", e);
+    const errorMessage =
+      e instanceof Error ? e.message : "Failed to delete note";
+    if (
+      errorMessage.includes("relation") ||
+      errorMessage.includes("table") ||
+      errorMessage.includes("does not exist")
+    ) {
+      return {
+        success: false,
+        error: "Database tables not set up. Please run the migration.",
+      };
+    }
     return { success: false, error: "Failed to delete note" };
   }
 }
@@ -202,8 +237,19 @@ export async function addCustomField(
     });
     revalidatePath("/dashboard/candidates");
     return { success: true, field };
-  } catch (e) {
-    console.error(e);
+  } catch (e: unknown) {
+    console.error("Failed to add field:", e);
+    const errorMessage = e instanceof Error ? e.message : "Failed to add field";
+    if (
+      errorMessage.includes("relation") ||
+      errorMessage.includes("table") ||
+      errorMessage.includes("does not exist")
+    ) {
+      return {
+        success: false,
+        error: "Database tables not set up. Please run the migration.",
+      };
+    }
     return { success: false, error: "Failed to add field" };
   }
 }
@@ -225,8 +271,20 @@ export async function updateCustomField(
     });
     revalidatePath("/dashboard/candidates");
     return { success: true, field };
-  } catch (e) {
-    console.error(e);
+  } catch (e: unknown) {
+    console.error("Failed to update field:", e);
+    const errorMessage =
+      e instanceof Error ? e.message : "Failed to update field";
+    if (
+      errorMessage.includes("relation") ||
+      errorMessage.includes("table") ||
+      errorMessage.includes("does not exist")
+    ) {
+      return {
+        success: false,
+        error: "Database tables not set up. Please run the migration.",
+      };
+    }
     return { success: false, error: "Failed to update field" };
   }
 }
@@ -237,8 +295,20 @@ export async function deleteCustomField(fieldId: string) {
     await prisma.applicationCustomField.delete({ where: { id: fieldId } });
     revalidatePath("/dashboard/candidates");
     return { success: true };
-  } catch (e) {
-    console.error(e);
+  } catch (e: unknown) {
+    console.error("Failed to delete field:", e);
+    const errorMessage =
+      e instanceof Error ? e.message : "Failed to delete field";
+    if (
+      errorMessage.includes("relation") ||
+      errorMessage.includes("table") ||
+      errorMessage.includes("does not exist")
+    ) {
+      return {
+        success: false,
+        error: "Database tables not set up. Please run the migration.",
+      };
+    }
     return { success: false, error: "Failed to delete field" };
   }
 }

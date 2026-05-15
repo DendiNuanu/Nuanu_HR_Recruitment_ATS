@@ -24,17 +24,27 @@ const getCachedCandidatesData = unstable_cache(
     });
 
     // Fetch notes and custom fields for all applications
-    const [notesAll, customFieldsAll] = await Promise.all([
-      prisma.candidateNote.findMany({
-        where: { applicationId: { in: applications.map((a) => a.id) } },
-        include: { author: { select: { id: true, name: true } } },
-        orderBy: { createdAt: "desc" },
-      }),
-      prisma.applicationCustomField.findMany({
-        where: { applicationId: { in: applications.map((a) => a.id) } },
-        orderBy: { createdAt: "asc" },
-      }),
-    ]);
+    // Handle case where tables don't exist yet
+    let notesAll: any[] = [];
+    let customFieldsAll: any[] = [];
+    try {
+      const [notes, fields] = await Promise.all([
+        prisma.candidateNote.findMany({
+          where: { applicationId: { in: applications.map((a) => a.id) } },
+          include: { author: { select: { id: true, name: true } } },
+          orderBy: { createdAt: "desc" },
+        }),
+        prisma.applicationCustomField.findMany({
+          where: { applicationId: { in: applications.map((a) => a.id) } },
+          orderBy: { createdAt: "asc" },
+        }),
+      ]);
+      notesAll = notes;
+      customFieldsAll = fields;
+    } catch (error) {
+      // Tables don't exist yet - that's okay, we'll show empty state
+      console.warn("Notes or custom fields tables not found:", error);
+    }
 
     const candidates = applications.map((app) => {
       const profile = profiles.find((p) => p.userId === app.candidateId);
