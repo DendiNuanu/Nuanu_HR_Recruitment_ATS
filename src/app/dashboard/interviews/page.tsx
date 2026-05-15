@@ -14,9 +14,7 @@ const getCachedInterviewsData = unstable_cache(
         },
         interviewer: true,
       },
-      orderBy: {
-        scheduledAt: "asc",
-      },
+      orderBy: [{ scheduledAt: "desc" }],
     });
 
     const interviews: InterviewData[] = interviewsDb.map((i) => ({

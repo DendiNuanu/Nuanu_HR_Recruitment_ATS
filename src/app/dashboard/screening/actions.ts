@@ -10,6 +10,7 @@ export async function createAssessment(data: {
   title: string;
   description: string;
   maxScore: number;
+  passThreshold: number;
 }) {
   try {
     await prisma.assessment.create({
@@ -19,6 +20,7 @@ export async function createAssessment(data: {
         title: data.title,
         description: data.description,
         maxScore: data.maxScore,
+        passThreshold: data.passThreshold,
         status: "pending",
       },
     });
@@ -90,7 +92,7 @@ export async function remindAssessment(assessmentId: string) {
           type: "assessment_reminder",
           title: "Assessment Reminder",
           message: `Please complete your "${assessment.title}" assessment.`,
-          link: `/assessments/${assessment.id}`,
+          link: `/dashboard/screening`,
         },
       });
 
@@ -111,9 +113,21 @@ export async function remindAssessment(assessmentId: string) {
 
 export async function cancelAssessment(assessmentId: string) {
   try {
-    await prisma.assessment.delete({
+    const assessment = await prisma.assessment.update({
       where: { id: assessmentId },
+      data: { status: "cancelled" },
+      include: { application: true },
     });
+
+    await prisma.activityLog.create({
+      data: {
+        userId: assessment.application.candidateId,
+        action: `Assessment cancelled: ${assessment.title}`,
+        resource: "Assessment",
+        resourceId: assessmentId,
+      },
+    });
+
     revalidatePath("/dashboard/screening");
     return { success: true };
   } catch (error) {
@@ -184,6 +198,14 @@ export async function submitAssessmentResult(data: {
         answers: data.notes ? { notes: data.notes } : undefined,
       },
     });
+
+    // Auto-advance application stage when candidate passes
+    if (isPassed) {
+      await prisma.application.update({
+        where: { id: assessment.applicationId },
+        data: { currentStage: "hr_interview" },
+      });
+    }
 
     // Log activity
     await prisma.activityLog.create({

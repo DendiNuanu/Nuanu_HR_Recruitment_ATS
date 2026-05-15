@@ -137,6 +137,7 @@ export const usePipelineStore = create<PipelineState>((set) => ({
     final_interview: [],
     offer: [],
     hired: [],
+    rejected: [],
   },
   isLoading: false,
   setCandidates: (candidates) => set({ candidates, isLoading: false }),

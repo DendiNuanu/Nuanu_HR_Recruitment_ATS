@@ -37,7 +37,7 @@ const getCachedPipelineData = unstable_cache(
       const stage = app.currentStage.toLowerCase();
       if (formattedCandidates[stage]) {
         formattedCandidates[stage].push({
-          id: app.candidateId, // Pipeline store uses this as draggableId
+          id: app.id, // applicationId — unique even if a candidate applies to multiple vacancies
           applicationId: app.id,
           name: app.candidate.name,
           position: app.vacancy.title,
@@ -54,7 +54,7 @@ const getCachedPipelineData = unstable_cache(
       } else {
         // If the stage is something else, put it in applied by default
         formattedCandidates["applied"].push({
-          id: app.candidateId,
+          id: app.id,
           applicationId: app.id,
           name: app.candidate.name,
           position: app.vacancy.title,

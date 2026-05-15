@@ -226,6 +226,8 @@ export default function InterviewsClient({
         });
         setFeedbackMode("result");
         // Do NOT close the modal
+      } else {
+        toast.error(res.error || "Failed to submit feedback");
       }
     } catch (error) {
       console.error(error);
@@ -245,7 +247,10 @@ export default function InterviewsClient({
         ...rescheduleData,
       });
       if (res.success) {
+        toast.success("Interview rescheduled!");
         setIsRescheduleOpen(false);
+      } else {
+        toast.error(res.error || "Failed to reschedule");
       }
     } catch (error) {
       console.error(error);
@@ -258,8 +263,10 @@ export default function InterviewsClient({
     if (!confirm("Are you sure you want to cancel this interview?")) return;
     try {
       await cancelInterview(id);
+      toast.success("Interview cancelled.");
     } catch (error) {
       console.error(error);
+      toast.error("Failed to cancel interview.");
     }
   };
 
@@ -427,9 +434,13 @@ export default function InterviewsClient({
                           onClick={() => {
                             setActiveInterview(interview);
                             setRescheduleData({
-                              scheduledAt: new Date(interview.scheduledAt)
-                                .toISOString()
-                                .slice(0, 16),
+                              scheduledAt: (() => {
+                                const d = new Date(interview.scheduledAt);
+                                const wita = new Date(
+                                  d.getTime() + 8 * 60 * 60 * 1000,
+                                );
+                                return wita.toISOString().slice(0, 16);
+                              })(),
                               location: interview.location,
                               meetingUrl: interview.meetingUrl || "",
                             });
@@ -475,9 +486,11 @@ export default function InterviewsClient({
                   onClick={() => {
                     setActiveInterview(interview);
                     setRescheduleData({
-                      scheduledAt: new Date(interview.scheduledAt)
-                        .toISOString()
-                        .slice(0, 16),
+                      scheduledAt: (() => {
+                        const d = new Date(interview.scheduledAt);
+                        const wita = new Date(d.getTime() + 8 * 60 * 60 * 1000);
+                        return wita.toISOString().slice(0, 16);
+                      })(),
                       location: interview.location,
                       meetingUrl: interview.meetingUrl || "",
                     });

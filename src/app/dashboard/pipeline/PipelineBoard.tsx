@@ -12,6 +12,7 @@ import { moveApplication } from "./actions";
 import { PIPELINE_STAGES } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { Calendar, MoreHorizontal, User, Brain, Search } from "lucide-react";
+import { toast } from "sonner";
 
 export default function PipelineBoard({
   initialCandidates,
@@ -58,7 +59,20 @@ export default function PipelineBoard({
       );
 
       // Update in DB
-      await moveApplication(candidate.applicationId, destination.droppableId);
+      const result = await moveApplication(
+        candidate.applicationId,
+        destination.droppableId,
+      );
+      if (!result?.success) {
+        // Rollback: move the card back to its original position
+        moveCandidate(
+          draggableId,
+          destination.droppableId,
+          source.droppableId,
+          source.index,
+        );
+        toast.error("Failed to move candidate. Please try again.");
+      }
     }
   };
 

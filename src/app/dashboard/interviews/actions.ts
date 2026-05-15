@@ -117,7 +117,7 @@ export async function scheduleInterview(data: {
     await sendEmail({
       to: interview.application.candidate.email,
       subject: `Interview Scheduled: ${interview.application.candidate.name}`,
-      text: `Hi ${interview.application.candidate.name},\n\nYour interview has been scheduled.\n\nDate: ${new Date(data.scheduledAt).toLocaleString()}\nType: ${data.type}\nLocation: ${data.location}${googleEvent?.meetingLink ? `\nMeeting Link: ${googleEvent.meetingLink}` : ""}\n\nBest regards,\nNuanu Recruitment Team`,
+      text: `Hi ${interview.application.candidate.name},\n\nYour interview has been scheduled.\n\nDate: ${new Date(data.scheduledAt).toLocaleString("en-US", { timeZone: "Asia/Makassar", dateStyle: "full", timeStyle: "short" })}\nType: ${data.type}\nLocation: ${data.location}${googleEvent?.meetingLink ? `\nMeeting Link: ${googleEvent.meetingLink}` : ""}\n\nBest regards,\nNuanu Recruitment Team`,
     });
 
     // Update Application Stage
@@ -127,21 +127,6 @@ export async function scheduleInterview(data: {
         currentStage: data.type === "video" ? "hr_interview" : "tech_interview",
       },
     });
-
-    // Log Activity
-    const app = await prisma.application.findUnique({
-      where: { id: data.applicationId },
-    });
-    if (app) {
-      await prisma.activityLog.create({
-        data: {
-          userId: app.candidateId,
-          action: "Scheduled an interview",
-          resource: "Interview",
-          resourceId: data.applicationId,
-        },
-      });
-    }
 
     // Send Telegram notification (fire-and-forget)
     Promise.resolve().then(async () => {
@@ -158,13 +143,13 @@ export async function scheduleInterview(data: {
           month: "long",
           day: "numeric",
           year: "numeric",
-          timeZone: "Asia/Jakarta",
+          timeZone: "Asia/Makassar",
         });
         const timeStr = scheduledDate.toLocaleTimeString("en-US", {
           hour: "numeric",
           minute: "2-digit",
           hour12: true,
-          timeZone: "Asia/Jakarta",
+          timeZone: "Asia/Makassar",
         });
         const msg = [
           "🔔 <b>New Interview Scheduled</b>",
@@ -283,11 +268,14 @@ export async function rescheduleInterview(data: {
       where: { id: data.interviewId },
     });
 
+    if (!targetInterview)
+      return { success: false, error: "Interview not found" };
+
     // Conflict Detection for reschedule
     const existing = await prisma.interview.findFirst({
       where: {
         id: { not: data.interviewId },
-        interviewerId: targetInterview?.interviewerId,
+        interviewerId: targetInterview.interviewerId,
         status: "scheduled",
         scheduledAt: {
           gte: new Date(new Date(data.scheduledAt).getTime() - 45 * 60 * 1000),
@@ -311,17 +299,36 @@ export async function rescheduleInterview(data: {
         meetingUrl: data.meetingUrl,
         status: "scheduled",
       },
-      include: { application: true },
+      include: { application: { include: { candidate: true } } },
     });
 
     // Log Activity
     await prisma.activityLog.create({
       data: {
         userId: interview.application.candidateId,
-        action: `Rescheduled interview to ${new Date(data.scheduledAt).toLocaleString()}`,
+        action: `Rescheduled interview to ${new Date(
+          data.scheduledAt,
+        ).toLocaleString("en-US", {
+          timeZone: "Asia/Makassar",
+          dateStyle: "full",
+          timeStyle: "short",
+        })}`,
         resource: "Interview",
         resourceId: interview.id,
       },
+    });
+
+    // Send Email Notification
+    const candidateName = interview.application.candidate.name;
+    const formattedDate = new Date(data.scheduledAt).toLocaleString("en-US", {
+      timeZone: "Asia/Makassar",
+      dateStyle: "full",
+      timeStyle: "short",
+    });
+    await sendEmail({
+      to: interview.application.candidate.email,
+      subject: `Interview Rescheduled: ${candidateName}`,
+      text: `Hi ${candidateName},\n\nYour interview has been rescheduled.\n\nNew Date: ${formattedDate}\nType: ${interview.type}\nLocation: ${interview.location || "Google Meet"}\nMeeting Link: ${interview.meetingUrl || ""}\n\nBest regards,\nNuanu Recruitment Team`,
     });
 
     // Sync Update to Google
@@ -420,7 +427,7 @@ export async function cancelInterview(interviewId: string) {
           "",
           `👤 Candidate: ${candidateName}`,
           `💼 Position: ${vacancyTitle}`,
-          `📅 Was scheduled: ${interview.scheduledAt.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "Asia/Jakarta" })}`,
+          `📅 Was scheduled: ${interview.scheduledAt.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "Asia/Makassar" })}`,
           "",
           "<i>Nuanu HR Recruitment ATS</i>",
         ].join("\n");

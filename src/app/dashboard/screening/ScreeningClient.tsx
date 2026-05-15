@@ -48,6 +48,8 @@ export type AssessmentData = {
   candidates: number;
   avgScore: number;
   status: string;
+  description: string;
+  passThreshold: number;
 };
 
 export type RecentAssessment = {
@@ -282,20 +284,22 @@ export default function ScreeningClient({
   };
 
   const openEditTemplate = (t: AssessmentData) => {
+    const durationNum = parseInt(t.duration) || 0;
+    // 0 means untimed
     setEditingTemplate({
       id: t.id,
       title: t.title,
       type: t.type,
-      description: "",
-      duration: parseInt(t.duration) || 60,
-      passThreshold: 70,
+      description: t.description,
+      duration: durationNum,
+      passThreshold: t.passThreshold,
     });
     setTemplateData({
       title: t.title,
       type: t.type,
-      description: "",
-      duration: parseInt(t.duration) || 60,
-      passThreshold: 70,
+      description: t.description,
+      duration: durationNum,
+      passThreshold: t.passThreshold,
     });
     setIsTemplateModalOpen(true);
   };

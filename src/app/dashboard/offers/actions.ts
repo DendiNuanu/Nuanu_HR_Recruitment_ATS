@@ -112,6 +112,38 @@ export async function sendOffer(offerId: string) {
       notes: offer.notes ?? undefined,
     });
 
+    // Upload the generated PDF to Supabase storage and persist the URL
+    let documentUrl = "";
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (supabaseUrl && supabaseKey) {
+      try {
+        const { getSupabaseAdmin } = await import("@/lib/supabase");
+        const supabase = getSupabaseAdmin();
+        const filename = `offers/offer-${offerId}-${Date.now()}.pdf`;
+        const { error } = await supabase.storage
+          .from("resumes")
+          .upload(filename, pdfBuffer, {
+            contentType: "application/pdf",
+            upsert: true,
+          });
+        if (!error) {
+          const { data } = supabase.storage
+            .from("resumes")
+            .getPublicUrl(filename);
+          documentUrl = data.publicUrl;
+        }
+      } catch {
+        /* non-fatal — email will still be sent */
+      }
+    }
+    if (documentUrl) {
+      await prisma.offer.update({
+        where: { id: offerId },
+        data: { documentUrl },
+      });
+    }
+
     await sendEmail({
       to: offer.application.candidate.email,
       subject: `Official Job Offer: ${offer.application.vacancy.title} at Nuanu`,
@@ -203,6 +235,15 @@ export async function rejectOffer(offerId: string, reason: string) {
       `${offer.application.candidate.name} declined the offer for ${offer.application.vacancy.title}. Reason: ${reason}`,
     );
 
+    await sendEmail({
+      to: offer.application.candidate.email,
+      subject: "Update on Your Application – Nuanu",
+      html: `<p>Hi ${offer.application.candidate.name},</p>
+<p>Thank you for your time and interest in joining Nuanu. After careful consideration, we have decided not to proceed with your offer at this time.</p>
+<p>We appreciate your interest and wish you the best in your career journey.</p>
+<p>Best regards,<br/>Nuanu Recruitment Team</p>`,
+    });
+
     revalidateOfferPaths();
     return { success: true };
   } catch (error) {
@@ -284,6 +325,15 @@ export async function editOffer(
 ) {
   try {
     await checkRole(["admin", "hr"]);
+
+    const existing = await prisma.offer.findUnique({
+      where: { id: offerId },
+      select: { status: true },
+    });
+    if (!existing) return { success: false, error: "Offer not found" };
+    if (existing.status !== "draft") {
+      return { success: false, error: "Only draft offers can be edited" };
+    }
 
     await prisma.offer.update({
       where: { id: offerId },
