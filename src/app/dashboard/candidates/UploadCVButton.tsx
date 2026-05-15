@@ -65,7 +65,6 @@ export default function UploadCVButton({
 
   // Uploaded CV URL from backend
   const [cvUrl, setCvUrl] = useState("");
-  const [cvText, setCvText] = useState("");
 
   // Form fields
   const [form, setForm] = useState({
@@ -88,7 +87,6 @@ export default function UploadCVButton({
       setUploadProgress(0);
       setParseWarning(false);
       setCvUrl("");
-      setCvText("");
       setForm({
         fullName: "",
         email: "",
@@ -192,25 +190,31 @@ export default function UploadCVButton({
 
       const data = await res.json();
       setCvUrl(data.cvUrl || "");
-      setCvText(data.cvText || "");
 
       setStep("parsing");
 
-      // Pre-fill form from AI parsed data
-      if (data.parsedData) {
-        const p: ParsedData = data.parsedData;
+      // Pre-fill form from AI parsed data (new shape: data.data + data.aiWorked)
+      const parsed: ParsedData | null = data.data ?? null;
+      const aiWorked: boolean = data.aiWorked ?? false;
+      const engine: string = data.engine ?? "none";
+
+      if (aiWorked && parsed) {
         setForm((prev) => ({
           ...prev,
-          fullName: p.fullName || "",
-          email: p.email || "",
-          phone: p.phone || "",
-          location: p.location || "",
+          fullName: parsed.fullName || "",
+          email: parsed.email || "",
+          phone: parsed.phone || "",
+          location: parsed.location || "",
           yearsOfExperience:
-            p.yearsOfExperience != null
-              ? String(p.yearsOfExperience)
+            parsed.yearsOfExperience != null
+              ? String(parsed.yearsOfExperience)
               : "",
         }));
         setParseWarning(false);
+        toast.success(
+          `CV analysed via ${engine.toUpperCase()}! Please review the extracted info.`,
+          { duration: 4000 },
+        );
       } else {
         setParseWarning(true);
       }
@@ -255,7 +259,6 @@ export default function UploadCVButton({
             : undefined,
           stage: form.stage,
           cvUrl: cvUrl || undefined,
-          cvText: cvText || undefined,
           aiMatch: 50,
         }),
       });
