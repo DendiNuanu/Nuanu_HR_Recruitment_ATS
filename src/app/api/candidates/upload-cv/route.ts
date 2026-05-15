@@ -2,7 +2,7 @@
  * POST /api/candidates/upload-cv
  *
  * 1. Validates file (PDF / DOCX, ≤ 10 MB)
- * 2. Uploads to Supabase Storage (non-fatal if unavailable)
+ * 2. Tries to upload to Supabase Storage — GRACEFULLY SKIPPED if key missing
  * 3. Extracts text (pdf-parse / mammoth)
  * 4. Parses with AI — Groq first, Ollama fallback
  * 5. Returns { cvUrl, data, aiWorked, engine }
@@ -11,7 +11,6 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { extractTextFromFile, parseCVWithAI } from "@/lib/cv-parser";
-import { getSupabaseAdmin } from "@/lib/supabase";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
@@ -62,42 +61,54 @@ export async function POST(request: Request) {
   const bytes = await file.arrayBuffer();
   const buffer = Buffer.from(bytes);
 
-  // ── Upload to Supabase Storage (non-fatal) ─────────────────────────────────
+  // ── Upload to Supabase Storage (fully optional — never crashes the route) ──
   let cvUrl = "";
   try {
-    const supabase = getSupabaseAdmin();
-    const safeFilename = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
-    const storagePath = `resumes/${safeFilename}`;
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-    const { error: uploadError } = await supabase.storage
-      .from("resumes")
-      .upload(storagePath, buffer, {
-        contentType: file.type || "application/octet-stream",
-        upsert: false,
-      });
+    if (supabaseUrl && supabaseKey) {
+      const { getSupabaseAdmin } = await import("@/lib/supabase");
+      const supabase = getSupabaseAdmin();
+      const safeFilename = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
+      const storagePath = `resumes/${safeFilename}`;
 
-    if (!uploadError) {
-      const { data } = supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from("resumes")
-        .getPublicUrl(storagePath);
-      cvUrl = data.publicUrl;
+        .upload(storagePath, buffer, {
+          contentType: file.type || "application/octet-stream",
+          upsert: false,
+        });
+
+      if (!uploadError) {
+        const { data } = supabase.storage
+          .from("resumes")
+          .getPublicUrl(storagePath);
+        cvUrl = data.publicUrl;
+        console.log("[upload-cv] Supabase upload OK:", cvUrl);
+      } else {
+        console.warn("[upload-cv] Supabase upload failed:", uploadError.message);
+      }
     } else {
-      console.warn("[upload-cv] Supabase upload failed:", uploadError.message);
+      console.info("[upload-cv] Supabase not configured — skipping file storage");
     }
   } catch (err) {
-    console.warn("[upload-cv] Supabase unavailable:", err);
+    // Never let storage failure crash the route
+    console.warn("[upload-cv] Supabase error (non-fatal):", err);
   }
 
   // ── Extract text ───────────────────────────────────────────────────────────
   let cvText = "";
   try {
     cvText = await extractTextFromFile(buffer, file.name, file.type);
+    console.log(`[upload-cv] Extracted ${cvText.length} chars from ${file.name}`);
   } catch (err) {
     console.warn("[upload-cv] Text extraction failed:", err);
   }
 
   if (!cvText || cvText.trim().length < 30) {
-    // Still return success — user can fill the form manually
+    // Return success with empty data — user can fill manually
+    console.warn("[upload-cv] Text too short or empty — skipping AI");
     return NextResponse.json({
       success: true,
       cvUrl,
@@ -110,6 +121,8 @@ export async function POST(request: Request) {
 
   // ── AI Parsing — Groq first, Ollama fallback ───────────────────────────────
   const { data, engine, aiWorked } = await parseCVWithAI(cvText);
+
+  console.log(`[upload-cv] AI result: engine=${engine} aiWorked=${aiWorked} name=${data.fullName} email=${data.email}`);
 
   return NextResponse.json({
     success: true,
