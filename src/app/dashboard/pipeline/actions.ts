@@ -48,23 +48,28 @@ export async function moveApplication(applicationId: string, toStage: string) {
 
     // ── HIRED → create Employee record ──────────────────────────
     if (stage === "hired") {
-      const existing = await prisma.employee.findUnique({
-        where: { userId: app.candidateId },
-      });
-      if (!existing) {
-        const startDate = new Date();
-        await prisma.employee.create({
-          data: {
-            userId: app.candidateId,
-            employeeCode: generateCode("EMP"),
-            position: app.vacancy.title,
-            departmentId: app.vacancy.departmentId,
-            startDate,
-            status: "active",
-            check90DueAt: new Date(startDate.getTime() + 90 * 24 * 60 * 60 * 1000),
-            check180DueAt: new Date(startDate.getTime() + 180 * 24 * 60 * 60 * 1000),
-          },
+      try {
+        const existing = await prisma.employee.findUnique({
+          where: { userId: app.candidateId },
         });
+        if (!existing) {
+          const startDate = new Date();
+          await prisma.employee.create({
+            data: {
+              userId: app.candidateId,
+              employeeCode: generateCode("EMP"),
+              position: app.vacancy.title,
+              departmentId: app.vacancy.departmentId,
+              startDate,
+              status: "active",
+              check90DueAt: new Date(startDate.getTime() + 90 * 24 * 60 * 60 * 1000),
+              check180DueAt: new Date(startDate.getTime() + 180 * 24 * 60 * 60 * 1000),
+            },
+          });
+        }
+      } catch (empErr) {
+        // Non-fatal — employee table may not exist yet (run prisma db push)
+        console.warn("Employee record creation failed (non-fatal):", empErr);
       }
     }
 
@@ -102,7 +107,7 @@ export async function moveApplication(applicationId: string, toStage: string) {
     if (admin) {
       await createNotification({
         userId: admin.id,
-        type: "stage_change",
+        type: "system",
         title: "Candidate Moved",
         message: `${app.candidate.name} → ${stage.replace(/_/g, " ")} (${app.vacancy.title})`,
         link: `/dashboard/pipeline`,
@@ -110,14 +115,23 @@ export async function moveApplication(applicationId: string, toStage: string) {
     }
 
     // Notify the recruiter/hiring manager if different from admin
-    if (app.vacancy.recruiterId && app.vacancy.recruiterId !== admin?.id) {
-      await createNotification({
-        userId: app.vacancy.recruiterId,
-        type: "stage_change",
-        title: "Candidate Stage Updated",
-        message: `${app.candidate.name} has been moved to ${stage.replace(/_/g, " ")}`,
-        link: `/dashboard/pipeline`,
+    try {
+      const appWithRecruiter = await prisma.application.findUnique({
+        where: { id: applicationId },
+        select: { vacancy: { select: { recruiterId: true } } },
       });
+      const recruiterId = appWithRecruiter?.vacancy?.recruiterId;
+      if (recruiterId && recruiterId !== admin?.id) {
+        await createNotification({
+          userId: recruiterId,
+          type: "system",
+          title: "Candidate Stage Updated",
+          message: `${app.candidate.name} has been moved to ${stage.replace(/_/g, " ")}`,
+          link: `/dashboard/pipeline`,
+        });
+      }
+    } catch {
+      // Non-fatal — notification failure must never break stage move
     }
 
     await delCache("dashboard_metrics");
@@ -128,6 +142,7 @@ export async function moveApplication(applicationId: string, toStage: string) {
     return { success: true };
   } catch (error) {
     console.error("Move Application Error:", error);
-    return { success: false, error: "Failed to move candidate" };
+    const msg = error instanceof Error ? error.message : String(error);
+    return { success: false, error: msg };
   }
 }

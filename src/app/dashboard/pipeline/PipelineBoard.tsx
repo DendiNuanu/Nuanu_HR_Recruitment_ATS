@@ -71,7 +71,7 @@ export default function PipelineBoard({
           source.droppableId,
           source.index,
         );
-        toast.error("Failed to move candidate. Please try again.");
+        toast.error(result?.error || "Failed to move candidate. Please try again.");
       }
     }
   };
