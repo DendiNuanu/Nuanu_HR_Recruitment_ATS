@@ -355,6 +355,30 @@ export default function ScreeningClient({
     } else toast.error("Failed to send reminder");
   };
 
+  const handleSendPublicLink = async (id: string) => {
+    setOpenActionId(null);
+    const toastId = toast.loading("Generating public assessment link...");
+    try {
+      const res = await fetch("/api/assessment/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ assessmentId: id }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success("Assessment link sent to candidate!", { id: toastId });
+        // Copy link to clipboard as bonus
+        if (data.assessmentUrl) {
+          navigator.clipboard.writeText(data.assessmentUrl).catch(() => {});
+        }
+      } else {
+        toast.error(data.error || "Failed to send link", { id: toastId });
+      }
+    } catch {
+      toast.error("Network error", { id: toastId });
+    }
+  };
+
   const handleCancel = async (id: string) => {
     if (
       !confirm(
@@ -716,9 +740,13 @@ export default function ScreeningClient({
                                     </button>
                                   )}
                                   <div className="h-px bg-nuanu-gray-100 my-1" />
-                                  <p className="px-3 py-1 text-[9px] font-black text-nuanu-gray-400 uppercase tracking-widest">
-                                    Actions
-                                  </p>
+                                  <button
+                                    onClick={() => handleSendPublicLink(a.id)}
+                                    className="w-full text-left px-3 py-2.5 text-sm font-semibold text-nuanu-navy hover:bg-emerald-50 rounded-lg flex items-center gap-3 transition-colors"
+                                  >
+                                    <Send className="w-4 h-4 text-emerald-500" />{" "}
+                                    Send Public Link
+                                  </button>
                                   <button
                                     onClick={() => handleRemind(a.id)}
                                     className="w-full text-left px-3 py-2.5 text-sm font-semibold text-nuanu-navy hover:bg-nuanu-gray-50 rounded-lg flex items-center gap-3 transition-colors"

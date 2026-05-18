@@ -13,11 +13,15 @@ export async function middleware(request: NextRequest) {
   // 1. Allow public routes
   if (
     pathname === "/login" ||
+    pathname === "/forgot-password" ||
+    pathname.startsWith("/reset-password") ||
+    pathname.startsWith("/assessment") ||
     pathname.startsWith("/careers") ||
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/api/careers") ||
     pathname.startsWith("/api/telegram") ||
     pathname.startsWith("/api/apply") ||
+    pathname.startsWith("/api/assessment") ||
     pathname === "/"
   ) {
     return NextResponse.next();
@@ -46,5 +50,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/api/:path*"],
+  matcher: ["/dashboard/:path*", "/api/:path*", "/forgot-password", "/reset-password/:path*"],
 };

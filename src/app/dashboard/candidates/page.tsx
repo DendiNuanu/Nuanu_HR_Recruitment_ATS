@@ -3,7 +3,6 @@ import { unstable_cache } from "next/cache";
 import CandidatesTable from "./CandidatesTable";
 import ExportButton from "./ExportButton";
 import UploadCVButton from "./UploadCVButton";
-
 const getCachedCandidatesData = unstable_cache(
   async () => {
     // Pull real applications from the database

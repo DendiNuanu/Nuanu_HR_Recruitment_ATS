@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Mail, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -293,7 +294,7 @@ export default function LoginPage() {
                     Password
                   </label>
                   <a
-                    href="#"
+                    href="/forgot-password"
                     style={{
                       fontSize: "14px",
                       fontWeight: 600,

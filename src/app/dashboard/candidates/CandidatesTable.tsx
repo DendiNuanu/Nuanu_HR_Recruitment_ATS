@@ -25,6 +25,7 @@ import {
   UploadCloud,
   CheckCircle2,
   Edit,
+  LayoutGrid,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -40,6 +41,7 @@ import {
 } from "./actions";
 import { formatDate } from "@/lib/utils";
 import { toast } from "sonner";
+import CandidateProfile360 from "./CandidateProfile360";
 
 export type Candidate = {
   id: string;
@@ -117,6 +119,9 @@ export default function CandidatesTable({
   // CV Upload state
   const [uploadingCv, setUploadingCv] = useState(false);
   const [cvFile, setCvFile] = useState<File | null>(null);
+
+  // 360° profile state
+  const [show360, setShow360] = useState(false);
 
   // Local state for live notes/fields (so UI updates without full reload)
   const [localNotes, setLocalNotes] = useState<Candidate["notes"]>([]);
@@ -1258,6 +1263,12 @@ export default function CandidatesTable({
                   Close
                 </button>
                 <button
+                  onClick={() => setShow360(true)}
+                  className="btn-secondary px-6 py-2.5 text-sm flex items-center gap-2"
+                >
+                  <LayoutGrid className="w-4 h-4" /> Full Profile
+                </button>
+                <button
                   onClick={() => {
                     setSelectedProfile(null);
                     openEmailModal(selectedProfile);
@@ -1272,8 +1283,7 @@ export default function CandidatesTable({
         )}
       </AnimatePresence>
 
-      {/* Draft Email Modal */}
-      <AnimatePresence>
+      {/* Draft Email Modal */}      <AnimatePresence>
         {selectedEmail && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <motion.div
@@ -1378,6 +1388,16 @@ export default function CandidatesTable({
               )}
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+
+      {/* 360° Profile Modal */}
+      <AnimatePresence>
+        {show360 && selectedProfile && (
+          <CandidateProfile360
+            candidate={selectedProfile}
+            onClose={() => setShow360(false)}
+          />
         )}
       </AnimatePresence>
     </div>

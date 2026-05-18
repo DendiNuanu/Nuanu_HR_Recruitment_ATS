@@ -114,6 +114,66 @@ export async function updateCandidateStage(
       });
     }
 
+    // ── Auto rejection email to candidate ─────────────────────────────────
+    if (newStage === "rejected" && candidate) {
+      try {
+        const appWithVacancy = await prisma.application.findUnique({
+          where: { id: applicationId },
+          include: { vacancy: { select: { title: true } } },
+        });
+        const position = appWithVacancy?.vacancy?.title ?? "the position";
+        const companyName = process.env.NEXT_PUBLIC_APP_NAME ?? "Nuanu";
+
+        await sendEmail({
+          to: candidate.email,
+          subject: `Update on Your Application — ${position}`,
+          html: `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f4f7f6;font-family:Arial,sans-serif">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f7f6;padding:40px 0">
+    <tr><td align="center">
+      <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08)">
+        <tr><td style="background:linear-gradient(135deg,#0A1628,#0D2040);padding:32px 40px;text-align:center">
+          <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:800">${companyName}</h1>
+          <p style="margin:6px 0 0;color:rgba(16,185,129,0.8);font-size:11px;letter-spacing:3px;text-transform:uppercase;font-weight:600">HR Recruitment</p>
+        </td></tr>
+        <tr><td style="padding:40px">
+          <h2 style="margin:0 0 16px;color:#0A1628;font-size:20px;font-weight:700">Application Update</h2>
+          <p style="color:#475569;font-size:15px;line-height:1.7;margin:0 0 16px">Dear ${candidate.name},</p>
+          <p style="color:#475569;font-size:15px;line-height:1.7;margin:0 0 16px">
+            Thank you for your interest in the <strong>${position}</strong> role at ${companyName} and for taking the time to go through our recruitment process.
+          </p>
+          <p style="color:#475569;font-size:15px;line-height:1.7;margin:0 0 16px">
+            After careful consideration, we regret to inform you that we will not be moving forward with your application at this time. This was a difficult decision as we received many strong applications.
+          </p>
+          <p style="color:#475569;font-size:15px;line-height:1.7;margin:0 0 32px">
+            We encourage you to apply for future openings that match your skills and experience. We will keep your profile on file and may reach out if a suitable opportunity arises.
+          </p>
+          <p style="color:#475569;font-size:15px;line-height:1.7;margin:0">
+            We wish you all the best in your career journey.
+          </p>
+          <p style="color:#475569;font-size:15px;line-height:1.7;margin:16px 0 0">
+            Warm regards,<br>
+            <strong>${companyName} Recruitment Team</strong>
+          </p>
+        </td></tr>
+        <tr><td style="background:#f8fafc;padding:20px 40px;border-top:1px solid #e2e8f0;text-align:center">
+          <p style="margin:0;color:#94a3b8;font-size:12px">© ${new Date().getFullYear()} ${companyName} · Enterprise HR Platform</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`,
+        });
+      } catch (emailErr) {
+        // Non-fatal — rejection email failure must never break stage update
+        console.warn("[updateCandidateStage] Rejection email failed:", emailErr);
+      }
+    }
+
     await delCache("dashboard_metrics");
     revalidatePath("/dashboard/candidates");
     revalidatePath("/dashboard");

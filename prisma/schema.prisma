@@ -36,6 +36,7 @@ model User {
   createdVacancies    Vacancy[]           @relation("VacancyCreator")
   assignedVacancies   Vacancy[]           @relation("VacancyRecruiter")
   candidateNotes      CandidateNote[]
+  passwordResetTokens PasswordResetToken[]
 
   @@map("users")
 }
@@ -283,6 +284,7 @@ model Application {
   pipelineStages  PipelineStage[]
   notes           CandidateNote[]
   customFields    ApplicationCustomField[]
+  referenceChecks ReferenceCheck[]
 
   @@unique([vacancyId, candidateId])
   @@index([status])
@@ -471,6 +473,7 @@ model Assessment {
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
   application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  publicLink    AssessmentLink?
 
   @@index([applicationId])
   @@map("assessments")
@@ -628,4 +631,86 @@ model CalendarIntegration {
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("calendar_integrations")
+}
+
+// ── Feature 1: Forgot Password ────────────────────────────────────────────────
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([userId])
+  @@map("password_reset_tokens")
+}
+
+// ── Feature 3: Public Assessment Links ───────────────────────────────────────
+model AssessmentLink {
+  id          String    @id @default(uuid())
+  assessmentId String   @unique
+  token       String    @unique
+  expiresAt   DateTime
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  assessment  Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@map("assessment_links")
+}
+
+// ── Feature 5: Reference / Background Checks ─────────────────────────────────
+model ReferenceCheck {
+  id           String    @id @default(uuid())
+  applicationId String
+  refereeName  String
+  relationship String
+  company      String?
+  phone        String?
+  email        String?
+  feedback     String?
+  rating       Int?
+  status       String    @default("pending")
+  checkedById  String?
+  checkedAt    DateTime?
+  notes        String?
+  recommendation String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  application  Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId])
+  @@map("reference_checks")
+}
+
+// ── Feature 7: Offer Templates ────────────────────────────────────────────────
+model OfferTemplate {
+  id          String   @id @default(uuid())
+  name        String
+  content     String
+  isDefault   Boolean  @default(false)
+  variables   String[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("offer_templates")
+}
+
+// ── Feature 9: Channel Cost Management ───────────────────────────────────────
+model RecruitmentChannelCost {
+  id        String   @id @default(uuid())
+  channel   String
+  cost      Float
+  currency  String   @default("IDR")
+  year      Int
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([channel, year])
+  @@index([year])
+  @@map("recruitment_channel_costs")
 }
