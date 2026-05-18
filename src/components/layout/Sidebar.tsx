@@ -23,6 +23,7 @@ import {
   Brain,
   X,
   Shield,
+  Bell,
 } from "lucide-react";
 
 const menuItems = [
@@ -85,6 +86,12 @@ const menuItems = [
     href: "/dashboard/onboarding",
     icon: UserPlus,
     allowed: ["admin", "super-admin", "hr", "recruiter"],
+  },
+  {
+    label: "Notifications",
+    href: "/dashboard/notifications",
+    icon: Bell,
+    allowed: ["admin", "super-admin", "hr", "recruiter", "manager", "interviewer", "finance"],
   },
   {
     label: "Settings",
