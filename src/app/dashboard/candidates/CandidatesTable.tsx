@@ -410,13 +410,15 @@ export default function CandidatesTable({
           >
             <option value="all">All Stages</option>
             <option value="applied">Applied</option>
-            <option value="screening">Screening</option>
-            <option value="hr_interview">HR Interview</option>
-            <option value="user_interview">User Interview</option>
-            <option value="final_interview">Final Interview</option>
-            <option value="offer">Offer</option>
+            <option value="screening">CV Screening</option>
+            <option value="phone_screening">Phone Screening</option>
+            <option value="assessment">Assessment</option>
+            <option value="interview_1">Interview 1</option>
+            <option value="interview_2">Interview 2</option>
+            <option value="offering">Offering</option>
             <option value="hired">Hired</option>
             <option value="rejected">Rejected</option>
+            <option value="withdrawn">Withdrawn</option>
           </select>
           <Filter className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-nuanu-gray-400 pointer-events-none" />
         </div>

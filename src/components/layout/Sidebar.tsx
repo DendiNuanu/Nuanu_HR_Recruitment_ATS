@@ -24,6 +24,9 @@ import {
   X,
   Shield,
   Bell,
+  UserCheck,
+  BarChart2,
+  Gift,
 } from "lucide-react";
 
 const menuItems = [
@@ -78,13 +81,31 @@ const menuItems = [
   {
     label: "Offers",
     href: "/dashboard/offers",
-    icon: FileText,
+    icon: Gift,
+    allowed: ["admin", "super-admin", "hr", "recruiter"],
+  },
+  {
+    label: "Employees",
+    href: "/dashboard/employees",
+    icon: UserCheck,
     allowed: ["admin", "super-admin", "hr", "recruiter"],
   },
   {
     label: "Onboarding",
     href: "/dashboard/onboarding",
     icon: UserPlus,
+    allowed: ["admin", "super-admin", "hr", "recruiter"],
+  },
+  {
+    label: "Analytics",
+    href: "/dashboard/analytics",
+    icon: BarChart2,
+    allowed: ["admin", "super-admin", "hr", "recruiter"],
+  },
+  {
+    label: "Reports",
+    href: "/dashboard/reports",
+    icon: FileText,
     allowed: ["admin", "super-admin", "hr", "recruiter"],
   },
   {

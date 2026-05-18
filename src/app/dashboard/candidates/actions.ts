@@ -11,10 +11,11 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 const STAGES = [
   "applied",
   "screening",
-  "hr_interview",
-  "user_interview",
-  "final_interview",
-  "offer",
+  "phone_screening",
+  "assessment",
+  "interview_1",
+  "interview_2",
+  "offering",
   "hired",
 ];
 
@@ -115,7 +116,7 @@ export async function updateCandidateStage(
     }
 
     // ── Auto rejection email to candidate ─────────────────────────────────
-    if (newStage === "rejected" && candidate) {
+    if ((newStage === "rejected" || newStage === "withdrawn") && candidate) {
       try {
         const appWithVacancy = await prisma.application.findUnique({
           where: { id: applicationId },
@@ -171,6 +172,35 @@ export async function updateCandidateStage(
       } catch (emailErr) {
         // Non-fatal — rejection email failure must never break stage update
         console.warn("[updateCandidateStage] Rejection email failed:", emailErr);
+      }
+    }
+
+    // ── Auto employee transfer when hired ─────────────────────────────────
+    if (newStage === "hired" && candidate) {
+      try {
+        const appWithVacancy = await prisma.application.findUnique({
+          where: { id: applicationId },
+          include: { vacancy: { select: { title: true, departmentId: true } } },
+        });
+        const existing = await prisma.employee.findUnique({ where: { userId: candidate.id } });
+        if (!existing) {
+          const empCode = `EMP-${Date.now().toString(36).toUpperCase()}`;
+          const startDate = new Date();
+          await prisma.employee.create({
+            data: {
+              userId: candidate.id,
+              employeeCode: empCode,
+              position: appWithVacancy?.vacancy?.title ?? "Employee",
+              departmentId: appWithVacancy?.vacancy?.departmentId ?? null,
+              startDate,
+              status: "active",
+              check90DueAt: new Date(startDate.getTime() + 90 * 86_400_000),
+              check180DueAt: new Date(startDate.getTime() + 180 * 86_400_000),
+            },
+          });
+        }
+      } catch (empErr) {
+        console.warn("[updateCandidateStage] Employee transfer failed (non-fatal):", empErr);
       }
     }
 

@@ -37,6 +37,7 @@ model User {
   assignedVacancies   Vacancy[]           @relation("VacancyRecruiter")
   candidateNotes      CandidateNote[]
   passwordResetTokens PasswordResetToken[]
+  employeeRecord      Employee?
 
   @@map("users")
 }
@@ -713,4 +714,36 @@ model RecruitmentChannelCost {
   @@unique([channel, year])
   @@index([year])
   @@map("recruitment_channel_costs")
+}
+
+// ── Employee Record (created when candidate is hired) ─────────────────────────
+model Employee {
+  id           String    @id @default(uuid())
+  userId       String    @unique
+  employeeCode String    @unique
+  position     String
+  departmentId String?
+  startDate    DateTime
+  status       String    @default("active")
+  retained90   Boolean?
+  retained180  Boolean?
+  check90DueAt DateTime?
+  check180DueAt DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  user         User      @relation(fields: [userId], references: [id])
+
+  @@index([status])
+  @@map("employees")
+}
+
+// ── System Settings (key-value store) ────────────────────────────────────────
+model SystemSetting {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("system_settings")
 }

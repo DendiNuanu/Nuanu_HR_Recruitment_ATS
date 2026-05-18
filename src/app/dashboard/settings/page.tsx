@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import ChannelCostsTab from "./ChannelCostsTab";
+import EmailTemplatesTab from "./EmailTemplatesTab";
 import {
   Save,
   Building,
@@ -29,6 +31,7 @@ import {
   Mail,
   Send,
   ServerCog,
+  DollarSign,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
@@ -313,6 +316,12 @@ export default function SettingsPage() {
       : []),
     ...(isAdmin
       ? [{ id: "ai_status", label: "AI Model Status", icon: Brain }]
+      : []),
+    ...(isAdmin
+      ? [{ id: "channel_costs", label: "Channel Costs", icon: DollarSign }]
+      : []),
+    ...(isAdmin
+      ? [{ id: "email_templates", label: "Email Templates", icon: Mail }]
       : []),
   ];
 
@@ -1764,6 +1773,16 @@ export default function SettingsPage() {
           </AnimatePresence>
         </div>
       </div>
+
+      {/* ── Channel Costs Tab ─────────────────────────────────────────────── */}
+      {activeTab === "channel_costs" && isAdmin && (
+        <ChannelCostsTab />
+      )}
+
+      {/* ── Email Templates Tab ───────────────────────────────────────────── */}
+      {activeTab === "email_templates" && isAdmin && (
+        <EmailTemplatesTab />
+      )}
 
       <AnimatePresence>
         {isInviteModalOpen && (

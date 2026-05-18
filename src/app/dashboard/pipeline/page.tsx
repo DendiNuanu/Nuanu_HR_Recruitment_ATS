@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { unstable_cache } from "next/cache";
 import PipelineBoard from "./PipelineBoard";
+import { PIPELINE_STAGES } from "@/lib/utils";
 
 const getCachedPipelineData = unstable_cache(
   async () => {
@@ -17,27 +18,17 @@ const getCachedPipelineData = unstable_cache(
       orderBy: { createdAt: "desc" },
     });
 
-    // Group applications by stage for the initial pipeline state
-    // We need to group them first by vacancy, but the PipelineBoard handles vacancy selection.
-    // Actually, PipelineBoard expects all candidates grouped by stage, and it currently filters by selectedVacancy.
-    // Let's format all applications into the PipelineStore format:
-    // Record<string, any[]>
-    const formattedCandidates: Record<string, any[]> = {
-      applied: [],
-      screening: [],
-      hr_interview: [],
-      user_interview: [],
-      final_interview: [],
-      offer: [],
-      hired: [],
-      rejected: [],
-    };
+    // Build stage map from the canonical PIPELINE_STAGES list so we never miss a stage
+    const formattedCandidates: Record<string, any[]> = {};
+    for (const s of PIPELINE_STAGES) {
+      formattedCandidates[s.id] = [];
+    }
 
     applications.forEach((app) => {
       const stage = app.currentStage.toLowerCase();
-      if (formattedCandidates[stage]) {
+      if (formattedCandidates[stage] !== undefined) {
         formattedCandidates[stage].push({
-          id: app.id, // applicationId — unique even if a candidate applies to multiple vacancies
+          id: app.id,
           applicationId: app.id,
           name: app.candidate.name,
           position: app.vacancy.title,
@@ -52,7 +43,7 @@ const getCachedPipelineData = unstable_cache(
               : [],
         });
       } else {
-        // If the stage is something else, put it in applied by default
+        // Unknown stage → put in applied
         formattedCandidates["applied"].push({
           id: app.id,
           applicationId: app.id,
