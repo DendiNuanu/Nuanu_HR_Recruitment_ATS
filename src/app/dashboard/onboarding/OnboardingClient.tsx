@@ -35,6 +35,7 @@ import {
   deleteOnboardingTask,
   completeOnboarding,
 } from "./actions";
+import NewHireConfirmationModal from "./NewHireConfirmationModal";
 
 // ─────────────────────────────────────────────────────────────
 // TYPES
@@ -74,6 +75,16 @@ type ActiveApp = {
 type Department = {
   id: string;
   name: string;
+};
+
+export type PendingConfirmation = {
+  id: string;
+  candidateName: string;
+  position: string;
+  department: string;
+  startDate: string;
+  employmentType: string;
+  status: string;
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -144,6 +155,7 @@ export default function OnboardingClient({
   stats,
   activeApplications = [],
   departments = [],
+  pendingConfirmations = [],
 }: {
   onboardings: OnboardingData[];
   stats: {
@@ -154,6 +166,7 @@ export default function OnboardingClient({
   };
   activeApplications?: ActiveApp[];
   departments?: Department[];
+  pendingConfirmations?: PendingConfirmation[];
 }) {
   const router = useRouter();
 
@@ -164,6 +177,9 @@ export default function OnboardingClient({
   const [isStartModalOpen, setIsStartModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadingTaskId, setLoadingTaskId] = useState<string | null>(null);
+
+  // Modal state for pending confirmations
+  const [selectedPendingConfirm, setSelectedPendingConfirm] = useState<PendingConfirmation | null>(null);
 
   // Local optimistic state
   const [localOnboardings, setLocalOnboardings] =
@@ -445,6 +461,46 @@ export default function OnboardingClient({
           </div>
         ))}
       </div>
+
+      {/* ── Pending New Hire Confirmations ── */}
+      {pendingConfirmations && pendingConfirmations.length > 0 && (
+        <div className="card border border-orange-100 bg-orange-50/30">
+          <div className="flex items-center gap-2 mb-4 px-1">
+            <AlertTriangle className="w-5 h-5 text-orange-500" />
+            <h2 className="text-lg font-bold text-nuanu-navy">Pending New Hire Confirmations</h2>
+          </div>
+          <div className="space-y-3">
+            {pendingConfirmations.map((item) => (
+              <div key={item.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-white border border-orange-100 rounded-xl shadow-sm">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center font-bold text-sm flex-shrink-0">
+                    {item.candidateName.charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-nuanu-navy text-sm">{item.candidateName}</h3>
+                    <p className="text-xs text-nuanu-gray-500">{item.position} • {item.department}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4 sm:ml-auto">
+                  <div className="text-right hidden sm:block">
+                    <p className="text-[10px] font-bold text-nuanu-gray-400 uppercase">Start Date</p>
+                    <p className="text-xs font-semibold text-nuanu-navy">{new Date(item.startDate).toLocaleDateString()}</p>
+                  </div>
+                  <span className="text-xs font-semibold bg-orange-100 text-orange-700 px-2.5 py-1 rounded-full whitespace-nowrap">
+                    Needs Confirmation
+                  </span>
+                  <button
+                    onClick={() => setSelectedPendingConfirm(item)}
+                    className="btn-primary py-1.5 px-3 text-xs gap-1.5 whitespace-nowrap"
+                  >
+                    Fill Confirmation →
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ── Main card ── */}
       <div className="card">
@@ -967,6 +1023,19 @@ export default function OnboardingClient({
               </form>
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+      {/* ── New Hire Confirmation Modal ── */}
+      <AnimatePresence>
+        {selectedPendingConfirm && (
+          <NewHireConfirmationModal
+            employee={selectedPendingConfirm}
+            onClose={() => setSelectedPendingConfirm(null)}
+            onSuccess={() => {
+              setSelectedPendingConfirm(null);
+              router.refresh();
+            }}
+          />
         )}
       </AnimatePresence>
     </div>

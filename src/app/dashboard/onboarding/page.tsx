@@ -4,7 +4,7 @@ import OnboardingClient from "./OnboardingClient";
 export default async function OnboardingPage() {
   const now = new Date();
 
-  const [users, applicationsDb, departments] = await Promise.all([
+  const [users, applicationsDb, departments, pendingConfirmations] = await Promise.all([
     prisma.user.findMany({
       where: { onboardingTasks: { some: {} } },
       include: {
@@ -26,6 +26,24 @@ export default async function OnboardingPage() {
       orderBy: { createdAt: "desc" },
     }),
     prisma.department.findMany({ select: { id: true, name: true } }),
+    prisma.onboarding.findMany({
+      where: {
+        onboardingStatus: { in: ["document_collection", "new_hire_confirmation"] },
+        employee: {
+          employeeContract: {
+            is: null,
+          },
+        },
+      },
+      include: {
+        employee: {
+          include: {
+            user: true,
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    }),
   ]);
 
   const onboardings = users.map((u) => {
@@ -80,12 +98,23 @@ export default async function OnboardingPage() {
     vacancyTitle: app.vacancy.title,
   }));
 
+  const pendingConfirmationsList = pendingConfirmations.map((o) => ({
+    id: o.employee.id,
+    candidateName: o.employee.user.name,
+    position: o.employee.position,
+    department: o.employee.department,
+    startDate: o.employee.startDate.toISOString(),
+    employmentType: o.employee.employmentType,
+    status: o.onboardingStatus,
+  }));
+
   return (
     <OnboardingClient
       onboardings={onboardings}
       stats={stats}
       activeApplications={activeApplications}
       departments={departments}
+      pendingConfirmations={pendingConfirmationsList}
     />
   );
 }
