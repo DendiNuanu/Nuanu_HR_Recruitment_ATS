@@ -38,6 +38,7 @@ model User {
   candidateNotes      CandidateNote[]
   passwordResetTokens PasswordResetToken[]
   employeeRecord      Employee?
+  verifiedDocuments   EmployeeDocument[]
 
   @@map("users")
 }
@@ -743,6 +744,7 @@ model Employee {
   onboarding       Onboarding?
   employeeContract EmployeeContract?
   memoHires        MemoHire[]
+  employeeDocuments EmployeeDocument[]
 
   @@index([status])
   @@map("employees")
@@ -754,7 +756,9 @@ model Onboarding {
   onboardingStatus  String   @default("document_collection")
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
-  employee          Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  employee          Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  employeeDocuments EmployeeDocument[]
 
   @@map("onboarding")
 }
@@ -821,4 +825,30 @@ model MemoHire {
   contract       EmployeeContract  @relation(fields: [contractId], references: [id], onDelete: Cascade)
 
   @@map("memo_hires")
+}
+
+model EmployeeDocument {
+  id                  String     @id @default(uuid())
+  employeeId          String
+  onboardingId        String
+  documentType        String     // ktp | kk | npwp | bpjs_kesehatan | bpjs_ketenagakerjaan | ijazah | formal_photo | bank_account
+  originalFilename    String
+  storedFilename      String
+  fileUrl             String
+  fileSize            Int
+  mimeType            String
+  verificationStatus  String     @default("uploaded") // uploaded | pending_review | verified | rejected
+  rejectionReason     String?
+  uploadedAt          DateTime   @default(now())
+  verifiedAt          DateTime?
+  verifiedBy          String?    // FK to User
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+
+  employee            Employee   @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  onboarding          Onboarding @relation(fields: [onboardingId], references: [id], onDelete: Cascade)
+  verifier            User?      @relation(fields: [verifiedBy], references: [id])
+
+  @@unique([employeeId, documentType])
+  @@map("employee_documents")
 }
