@@ -18,6 +18,7 @@ import {
   TrendingUp,
   Eye,
   Plus,
+  UserCheck,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
@@ -125,6 +126,18 @@ export default function OffersClient({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
 
+  // ── Convert to Employee state ──────────────────────────────────
+  const [showConvertModal, setShowConvertModal] = useState(false);
+  const [convertForm, setConvertForm] = useState({
+    startDate: new Date().toISOString().split("T")[0],
+    entity: "Nuanu",
+    employmentType: "Full Time",
+    department: "",
+    probationPeriod: "3_months",
+  });
+  const [convertErrors, setConvertErrors] = useState<Record<string, string>>({});
+  const [isConverting, setIsConverting] = useState(false);
+
   const [createFormData, setCreateFormData] = useState(defaultCreateForm);
   const [editFormData, setEditFormData] = useState(defaultEditForm);
 
@@ -174,6 +187,7 @@ export default function OffersClient({
       draft: "bg-gray-100 text-gray-600",
       rejected: "bg-red-100 text-red-700",
       withdrawn: "bg-amber-100 text-amber-700",
+      converted: "bg-teal-100 text-teal-700",
     };
     const labels: Record<string, string> = {
       accepted: "Accepted",
@@ -181,6 +195,7 @@ export default function OffersClient({
       draft: "Draft",
       rejected: "Rejected",
       withdrawn: "Withdrawn",
+      converted: "Converted to Employee",
     };
     return (
       <span
@@ -356,6 +371,67 @@ export default function OffersClient({
       setIsSubmitting(false);
       setShowDeleteConfirm(false);
       setSelectedOffer(null);
+    }
+  };
+
+  // ── Convert to Employee handler ────────────────────────────────
+  const handleConvert = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedOffer) return;
+
+    // Validate
+    const errors: Record<string, string> = {};
+    if (!convertForm.startDate) errors.startDate = "Start date is required";
+    else if (new Date(convertForm.startDate) < new Date(new Date().toDateString()))
+      errors.startDate = "Start date cannot be in the past";
+    if (!convertForm.entity.trim()) errors.entity = "Entity is required";
+    if (!convertForm.employmentType) errors.employmentType = "Employment type is required";
+    if (!convertForm.department.trim()) errors.department = "Department is required";
+
+    if (Object.keys(errors).length > 0) {
+      setConvertErrors(errors);
+      return;
+    }
+    setConvertErrors({});
+    setIsConverting(true);
+
+    try {
+      const res = await fetch("/api/employees/convert-from-offer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          offerId: selectedOffer.id,
+          startDate: convertForm.startDate,
+          entity: convertForm.entity.trim(),
+          employmentType: convertForm.employmentType,
+          department: convertForm.department.trim(),
+          probationPeriod: convertForm.probationPeriod,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        toast.success(`Employee ${data.employeeCode} created! Onboarding record ready.`, {
+          action: {
+            label: "View Onboarding →",
+            onClick: () => window.location.href = "/dashboard/onboarding",
+          },
+          duration: 8000,
+        });
+        setShowConvertModal(false);
+        setSelectedOffer(null);
+        // Refresh page data
+        window.location.reload();
+      } else if (res.status === 409) {
+        toast.error("An employee record already exists for this candidate.");
+      } else {
+        toast.error(data.error ?? "Conversion failed. Please try again.");
+      }
+    } catch {
+      toast.error("Network error. Please try again.");
+    } finally {
+      setIsConverting(false);
     }
   };
 
@@ -745,9 +821,39 @@ export default function OffersClient({
               </>
             )}
 
-            {/* Group 3: Danger */}
-            {activeMenuOffer.status === "draft" && (
+            {/* Convert to Employee — only for accepted offers */}
+            {activeMenuOffer.status === "accepted" && (
               <>
+                <div className="border-t border-gray-100 my-1.5" />
+                <p className="px-3 pb-1.5 text-[10px] font-bold text-teal-500 uppercase tracking-widest">
+                  Next Step
+                </p>
+                <button
+                  onClick={() => {
+                    setSelectedOffer(activeMenuOffer);
+                    setConvertForm({
+                      startDate: activeMenuOffer.startDate
+                        ? new Date(activeMenuOffer.startDate).toISOString().split("T")[0]
+                        : new Date().toISOString().split("T")[0],
+                      entity: "Nuanu",
+                      employmentType: "Full Time",
+                      department: "",
+                      probationPeriod: "3_months",
+                    });
+                    setConvertErrors({});
+                    setShowConvertModal(true);
+                    setOpenMenuId(null);
+                  }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-teal-700 hover:bg-teal-50 transition-colors font-semibold"
+                >
+                  <UserCheck className="w-4 h-4 text-teal-500 shrink-0" />
+                  Convert to Employee →
+                </button>
+              </>
+            )}
+
+            {/* Group 3: Danger */}
+            {activeMenuOffer.status === "draft" && (              <>
                 <div className="border-t border-gray-100 my-1.5" />
                 <p className="px-3 pb-1.5 text-[10px] font-bold text-red-400 uppercase tracking-widest">
                   Danger
@@ -1238,6 +1344,208 @@ export default function OffersClient({
                       <>
                         <Edit2 className="w-4 h-4" /> Save Changes
                       </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Convert to Employee Modal ────────────────────────────── */}
+      <AnimatePresence>
+        {showConvertModal && selectedOffer && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+              onClick={() => !isConverting && setShowConvertModal(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden relative z-10"
+            >
+              {/* Header */}
+              <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-teal-50">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-teal-100 flex items-center justify-center">
+                    <UserCheck className="w-5 h-5 text-teal-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-gray-900">Convert to Employee</h2>
+                    <p className="text-sm text-gray-500 mt-0.5">
+                      {selectedOffer.candidateName} — {selectedOffer.position}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => !isConverting && setShowConvertModal(false)}
+                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+                  disabled={isConverting}
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Form */}
+              <form onSubmit={handleConvert} className="p-6 space-y-5">
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Start Date */}
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
+                      Start Date <span className="text-red-400">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      required
+                      value={convertForm.startDate}
+                      onChange={(e) => {
+                        setConvertForm({ ...convertForm, startDate: e.target.value });
+                        setConvertErrors({ ...convertErrors, startDate: "" });
+                      }}
+                      className="input-field py-3"
+                    />
+                    {convertErrors.startDate && (
+                      <p className="text-xs text-red-500 mt-1">{convertErrors.startDate}</p>
+                    )}
+                  </div>
+
+                  {/* Employment Type */}
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
+                      Employment Type <span className="text-red-400">*</span>
+                    </label>
+                    <select
+                      required
+                      value={convertForm.employmentType}
+                      onChange={(e) => {
+                        setConvertForm({ ...convertForm, employmentType: e.target.value });
+                        setConvertErrors({ ...convertErrors, employmentType: "" });
+                      }}
+                      className="input-field py-3"
+                    >
+                      <option value="">Select type...</option>
+                      <option value="Full Time">Full Time</option>
+                      <option value="Part Time">Part Time</option>
+                      <option value="Contract">Contract</option>
+                      <option value="Internship">Internship</option>
+                    </select>
+                    {convertErrors.employmentType && (
+                      <p className="text-xs text-red-500 mt-1">{convertErrors.employmentType}</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Entity */}
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
+                      Entity / Company <span className="text-red-400">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={convertForm.entity}
+                      onChange={(e) => {
+                        setConvertForm({ ...convertForm, entity: e.target.value });
+                        setConvertErrors({ ...convertErrors, entity: "" });
+                      }}
+                      className="input-field py-3"
+                      placeholder="e.g. Nuanu Creative City"
+                    />
+                    {convertErrors.entity && (
+                      <p className="text-xs text-red-500 mt-1">{convertErrors.entity}</p>
+                    )}
+                  </div>
+
+                  {/* Department */}
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
+                      Department <span className="text-red-400">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={convertForm.department}
+                      onChange={(e) => {
+                        setConvertForm({ ...convertForm, department: e.target.value });
+                        setConvertErrors({ ...convertErrors, department: "" });
+                      }}
+                      className="input-field py-3"
+                      placeholder="e.g. Engineering"
+                    />
+                    {convertErrors.department && (
+                      <p className="text-xs text-red-500 mt-1">{convertErrors.department}</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Probation Period */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
+                    Probation Period
+                  </label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {[
+                      { value: "none", label: "None" },
+                      { value: "1_month", label: "1 Month" },
+                      { value: "3_months", label: "3 Months" },
+                      { value: "6_months", label: "6 Months" },
+                    ].map((opt) => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => setConvertForm({ ...convertForm, probationPeriod: opt.value })}
+                        className={`py-2.5 rounded-xl text-sm font-semibold border-2 transition-all ${
+                          convertForm.probationPeriod === opt.value
+                            ? "bg-teal-600 text-white border-teal-600"
+                            : "bg-white text-gray-500 border-gray-200 hover:border-teal-300"
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Info box */}
+                <div className="flex items-start gap-3 p-4 bg-blue-50 rounded-xl border border-blue-100 text-sm text-blue-700">
+                  <CheckCircle2 className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-semibold">What happens next:</p>
+                    <ul className="mt-1 space-y-0.5 text-xs text-blue-600">
+                      <li>• Employee record created with auto-generated code (EMP-{new Date().getFullYear()}-XXX)</li>
+                      <li>• Onboarding checklist created with 8 default tasks</li>
+                      <li>• Offer status updated to "Converted to Employee"</li>
+                      <li>• Candidate application moved to Hired stage</li>
+                    </ul>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex justify-end gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowConvertModal(false)}
+                    className="btn-secondary px-6 py-2.5 text-sm"
+                    disabled={isConverting}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-6 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-semibold text-sm flex items-center gap-2 transition-colors disabled:opacity-50"
+                    disabled={isConverting}
+                  >
+                    {isConverting ? (
+                      <><Loader2 className="w-4 h-4 animate-spin" /> Converting...</>
+                    ) : (
+                      <><UserCheck className="w-4 h-4" /> Confirm &amp; Convert →</>
                     )}
                   </button>
                 </div>
