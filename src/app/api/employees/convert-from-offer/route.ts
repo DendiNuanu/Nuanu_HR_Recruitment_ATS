@@ -20,26 +20,27 @@ export async function POST(request: Request) {
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await request.json();
-  const { offerId, startDate, entity, employmentType, department, probationPeriod } = body as {
-    offerId: string;
-    startDate: string;
+  const { offer_id, candidate_id, start_date, entity, employment_type, department, probation_period } = body as {
+    offer_id: string;
+    candidate_id: string;
+    start_date: string;
     entity: string;
-    employmentType: string;
+    employment_type: string;
     department: string;
-    probationPeriod?: string;
+    probation_period?: string;
   };
 
   // ── Validate required fields ───────────────────────────────────────────────
-  if (!offerId || !startDate || !entity || !employmentType || !department) {
+  if (!offer_id || !start_date || !entity || !employment_type || !department) {
     return NextResponse.json(
-      { error: "offerId, startDate, entity, employmentType, and department are required" },
+      { error: "offer_id, start_date, entity, employment_type, and department are required" },
       { status: 400 },
     );
   }
 
   // ── Fetch offer ────────────────────────────────────────────────────────────
   const offer = await prisma.offer.findUnique({
-    where: { id: offerId },
+    where: { id: offer_id },
     include: {
       application: {
         include: {
@@ -63,6 +64,11 @@ export async function POST(request: Request) {
 
   const candidate = offer.application.candidate;
 
+  // Verify candidate_id if provided
+  if (candidate_id && candidate.id !== candidate_id) {
+    return NextResponse.json({ error: "Candidate ID mismatch" }, { status: 400 });
+  }
+
   // ── Check for duplicate conversion ────────────────────────────────────────
   const existingEmployee = await prisma.employee.findUnique({
     where: { userId: candidate.id },
@@ -84,17 +90,17 @@ export async function POST(request: Request) {
 
   // ── Calculate probation end date ──────────────────────────────────────────
   let probationEndDate: Date | null = null;
-  if (probationPeriod && probationPeriod !== "none") {
-    const start = new Date(startDate);
-    const months = probationPeriod === "1_month" ? 1 : probationPeriod === "3_months" ? 3 : 6;
+  if (probation_period && probation_period !== "none") {
+    const start = new Date(start_date);
+    const months = probation_period === "1_month" ? 1 : probation_period === "3_months" ? 3 : 6;
     probationEndDate = new Date(start);
     probationEndDate.setMonth(probationEndDate.getMonth() + months);
   }
 
-  const startDateObj = new Date(startDate);
+  const startDateObj = new Date(start_date);
 
   // ── Create Employee + update Offer + create Onboarding tasks ──────────────
-  const [employee] = await prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
     // 1. Create Employee record
     const emp = await tx.employee.create({
       data: {
@@ -104,6 +110,11 @@ export async function POST(request: Request) {
         departmentId: offer.application.vacancy.departmentId ?? null,
         startDate: startDateObj,
         status: "active",
+        entity,
+        employmentType: employment_type,
+        department,
+        probationPeriod: probation_period,
+        probationEndDate,
         check90DueAt: new Date(startDateObj.getTime() + 90 * 24 * 60 * 60 * 1000),
         check180DueAt: new Date(startDateObj.getTime() + 180 * 24 * 60 * 60 * 1000),
       },
@@ -111,7 +122,7 @@ export async function POST(request: Request) {
 
     // 2. Update offer status to "converted"
     await tx.offer.update({
-      where: { id: offerId },
+      where: { id: offer_id },
       data: { status: "converted" },
     });
 
@@ -145,17 +156,25 @@ export async function POST(request: Request) {
       })),
     });
 
-    // 5. Log activity
+    // 5. Create Onboarding record
+    const onboarding = await tx.onboarding.create({
+      data: {
+        employeeId: emp.id,
+        onboardingStatus: "document_collection",
+      },
+    });
+
+    // 6. Log activity
     await tx.activityLog.create({
       data: {
         userId: candidate.id,
-        action: `Converted to employee (${employeeCode}) — ${entity}, ${employmentType}`,
+        action: `Converted to employee (${employeeCode}) — ${entity}, ${employment_type}`,
         resource: "Employee",
         resourceId: emp.id,
       },
     });
 
-    return [emp];
+    return { emp, onboarding };
   });
 
   revalidatePath("/dashboard/offers");
@@ -165,8 +184,9 @@ export async function POST(request: Request) {
   return NextResponse.json(
     {
       success: true,
-      employeeId: employee.id,
-      employeeCode: employee.employeeCode,
+      employee_id: result.emp.id,
+      employee_code: result.emp.employeeCode,
+      onboarding_id: result.onboarding.id,
     },
     { status: 201 },
   );

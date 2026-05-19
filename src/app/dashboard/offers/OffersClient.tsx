@@ -400,12 +400,13 @@ export default function OffersClient({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          offerId: selectedOffer.id,
-          startDate: convertForm.startDate,
+          offer_id: selectedOffer.id,
+          candidate_id: "", // Derived from offer_id on backend
+          start_date: convertForm.startDate,
           entity: convertForm.entity.trim(),
-          employmentType: convertForm.employmentType,
+          employment_type: convertForm.employmentType,
           department: convertForm.department.trim(),
-          probationPeriod: convertForm.probationPeriod,
+          probation_period: convertForm.probationPeriod,
         }),
       });
 

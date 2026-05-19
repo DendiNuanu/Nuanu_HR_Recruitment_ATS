@@ -718,23 +718,43 @@ model RecruitmentChannelCost {
 
 // ── Employee Record (created when candidate is hired) ─────────────────────────
 model Employee {
-  id           String    @id @default(uuid())
-  userId       String    @unique
-  employeeCode String    @unique
-  position     String
-  departmentId String?
-  startDate    DateTime
-  status       String    @default("active")
-  retained90   Boolean?
-  retained180  Boolean?
-  check90DueAt DateTime?
-  check180DueAt DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  user         User      @relation(fields: [userId], references: [id])
+  id               String    @id @default(uuid())
+  userId           String    @unique
+  employeeCode     String    @unique
+  position         String
+  departmentId     String?
+  startDate        DateTime
+  status           String    @default("active")
+  
+  // New fields from Offer Conversion
+  entity           String    @default("Nuanu")
+  employmentType   String    @default("Full Time")
+  department       String    @default("")
+  probationPeriod  String?
+  probationEndDate DateTime?
+
+  retained90       Boolean?
+  retained180      Boolean?
+  check90DueAt     DateTime?
+  check180DueAt    DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  user             User      @relation(fields: [userId], references: [id])
+  onboarding       Onboarding?
 
   @@index([status])
   @@map("employees")
+}
+
+model Onboarding {
+  id                String   @id @default(uuid())
+  employeeId        String   @unique
+  onboardingStatus  String   @default("document_collection")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  employee          Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@map("onboarding")
 }
 
 // ── System Settings (key-value store) ────────────────────────────────────────
