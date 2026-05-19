@@ -72,6 +72,7 @@ export default function JobsClient({
                 <option value="all">All Statuses</option>
                 <option value="published">Published</option>
                 <option value="draft">Draft</option>
+                <option value="pending_approval">Pending Approval</option>
                 <option value="closed">Closed</option>
               </select>
               <Users className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-nuanu-gray-400 pointer-events-none" />

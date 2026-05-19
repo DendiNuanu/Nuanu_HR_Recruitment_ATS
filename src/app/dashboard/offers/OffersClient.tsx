@@ -36,6 +36,7 @@ import ConfirmModal from "@/components/ui/ConfirmModal";
 import DatePickerField from "@/components/ui/DatePickerField";
 import { SlideOver } from "@/components/ui/SlideOver";
 import CurrencyInput from "@/components/ui/CurrencyInput";
+import Link from "next/link";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -111,7 +112,6 @@ export default function OffersClient({
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
 
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -138,7 +138,6 @@ export default function OffersClient({
   const [convertErrors, setConvertErrors] = useState<Record<string, string>>({});
   const [isConverting, setIsConverting] = useState(false);
 
-  const [createFormData, setCreateFormData] = useState(defaultCreateForm);
   const [editFormData, setEditFormData] = useState(defaultEditForm);
 
   // ── Sync edit form when modal opens ───────────────────────────
@@ -249,35 +248,6 @@ export default function OffersClient({
   };
 
   // ── Action handlers ───────────────────────────────────────────
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!createFormData.applicationId) return;
-    setIsSubmitting(true);
-    try {
-      const result = await createOffer({
-        applicationId: createFormData.applicationId,
-        salary: createFormData.salary,
-        bonus: createFormData.bonus || undefined,
-        benefits: createFormData.benefits || undefined,
-        equity: createFormData.equity || undefined,
-        startDate: createFormData.startDate,
-        expiresAt: createFormData.expiresAt || undefined,
-        notes: createFormData.notes || undefined,
-      });
-      if (result.success) {
-        toast.success("Offer created!");
-        setIsCreateModalOpen(false);
-        setCreateFormData(defaultCreateForm);
-      } else {
-        toast.error(result.error ?? "Failed to create offer");
-      }
-    } catch {
-      toast.error("An unexpected error occurred");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   const handleSendOffer = async () => {
     if (!selectedOffer) return;
     setIsSubmitting(true);
@@ -519,12 +489,9 @@ export default function OffersClient({
             Generate, send, and track candidate offer letters
           </p>
         </div>
-        <button
-          onClick={() => setIsCreateModalOpen(true)}
-          className="btn-primary"
-        >
+        <Link href="/dashboard/offers/generate" className="btn-primary">
           <Plus className="w-5 h-5" /> Generate Offer
-        </button>
+        </Link>
       </div>
 
       {/* ── Stats Cards ─────────────────────────────────────────── */}
@@ -597,12 +564,12 @@ export default function OffersClient({
               <p className="text-sm text-nuanu-gray-500 mb-6">
                 Generate your first offer letter to get started
               </p>
-              <button
-                onClick={() => setIsCreateModalOpen(true)}
+              <Link
+                href="/dashboard/offers/generate"
                 className="btn-primary mx-auto"
               >
                 <Plus className="w-4 h-4" /> Generate Offer
-              </button>
+              </Link>
             </div>
           ) : filtered.length === 0 ? (
             /* ── Filter empty state ───────────────────────────── */
@@ -1022,149 +989,6 @@ export default function OffersClient({
           </div>
         )}
       </AnimatePresence>
-
-      {/* ── Create Offer — SlideOver ─────────────────────────────── */}
-      <SlideOver
-        open={isCreateModalOpen}
-        onClose={() => !isSubmitting && setIsCreateModalOpen(false)}
-        title="Generate New Offer"
-        description="Create a formal offer package and send it to the candidate"
-        icon={<FileText size={22} />}
-        size="xxl"
-        footer={
-          <>
-            <button type="button" onClick={() => setIsCreateModalOpen(false)} className="btn-secondary px-6 py-3 text-sm" disabled={isSubmitting}>
-              Cancel
-            </button>
-            <button type="submit" form="create-offer-form" className="btn-primary px-6 py-3 text-sm flex items-center gap-2"
-              disabled={isSubmitting || !createFormData.applicationId}>
-              {isSubmitting ? <><Loader2 className="w-4 h-4 animate-spin" /> Generating...</> : <><FileText className="w-4 h-4" /> Generate Offer</>}
-            </button>
-          </>
-        }
-      >
-        <form id="create-offer-form" onSubmit={handleCreate}>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* LEFT — Compensation */}
-            <div className="space-y-5">
-              <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2.5">Candidate Application <span className="text-red-400">*</span></label>
-                <select required value={createFormData.applicationId}
-                  onChange={(e) => setCreateFormData({ ...createFormData, applicationId: e.target.value })}
-                  className="input-field py-3">
-                  <option value="" disabled>Select a candidate...</option>
-                  {activeApplications.map((app) => (
-                    <option key={app.id} value={app.id}>{app.candidateName} — {app.vacancyTitle}</option>
-                  ))}
-                </select>
-                {activeApplications.length === 0 && (
-                  <p className="text-xs text-amber-600 mt-1">No active applications without an existing offer.</p>
-                )}
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2.5">Monthly Salary (Rp) <span className="text-red-400">*</span></label>
-                  <CurrencyInput value={createFormData.salary} onChange={(v) => setCreateFormData({ ...createFormData, salary: v })} required placeholder="15,000,000" />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2.5">Signing Bonus (Rp)</label>
-                  <CurrencyInput value={createFormData.bonus} onChange={(v) => setCreateFormData({ ...createFormData, bonus: v })} placeholder="0" />
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2.5">Equity / Stock Options</label>
-                <input type="text" value={createFormData.equity}
-                  onChange={(e) => setCreateFormData({ ...createFormData, equity: e.target.value })}
-                  className="input-field py-3" placeholder="e.g. 0.1% vested over 4 years" />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2.5">Benefits &amp; Perks</label>
-                <textarea value={createFormData.benefits}
-                  onChange={(e) => setCreateFormData({ ...createFormData, benefits: e.target.value })}
-                  className="input-field py-3 resize-none" rows={4}
-                  placeholder="Health insurance, meal allowance, remote work options..." />
-              </div>
-            </div>
-
-            {/* RIGHT — Timeline */}
-            <div className="space-y-5">
-              <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2.5">Proposed Start Date <span className="text-red-400">*</span></label>
-                <div className="flex gap-2 mb-3 flex-wrap">
-                  {[
-                    { label: "Today", days: 0 },
-                    { label: "+1 Week", days: 7 },
-                    { label: "+2 Weeks", days: 14 },
-                    { label: "+1 Month", days: 30 },
-                  ].map(({ label, days }) => {
-                    const d = new Date(); d.setDate(d.getDate() + days);
-                    const val = d.toISOString().split("T")[0];
-                    return (
-                      <button key={label} type="button" onClick={() => setCreateFormData({ ...createFormData, startDate: val })}
-                        className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all ${createFormData.startDate === val ? "bg-emerald-500 text-white border-emerald-500" : "bg-white text-gray-600 border-gray-200 hover:border-emerald-300"}`}>
-                        {label}
-                      </button>
-                    );
-                  })}
-                </div>
-                {/* NATIVE DATE INPUT — no overflow */}
-                <input type="date" value={createFormData.startDate}
-                  onChange={(e) => setCreateFormData({ ...createFormData, startDate: e.target.value })}
-                  className="input-field py-3" required />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2.5">Offer Expiry Date</label>
-                <div className="flex gap-2 mb-3 flex-wrap">
-                  {[
-                    { label: "+1 Week", days: 7 },
-                    { label: "+2 Weeks", days: 14 },
-                    { label: "+1 Month", days: 30 },
-                    { label: "+3 Months", days: 90 },
-                  ].map(({ label, days }) => {
-                    const d = new Date(); d.setDate(d.getDate() + days);
-                    const val = d.toISOString().split("T")[0];
-                    return (
-                      <button key={label} type="button" onClick={() => setCreateFormData({ ...createFormData, expiresAt: val })}
-                        className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all ${createFormData.expiresAt === val ? "bg-emerald-500 text-white border-emerald-500" : "bg-white text-gray-600 border-gray-200 hover:border-emerald-300"}`}>
-                        {label}
-                      </button>
-                    );
-                  })}
-                </div>
-                {/* NATIVE DATE INPUT — replaces the overflowing custom calendar */}
-                <input type="date" value={createFormData.expiresAt}
-                  onChange={(e) => setCreateFormData({ ...createFormData, expiresAt: e.target.value })}
-                  className="input-field py-3" />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2.5">Internal Notes</label>
-                <textarea value={createFormData.notes}
-                  onChange={(e) => setCreateFormData({ ...createFormData, notes: e.target.value })}
-                  className="input-field py-3 resize-none" rows={4}
-                  placeholder="Approvals, special conditions, reminders..." />
-              </div>
-              {/* Offer Summary */}
-              <div className="p-5 bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl text-white">
-                <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">Offer Summary</p>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Monthly Salary</span>
-                    <span className="font-bold text-emerald-400">Rp {(createFormData.salary || 0).toLocaleString("id-ID")}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Start Date</span>
-                    <span className="font-medium">{createFormData.startDate || "—"}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Offer Expires</span>
-                    <span className="font-medium">{createFormData.expiresAt || "—"}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </form>
-      </SlideOver>
 
       {/* ── Edit Offer Modal ─────────────────────────────────────── */}
       <AnimatePresence>

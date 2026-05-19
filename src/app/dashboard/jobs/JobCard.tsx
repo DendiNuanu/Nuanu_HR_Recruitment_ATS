@@ -125,15 +125,19 @@ export default function JobCard({ job }: { job: any }) {
       <div className="border border-nuanu-gray-100 rounded-xl p-5 hover:shadow-lg hover:border-emerald-100 transition-all group bg-white relative">
         <div className="flex justify-between items-start mb-3">
           <span
-            className={`badge ${
+            className={`badge text-xs font-bold uppercase ${
               job.status === "published"
                 ? "bg-emerald-100 text-emerald-700"
                 : job.status === "draft"
-                  ? "bg-nuanu-gray-100 text-nuanu-gray-700"
-                  : "bg-amber-100 text-amber-700"
+                  ? "bg-gray-100 text-gray-600"
+                  : job.status === "pending_approval"
+                    ? "bg-amber-100 text-amber-700"
+                    : job.status === "closed"
+                      ? "bg-red-100 text-red-700"
+                      : "bg-gray-100 text-gray-600"
             }`}
           >
-            {job.status}
+            {job.status === "pending_approval" ? "Pending Approval" : job.status}
           </span>
 
           {/* 3 Dots Menu */}

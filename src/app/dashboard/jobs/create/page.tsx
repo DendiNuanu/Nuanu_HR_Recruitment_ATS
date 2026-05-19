@@ -59,6 +59,19 @@ export default async function CreateVacancyPage() {
                 <label className="block text-sm font-medium text-nuanu-gray-700 mb-1.5">Headcount <span className="text-red-500">*</span></label>
                 <input required name="headcount" type="number" min="1" defaultValue="1" className="input-field" />
               </div>
+
+              <div>
+                <label className="block text-sm font-medium text-nuanu-gray-700 mb-1.5">
+                  Job Status <span className="text-red-500">*</span>
+                </label>
+                <select name="status" className="input-field" defaultValue="draft">
+                  <option value="draft">Draft — Not visible publicly</option>
+                  <option value="pending_approval">Pending Approval — Awaiting manager approval</option>
+                  <option value="published">Published — Live and accepting applications</option>
+                  <option value="closed">Closed — No longer accepting applications</option>
+                </select>
+                <p className="text-xs text-nuanu-gray-400 mt-1">Draft jobs are only visible to internal team members</p>
+              </div>
             </div>
           </div>
 

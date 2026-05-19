@@ -46,7 +46,9 @@ import {
   Filter,
   RefreshCw,
   ChevronDown,
+  Loader2,
 } from "lucide-react";
+import { toast } from "sonner";
 
 // ─────────────────────────────────────────────
 // Types
@@ -353,6 +355,56 @@ export default function AnalyticsClient({
   analyticsData: AnalyticsData;
 }) {
   const [range, setRange] = useState<Range>("year");
+  const [isExporting, setIsExporting] = useState(false);
+  const [showExportMenu, setShowExportMenu] = useState(false);
+
+  const handleExport = async (format: "csv") => {
+    setIsExporting(true);
+    setShowExportMenu(false);
+    try {
+      const rows: string[][] = [];
+      rows.push(["NUANU HR - ANALYTICS REPORT", new Date().toLocaleDateString("id-ID")]);
+      rows.push([]);
+      rows.push(["OVERVIEW METRICS"]);
+      rows.push(["Metric", "Value", "Note"]);
+      d.overview.forEach((o) => rows.push([o.label, o.value, o.subValue]));
+      rows.push([]);
+      rows.push(["SOURCE BREAKDOWN"]);
+      rows.push(["Source", "Applications", "Hires", "% of Total", "Hire Rate"]);
+      d.sourceBreakdown.forEach((s) =>
+        rows.push([s.source, s.count.toString(), s.hires.toString(), `${s.percentage}%`, `${s.hireRate}%`])
+      );
+      rows.push([]);
+      rows.push(["DEPARTMENT BREAKDOWN"]);
+      rows.push(["Department", "Open Roles", "Applications", "Hires", "Avg Time-to-Fill (days)"]);
+      d.deptBreakdown.forEach((dep) =>
+        rows.push([dep.dept, dep.openRoles.toString(), dep.applications.toString(), dep.hires.toString(), dep.avgTimeToFill.toString()])
+      );
+      rows.push([]);
+      rows.push(["MONTHLY TREND (last 6 months)"]);
+      rows.push(["Month", "Applications", "Interviews", "Offers", "Hires"]);
+      d.monthlyTrend.forEach((m) =>
+        rows.push([m.month, m.applications.toString(), m.interviews.toString(), m.offers.toString(), m.hires.toString()])
+      );
+
+      const csv = rows.map((r) => r.map((cell) => `"${cell}"`).join(",")).join("\n");
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `analytics-report-${new Date().toISOString().split("T")[0]}.csv`);
+      link.style.visibility = "hidden";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast.success("Report exported successfully!");
+    } catch {
+      toast.error("Failed to export report");
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const containerVariants = {
     hidden: {},
@@ -420,9 +472,33 @@ export default function AnalyticsClient({
             ))}
           </div>
 
-          <button className="btn-secondary !py-2 !px-3 text-xs">
-            <Download className="w-3.5 h-3.5" /> Export
-          </button>
+          {/* Export dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => setShowExportMenu((v) => !v)}
+              disabled={isExporting}
+              className="btn-secondary !py-2 !px-3 text-xs flex items-center gap-1.5 cursor-pointer hover:bg-gray-50 transition-colors"
+            >
+              {isExporting ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Download className="w-3.5 h-3.5" />
+              )}
+              {isExporting ? "Exporting..." : "Export"}
+              <ChevronDown className="w-3 h-3" />
+            </button>
+            {showExportMenu && (
+              <div className="absolute right-0 top-full mt-1 bg-white border border-nuanu-gray-200 rounded-xl shadow-xl z-50 w-44 overflow-hidden">
+                <button
+                  onClick={() => handleExport("csv")}
+                  className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-nuanu-navy hover:bg-nuanu-gray-50 transition-colors"
+                >
+                  <Download className="w-4 h-4 text-emerald-600" />
+                  Export as CSV
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </motion.div>
 

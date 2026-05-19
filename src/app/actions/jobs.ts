@@ -62,8 +62,13 @@ export async function createVacancy(formData: FormData) {
     cachedAdminId = adminUser.id;
   }
 
-  // Create the Vacancy — set status directly based on publish intent so we
-  // never need to fire the heavy createRequisition transaction from here.
+  // Allow explicit status selection from the form; fallback to legacy checkbox logic
+  const explicitStatus = formData.get("status") as string | null;
+  const statusToSave = explicitStatus && ["draft", "pending_approval", "published", "closed"].includes(explicitStatus)
+    ? explicitStatus
+    : publishToCareers ? "pending_approval" : "draft";
+
+  // Create the Vacancy
   const newVacancy = await prisma.vacancy.create({
     data: {
       title,
@@ -75,7 +80,7 @@ export async function createVacancy(formData: FormData) {
       headcount,
       description,
       requirements,
-      status: publishToCareers ? "pending_approval" : "draft",
+      status: statusToSave,
       isApproved: false,
       publishedAt: null,
     },
