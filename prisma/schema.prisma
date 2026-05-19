@@ -39,6 +39,7 @@ model User {
   passwordResetTokens PasswordResetToken[]
   employeeRecord      Employee?
   verifiedDocuments   EmployeeDocument[]
+  assignedAssets      EmployeeAsset[]
 
   @@map("users")
 }
@@ -743,8 +744,9 @@ model Employee {
   user             User      @relation(fields: [userId], references: [id])
   onboarding       Onboarding?
   employeeContract EmployeeContract?
-  memoHires        MemoHire[]
+  memoHires         MemoHire[]
   employeeDocuments EmployeeDocument[]
+  employeeAssets    EmployeeAsset[]
 
   @@index([status])
   @@map("employees")
@@ -759,6 +761,7 @@ model Onboarding {
 
   employee          Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   employeeDocuments EmployeeDocument[]
+  employeeAssets    EmployeeAsset[]
 
   @@map("onboarding")
 }
@@ -851,4 +854,27 @@ model EmployeeDocument {
 
   @@unique([employeeId, documentType])
   @@map("employee_documents")
+}
+
+model EmployeeAsset {
+  id            String    @id @default(uuid())
+  employeeId    String
+  onboardingId  String?
+  assetType     String    // laptop | company_email | nametag | access_card | lunch_access | sim_card | uniform | other
+  assetName     String
+  serialNumber  String?
+  status        String    @default("pending") // pending | assigned | received | returned
+  assignedDate  DateTime?
+  receivedDate  DateTime?
+  returnedDate  DateTime?
+  notes         String?
+  assignedBy    String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  employee      Employee   @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  onboarding    Onboarding? @relation(fields: [onboardingId], references: [id])
+  assigner      User?      @relation(fields: [assignedBy], references: [id])
+
+  @@map("employee_assets")
 }

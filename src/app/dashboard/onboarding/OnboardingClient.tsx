@@ -87,6 +87,18 @@ export type EmployeeDocument = {
   rejectionReason: string | null;
 };
 
+export type EmployeeAsset = {
+  id: string;
+  assetType: string;
+  assetName: string;
+  serialNumber: string | null;
+  status: "pending" | "assigned" | "received" | "returned";
+  assignedDate: string | null;
+  receivedDate: string | null;
+  returnedDate: string | null;
+  notes: string | null;
+};
+
 type ActiveApp = {
   id: string;
   candidateName: string;
@@ -218,6 +230,21 @@ export default function OnboardingClient({
   const [sendDocRequestModal, setSendDocRequestModal] = useState<{ employeeId: string, email: string, name: string } | null>(null);
   const [docRequestData, setDocRequestData] = useState({ deadline: "", message: "" });
 
+  // Assets state
+  const [employeeAssets, setEmployeeAssets] = useState<Record<string, EmployeeAsset[]>>({});
+  const [loadingAssets, setLoadingAssets] = useState<Record<string, boolean>>({});
+  const [assetFormOpen, setAssetFormOpen] = useState<{ onboardingId: string, employeeId: string } | null>(null);
+  const [editingAsset, setEditingAsset] = useState<EmployeeAsset | null>(null);
+  const [assetFormData, setAssetFormData] = useState({
+    asset_type: "laptop",
+    asset_name: "",
+    serial_number: "",
+    assigned_date: "",
+    notes: "",
+    status: "pending",
+  });
+  const [isSavingAsset, setIsSavingAsset] = useState(false);
+
   // Local optimistic state
   const [localOnboardings, setLocalOnboardings] =
     useState<OnboardingData[]>(onboardings);
@@ -269,6 +296,18 @@ export default function OnboardingClient({
               if (data.documents) setEmployeeDocs((p) => ({ ...p, [expandedId]: data.documents }));
             })
             .finally(() => setLoadingDocs((p) => ({ ...p, [expandedId]: false })));
+        }
+        // Assets (fetch + auto-populate from contract)
+        if (!employeeAssets[expandedId] && !loadingAssets[expandedId]) {
+          setLoadingAssets((p) => ({ ...p, [expandedId]: true }));
+          // Auto-populate first (idempotent), then fetch all
+          fetch(`/api/employee-assets/auto-populate/${empId}`, { method: "POST" })
+            .then(() => fetch(`/api/employee-assets/${empId}`))
+            .then((res) => res.json())
+            .then((data) => {
+              if (data.assets) setEmployeeAssets((p) => ({ ...p, [expandedId]: data.assets }));
+            })
+            .finally(() => setLoadingAssets((p) => ({ ...p, [expandedId]: false })));
         }
       }
     }
@@ -549,7 +588,91 @@ export default function OnboardingClient({
     }
   };
 
+  const refreshAssets = async (onboardingId: string, employeeId: string) => {
+    const res = await fetch(`/api/employee-assets/${employeeId}`);
+    const data = await res.json();
+    if (data.assets) setEmployeeAssets(p => ({ ...p, [onboardingId]: data.assets }));
+  };
+
+  const handleSaveAsset = async () => {
+    if (!assetFormOpen) return;
+    setIsSavingAsset(true);
+    try {
+      if (editingAsset) {
+        // Edit
+        const res = await fetch(`/api/employee-assets/${editingAsset.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            asset_name: assetFormData.asset_name,
+            serial_number: assetFormData.serial_number || null,
+            assigned_date: assetFormData.assigned_date || null,
+            notes: assetFormData.notes || null,
+            status: assetFormData.status,
+          }),
+        });
+        if (res.ok) {
+          toast.success("Asset updated!");
+          await refreshAssets(assetFormOpen.onboardingId, assetFormOpen.employeeId);
+        } else {
+          toast.error("Failed to update asset");
+        }
+      } else {
+        // Create
+        const res = await fetch("/api/employee-assets", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            employee_id: assetFormOpen.employeeId,
+            onboarding_id: assetFormOpen.onboardingId,
+            asset_type: assetFormData.asset_type,
+            asset_name: assetFormData.asset_name,
+            serial_number: assetFormData.serial_number || null,
+            assigned_date: assetFormData.assigned_date || null,
+            notes: assetFormData.notes || null,
+            status: assetFormData.status,
+          }),
+        });
+        if (res.ok) {
+          toast.success("Asset added!");
+          await refreshAssets(assetFormOpen.onboardingId, assetFormOpen.employeeId);
+        } else {
+          toast.error("Failed to add asset");
+        }
+      }
+      setAssetFormOpen(null);
+      setEditingAsset(null);
+      setAssetFormData({ asset_type: "laptop", asset_name: "", serial_number: "", assigned_date: "", notes: "", status: "pending" });
+    } catch {
+      toast.error("An error occurred");
+    } finally {
+      setIsSavingAsset(false);
+    }
+  };
+
+  const handleQuickAssetStatus = async (assetId: string, onboardingId: string, employeeId: string, newStatus: "received" | "returned") => {
+    try {
+      const body: Record<string, any> = { status: newStatus };
+      if (newStatus === "received") body.received_date = new Date().toISOString();
+      if (newStatus === "returned") body.returned_date = new Date().toISOString();
+      const res = await fetch(`/api/employee-assets/${assetId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (res.ok) {
+        toast.success(newStatus === "received" ? "Marked as Received!" : "Marked as Returned!");
+        await refreshAssets(onboardingId, employeeId);
+      } else {
+        toast.error("Failed to update status");
+      }
+    } catch {
+      toast.error("An error occurred");
+    }
+  };
+
   const filtered = localOnboardings.filter((o) => {
+
     const matchSearch =
       o.candidateName.toLowerCase().includes(search.toLowerCase()) ||
       o.position.toLowerCase().includes(search.toLowerCase());
@@ -1223,7 +1346,109 @@ export default function OnboardingClient({
                           </div>
                         )}
 
+                        {/* ── Asset Assignment Section ── */}
+                        {item.employeeId && (
+                          <div className="mt-8 border-t border-gray-100 pt-6">
+                            <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-4">
+                              <div>
+                                <h4 className="text-sm font-bold text-nuanu-navy uppercase tracking-wider flex items-center gap-2 mb-1">
+                                  <Award className="w-4 h-4 text-nuanu-gray-400" />
+                                  Asset Assignment
+                                </h4>
+                                {employeeAssets[item.id] && (
+                                  <div className="flex items-center gap-3">
+                                    <span className="text-xs font-semibold text-gray-500">
+                                      {employeeAssets[item.id].filter(a => a.status === "assigned" || a.status === "received").length} / {employeeAssets[item.id].length} Assigned or Received
+                                    </span>
+                                    <div className="w-32 h-2 bg-gray-100 rounded-full overflow-hidden">
+                                      <div className="h-full bg-blue-500 transition-all" style={{ width: `${employeeAssets[item.id].length > 0 ? (employeeAssets[item.id].filter(a => a.status === "assigned" || a.status === "received").length / employeeAssets[item.id].length) * 100 : 0}%` }} />
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                              <button
+                                onClick={() => {
+                                  setAssetFormOpen({ onboardingId: item.id, employeeId: item.employeeId! });
+                                  setEditingAsset(null);
+                                  setAssetFormData({ asset_type: "laptop", asset_name: "", serial_number: "", assigned_date: "", notes: "", status: "pending" });
+                                }}
+                                className="btn-primary py-1.5 px-3 text-xs gap-2"
+                              >
+                                <Plus className="w-3.5 h-3.5" /> Add Asset
+                              </button>
+                            </div>
+
+                            {loadingAssets[item.id] ? (
+                              <div className="flex items-center justify-center p-6 text-sm text-gray-500">
+                                <Loader2 className="w-5 h-5 animate-spin mr-2" /> Loading assets...
+                              </div>
+                            ) : employeeAssets[item.id]?.length > 0 ? (
+                              <div className="overflow-x-auto rounded-xl border border-gray-200">
+                                <table className="w-full text-sm">
+                                  <thead className="bg-gray-50 border-b border-gray-200">
+                                    <tr>
+                                      <th className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Asset Type</th>
+                                      <th className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Details / Specs</th>
+                                      <th className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
+                                      <th className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Assigned Date</th>
+                                      <th className="text-right px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Action</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-gray-100 bg-white">
+                                    {employeeAssets[item.id].map((asset) => {
+                                      const assetTypeLabels: Record<string, string> = { laptop: "Laptop", company_email: "Company Email", nametag: "Nametag", access_card: "Access Card", lunch_access: "Lunch Access", sim_card: "SIM Card", uniform: "Uniform", other: "Other" };
+                                      const statusConfig: Record<string, { label: string; cls: string }> = {
+                                        pending: { label: "Pending", cls: "bg-gray-100 text-gray-600 border-gray-200" },
+                                        assigned: { label: "Assigned", cls: "bg-blue-50 text-blue-600 border-blue-200" },
+                                        received: { label: "Received", cls: "bg-emerald-50 text-emerald-600 border-emerald-200" },
+                                        returned: { label: "Returned", cls: "bg-gray-100 text-gray-500 border-gray-200" },
+                                      };
+                                      const sc = statusConfig[asset.status] || statusConfig.pending;
+                                      return (
+                                        <tr key={asset.id} className="hover:bg-gray-50 transition-colors">
+                                          <td className="px-4 py-3 font-semibold text-nuanu-navy text-xs">{assetTypeLabels[asset.assetType] || asset.assetType}</td>
+                                          <td className="px-4 py-3 text-gray-600 text-xs">
+                                            <div>{asset.assetName}</div>
+                                            {asset.serialNumber && <div className="text-gray-400 mt-0.5">S/N: {asset.serialNumber}</div>}
+                                          </td>
+                                          <td className="px-4 py-3">
+                                            <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold border uppercase tracking-wider ${sc.cls}`}>{sc.label}</span>
+                                          </td>
+                                          <td className="px-4 py-3 text-gray-500 text-xs">{asset.assignedDate ? new Date(asset.assignedDate).toLocaleDateString() : "—"}</td>
+                                          <td className="px-4 py-3">
+                                            <div className="flex items-center justify-end gap-2">
+                                              <button
+                                                onClick={() => {
+                                                  setEditingAsset(asset);
+                                                  setAssetFormOpen({ onboardingId: item.id, employeeId: item.employeeId! });
+                                                  setAssetFormData({ asset_type: asset.assetType, asset_name: asset.assetName, serial_number: asset.serialNumber || "", assigned_date: asset.assignedDate ? asset.assignedDate.split("T")[0] : "", notes: asset.notes || "", status: asset.status });
+                                                }}
+                                                className="btn-secondary py-1 px-2.5 text-[10px] bg-white"
+                                              >Edit</button>
+                                              {asset.status === "assigned" && (
+                                                <button onClick={() => handleQuickAssetStatus(asset.id, item.id, item.employeeId!, "received")} className="btn-primary py-1 px-2.5 text-[10px] bg-emerald-600 hover:bg-emerald-700 border-emerald-600">Mark Received</button>
+                                              )}
+                                              {asset.status === "received" && (
+                                                <button onClick={() => handleQuickAssetStatus(asset.id, item.id, item.employeeId!, "returned")} className="btn-secondary py-1 px-2.5 text-[10px] bg-white text-gray-600">Mark Returned</button>
+                                              )}
+                                            </div>
+                                          </td>
+                                        </tr>
+                                      );
+                                    })}
+                                  </tbody>
+                                </table>
+                              </div>
+                            ) : (
+                              <div className="p-6 border border-dashed border-gray-200 rounded-xl text-center">
+                                <p className="text-sm text-gray-400">No assets assigned yet. Click <strong>Add Asset</strong> to get started.</p>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
                         {/* ── Official Documents (Memo Hire) Section ── */}
+
                         {item.employeeId && (
                           <div className="mt-8 border-t border-gray-100 pt-6">
                             <div className="flex items-center justify-between mb-4">
@@ -1682,6 +1907,71 @@ export default function OnboardingClient({
                   className="btn-primary gap-2"
                 >
                   {isSendingEmail ? <Loader2 className="w-4 h-4 animate-spin" /> : "Send Email"}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Asset Form Modal ── */}
+      <AnimatePresence>
+        {assetFormOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-nuanu-navy/40 backdrop-blur-sm" onClick={() => !isSavingAsset && setAssetFormOpen(null)} />
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="bg-white rounded-2xl shadow-2xl w-full max-w-lg relative z-10">
+              <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+                <h2 className="text-lg font-bold text-nuanu-navy">{editingAsset ? "Edit Asset" : "Add New Asset"}</h2>
+                <button onClick={() => !isSavingAsset && setAssetFormOpen(null)} className="p-2 text-gray-400 hover:text-gray-600 rounded-full transition-colors"><X className="w-5 h-5" /></button>
+              </div>
+              <div className="p-6 space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1.5">Asset Type *</label>
+                    <select value={assetFormData.asset_type} onChange={e => setAssetFormData(p => ({ ...p, asset_type: e.target.value }))} disabled={!!editingAsset} className="input-field py-2 disabled:bg-gray-50 disabled:text-gray-400">
+                      <option value="laptop">Laptop</option>
+                      <option value="company_email">Company Email</option>
+                      <option value="nametag">Nametag</option>
+                      <option value="access_card">Access Card</option>
+                      <option value="lunch_access">Lunch Access</option>
+                      <option value="sim_card">SIM Card</option>
+                      <option value="uniform">Uniform</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1.5">Status</label>
+                    <select value={assetFormData.status} onChange={e => setAssetFormData(p => ({ ...p, status: e.target.value }))} className="input-field py-2">
+                      <option value="pending">Pending</option>
+                      <option value="assigned">Assigned</option>
+                      <option value="received">Received</option>
+                      <option value="returned">Returned</option>
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1.5">Asset Name / Specs *</label>
+                  <input type="text" value={assetFormData.asset_name} onChange={e => setAssetFormData(p => ({ ...p, asset_name: e.target.value }))} placeholder="e.g. MacBook Air M2 Silver" className="input-field py-2" />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1.5">Serial Number</label>
+                    <input type="text" value={assetFormData.serial_number} onChange={e => setAssetFormData(p => ({ ...p, serial_number: e.target.value }))} placeholder="Optional" className="input-field py-2" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1.5">Assigned Date</label>
+                    <input type="date" value={assetFormData.assigned_date} onChange={e => setAssetFormData(p => ({ ...p, assigned_date: e.target.value }))} className="input-field py-2" />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1.5">Notes</label>
+                  <input type="text" value={assetFormData.notes} onChange={e => setAssetFormData(p => ({ ...p, notes: e.target.value }))} placeholder="Optional notes" className="input-field py-2" />
+                </div>
+              </div>
+              <div className="p-6 border-t border-gray-100 flex justify-end gap-3 bg-gray-50 rounded-b-2xl">
+                <button onClick={() => setAssetFormOpen(null)} disabled={isSavingAsset} className="text-sm font-semibold text-gray-500 hover:text-gray-700 px-4 py-2">Cancel</button>
+                <button onClick={handleSaveAsset} disabled={isSavingAsset || !assetFormData.asset_name.trim()} className="btn-primary gap-2">
+                  {isSavingAsset ? <Loader2 className="w-4 h-4 animate-spin" /> : editingAsset ? "Save Changes" : "Save Asset"}
                 </button>
               </div>
             </motion.div>
