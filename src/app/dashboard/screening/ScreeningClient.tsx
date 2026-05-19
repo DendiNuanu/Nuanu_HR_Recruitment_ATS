@@ -39,6 +39,7 @@ import {
   updateTemplate,
   toggleTemplateStatus,
 } from "./actions";
+import { SlideOver } from "@/components/ui/SlideOver";
 
 export type AssessmentData = {
   id: string;
@@ -1315,181 +1316,106 @@ export default function ScreeningClient({
           </div>
         )}
 
-        {/* Send Assessment Modal */}
-        {isModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-              onClick={() => !isSubmitting && setIsModalOpen(false)}
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl relative z-10 overflow-hidden max-h-[90vh] flex flex-col"
-            >
-              <div className="p-6 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
-                <h2 className="text-lg font-bold text-nuanu-navy flex items-center gap-2">
-                  <Send className="w-5 h-5 text-nuanu-emerald" /> Send New
-                  Assessment
-                </h2>
-                <button
-                  onClick={() => setIsModalOpen(false)}
-                  className="p-2 text-gray-400 hover:bg-gray-200 rounded-full"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-              <form onSubmit={handleSendAssessment} className="p-6 space-y-4">
+        {/* Send Assessment — SlideOver */}
+        <SlideOver
+          open={isModalOpen}
+          onClose={() => !isSubmitting && setIsModalOpen(false)}
+          title="Send New Assessment"
+          description="Create and send a skills assessment to evaluate the candidate"
+          icon={<Send size={22} />}
+          size="xxl"
+          footer={
+            <>
+              <button type="button" onClick={() => setIsModalOpen(false)} className="btn-secondary px-6 py-3 text-sm" disabled={isSubmitting}>
+                Cancel
+              </button>
+              <button type="submit" form="send-assessment-form" className="btn-primary px-6 py-3 text-sm flex items-center gap-2"
+                disabled={isSubmitting || !formData.applicationId || !formData.title}>
+                {isSubmitting ? <><Loader2 className="w-4 h-4 animate-spin" /> Sending...</> : <><Send className="w-4 h-4" /> Send Assessment</>}
+              </button>
+            </>
+          }
+        >
+          <form id="send-assessment-form" onSubmit={handleSendAssessment}>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* LEFT */}
+              <div className="space-y-5">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">
-                    Candidate *
-                  </label>
-                  <select
-                    required
-                    value={formData.applicationId}
-                    onChange={(e) =>
-                      setFormData((p) => ({
-                        ...p,
-                        applicationId: e.target.value,
-                      }))
-                    }
-                    className="input-field py-2.5"
-                  >
-                    <option value="" disabled>
-                      Select candidate...
-                    </option>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2.5">Candidate <span className="text-red-400">*</span></label>
+                  <select required value={formData.applicationId}
+                    onChange={(e) => setFormData((p) => ({ ...p, applicationId: e.target.value }))}
+                    className="input-field py-3">
+                    <option value="" disabled>Select candidate...</option>
                     {activeApplications.map((app) => (
-                      <option key={app.id} value={app.id}>
-                        {app.candidateName} — {app.vacancyTitle}
-                      </option>
+                      <option key={app.id} value={app.id}>{app.candidateName} — {app.vacancyTitle}</option>
                     ))}
                   </select>
                 </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2.5">Assessment Title <span className="text-red-400">*</span></label>
+                  <input required type="text" value={formData.title}
+                    onChange={(e) => setFormData((p) => ({ ...p, title: e.target.value }))}
+                    className="input-field py-3" placeholder="e.g. Backend Engineering Assessment" />
+                </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">
-                      Assessment Type
-                    </label>
-                    <select
-                      value={formData.type}
-                      onChange={(e) =>
-                        setFormData((p) => ({ ...p, type: e.target.value }))
-                      }
-                      className="input-field py-2.5 appearance-none"
-                    >
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2.5">Assessment Type</label>
+                    <select value={formData.type} onChange={(e) => setFormData((p) => ({ ...p, type: e.target.value }))} className="input-field py-3">
                       <option value="skill_test">Skill Test</option>
                       <option value="cognitive">Cognitive</option>
                       <option value="personality">Personality</option>
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">
-                      Max Score
-                    </label>
-                    <input
-                      type="number"
-                      min={1}
-                      value={formData.maxScore}
-                      onChange={(e) =>
-                        setFormData((p) => ({
-                          ...p,
-                          maxScore: parseInt(e.target.value),
-                        }))
-                      }
-                      className="input-field py-2.5"
-                    />
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2.5">Max Score</label>
+                    <input type="number" min={1} value={formData.maxScore}
+                      onChange={(e) => setFormData((p) => ({ ...p, maxScore: parseInt(e.target.value) }))}
+                      className="input-field py-3" />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">
-                    Assessment Title *
-                  </label>
-                  <input
-                    required
-                    type="text"
-                    value={formData.title}
-                    onChange={(e) =>
-                      setFormData((p) => ({ ...p, title: e.target.value }))
-                    }
-                    className="input-field py-2.5"
-                    placeholder="e.g. Backend Engineering Assessment"
-                  />
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2.5">Instructions / Description</label>
+                  <textarea value={formData.description}
+                    onChange={(e) => setFormData((p) => ({ ...p, description: e.target.value }))}
+                    className="input-field py-3 resize-none" rows={5}
+                    placeholder="Describe the assessment tasks, tools allowed, time limit..." />
                 </div>
+              </div>
+
+              {/* RIGHT — Pass Threshold */}
+              <div className="space-y-5">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">
-                    Pass Threshold (%)
-                  </label>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="range"
-                      min={0}
-                      max={100}
-                      value={formData.passThreshold}
-                      onChange={(e) =>
-                        setFormData((p) => ({
-                          ...p,
-                          passThreshold: parseInt(e.target.value),
-                        }))
-                      }
-                      className="flex-1 accent-nuanu-emerald"
-                    />
-                    <span className="font-black text-nuanu-navy w-10 text-right">
-                      {formData.passThreshold}%
-                    </span>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2.5">Pass Threshold</label>
+                  <div className="p-6 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl border border-emerald-100 text-center mb-4">
+                    <div className="text-7xl font-black text-emerald-600 leading-none tabular-nums">{formData.passThreshold}%</div>
+                    <p className="text-sm text-emerald-700 mt-2 font-medium">Minimum passing score</p>
+                  </div>
+                  <input type="range" min={0} max={100} step={5} value={formData.passThreshold}
+                    onChange={(e) => setFormData((p) => ({ ...p, passThreshold: parseInt(e.target.value) }))}
+                    className="w-full h-3 rounded-full cursor-pointer"
+                    style={{ background: `linear-gradient(to right, #10b981 ${formData.passThreshold}%, #e5e7eb ${formData.passThreshold}%)` }} />
+                  <div className="flex justify-between mt-2">
+                    {[0, 25, 50, 60, 70, 80, 90, 100].map((v) => (
+                      <button key={v} type="button" onClick={() => setFormData((p) => ({ ...p, passThreshold: v }))}
+                        className={`text-xs px-1.5 py-1 rounded-lg transition-colors ${formData.passThreshold === v ? "bg-emerald-500 text-white font-bold" : "text-gray-400 hover:text-gray-600"}`}>
+                        {v}%
+                      </button>
+                    ))}
+                  </div>
+                  <div className={`mt-4 p-4 rounded-xl border text-sm ${
+                    formData.passThreshold >= 80 ? "bg-red-50 border-red-100 text-red-700" :
+                    formData.passThreshold >= 60 ? "bg-amber-50 border-amber-100 text-amber-700" :
+                    "bg-green-50 border-green-100 text-green-700"
+                  }`}>
+                    {formData.passThreshold >= 80 ? "🔴 High bar — only top candidates will pass" :
+                     formData.passThreshold >= 60 ? "🟡 Moderate — standard industry threshold" :
+                     "🟢 Open — most candidates will qualify"}
                   </div>
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">
-                    Instructions / Description
-                  </label>
-                  <textarea
-                    value={formData.description}
-                    onChange={(e) =>
-                      setFormData((p) => ({
-                        ...p,
-                        description: e.target.value,
-                      }))
-                    }
-                    className="input-field py-2 text-sm resize-none"
-                    rows={3}
-                    placeholder="Describe the assessment tasks..."
-                  />
-                </div>
-                <div className="pt-2 flex justify-end gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setIsModalOpen(false)}
-                    className="btn-secondary"
-                    disabled={isSubmitting}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="btn-primary px-8"
-                    disabled={
-                      isSubmitting || !formData.applicationId || !formData.title
-                    }
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" /> Sending...
-                      </>
-                    ) : (
-                      <>
-                        <Send className="w-4 h-4" /> Send Assessment
-                      </>
-                    )}
-                  </button>
-                </div>
-              </form>
-            </motion.div>
-          </div>
-        )}
+              </div>
+            </div>
+          </form>
+        </SlideOver>
       </AnimatePresence>
     </div>
   );

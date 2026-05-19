@@ -33,6 +33,7 @@ import {
 } from "./actions";
 import ConfirmModal from "@/components/ui/ConfirmModal";
 import DatePickerField from "@/components/ui/DatePickerField";
+import { SlideOver } from "@/components/ui/SlideOver";
 import CurrencyInput from "@/components/ui/CurrencyInput";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -915,221 +916,148 @@ export default function OffersClient({
         )}
       </AnimatePresence>
 
-      {/* ── Create Offer Modal ───────────────────────────────────── */}
-      <AnimatePresence>
-        {isCreateModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-              onClick={() => !isSubmitting && setIsCreateModalOpen(false)}
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden relative z-10 max-h-[90vh] flex flex-col"
-            >
-              {/* Header */}
-              <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50 shrink-0">
-                <h2 className="text-lg font-bold text-nuanu-navy flex items-center gap-2">
-                  <FileText className="w-5 h-5 text-nuanu-emerald" />
-                  Generate New Offer
-                </h2>
-                <button
-                  onClick={() => !isSubmitting && setIsCreateModalOpen(false)}
-                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded-full transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
+      {/* ── Create Offer — SlideOver ─────────────────────────────── */}
+      <SlideOver
+        open={isCreateModalOpen}
+        onClose={() => !isSubmitting && setIsCreateModalOpen(false)}
+        title="Generate New Offer"
+        description="Create a formal offer package and send it to the candidate"
+        icon={<FileText size={22} />}
+        size="xxl"
+        footer={
+          <>
+            <button type="button" onClick={() => setIsCreateModalOpen(false)} className="btn-secondary px-6 py-3 text-sm" disabled={isSubmitting}>
+              Cancel
+            </button>
+            <button type="submit" form="create-offer-form" className="btn-primary px-6 py-3 text-sm flex items-center gap-2"
+              disabled={isSubmitting || !createFormData.applicationId}>
+              {isSubmitting ? <><Loader2 className="w-4 h-4 animate-spin" /> Generating...</> : <><FileText className="w-4 h-4" /> Generate Offer</>}
+            </button>
+          </>
+        }
+      >
+        <form id="create-offer-form" onSubmit={handleCreate}>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* LEFT — Compensation */}
+            <div className="space-y-5">
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2.5">Candidate Application <span className="text-red-400">*</span></label>
+                <select required value={createFormData.applicationId}
+                  onChange={(e) => setCreateFormData({ ...createFormData, applicationId: e.target.value })}
+                  className="input-field py-3">
+                  <option value="" disabled>Select a candidate...</option>
+                  {activeApplications.map((app) => (
+                    <option key={app.id} value={app.id}>{app.candidateName} — {app.vacancyTitle}</option>
+                  ))}
+                </select>
+                {activeApplications.length === 0 && (
+                  <p className="text-xs text-amber-600 mt-1">No active applications without an existing offer.</p>
+                )}
               </div>
-
-              {/* Form */}
-              <form
-                onSubmit={handleCreate}
-                className="p-6 space-y-4 overflow-y-auto"
-              >
-                {/* Candidate Selector */}
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">
-                    Candidate Application *
-                  </label>
-                  <select
-                    required
-                    value={createFormData.applicationId}
-                    onChange={(e) =>
-                      setCreateFormData({
-                        ...createFormData,
-                        applicationId: e.target.value,
-                      })
-                    }
-                    className="input-field py-2.5"
-                  >
-                    <option value="" disabled>
-                      Select a candidate...
-                    </option>
-                    {activeApplications.map((app) => (
-                      <option key={app.id} value={app.id}>
-                        {app.candidateName} — {app.vacancyTitle}
-                      </option>
-                    ))}
-                  </select>
-                  {activeApplications.length === 0 && (
-                    <p className="text-xs text-amber-600 mt-1">
-                      No active applications without an existing offer.
-                    </p>
-                  )}
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2.5">Monthly Salary (Rp) <span className="text-red-400">*</span></label>
+                  <CurrencyInput value={createFormData.salary} onChange={(v) => setCreateFormData({ ...createFormData, salary: v })} required placeholder="15,000,000" />
                 </div>
-
-                {/* Salary + Bonus */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1.5">
-                      Monthly Salary (Rp) *
-                    </label>
-                    <CurrencyInput
-                      value={createFormData.salary}
-                      onChange={(v) =>
-                        setCreateFormData({ ...createFormData, salary: v })
-                      }
-                      required
-                      placeholder="15,000,000"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1.5">
-                      Signing Bonus (Rp)
-                    </label>
-                    <CurrencyInput
-                      value={createFormData.bonus}
-                      onChange={(v) =>
-                        setCreateFormData({ ...createFormData, bonus: v })
-                      }
-                      placeholder="0"
-                    />
-                  </div>
-                </div>
-
-                {/* Start Date + Expiry Date */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1.5">
-                      Proposed Start Date *
-                    </label>
-                    <DatePickerField
-                      value={createFormData.startDate}
-                      onChange={(d) =>
-                        setCreateFormData({ ...createFormData, startDate: d })
-                      }
-                      placeholder="Pick a start date"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1.5">
-                      Offer Expiry Date
-                    </label>
-                    <DatePickerField
-                      value={createFormData.expiresAt}
-                      onChange={(d) =>
-                        setCreateFormData({ ...createFormData, expiresAt: d })
-                      }
-                      placeholder="Pick expiry date"
-                    />
-                  </div>
-                </div>
-
-                {/* Equity */}
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">
-                    Equity / Stock Options
-                  </label>
-                  <input
-                    type="text"
-                    value={createFormData.equity}
-                    onChange={(e) =>
-                      setCreateFormData({
-                        ...createFormData,
-                        equity: e.target.value,
-                      })
-                    }
-                    className="input-field py-2.5"
-                    placeholder="e.g. 0.1% vested over 4 years"
-                  />
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2.5">Signing Bonus (Rp)</label>
+                  <CurrencyInput value={createFormData.bonus} onChange={(v) => setCreateFormData({ ...createFormData, bonus: v })} placeholder="0" />
                 </div>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2.5">Equity / Stock Options</label>
+                <input type="text" value={createFormData.equity}
+                  onChange={(e) => setCreateFormData({ ...createFormData, equity: e.target.value })}
+                  className="input-field py-3" placeholder="e.g. 0.1% vested over 4 years" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2.5">Benefits &amp; Perks</label>
+                <textarea value={createFormData.benefits}
+                  onChange={(e) => setCreateFormData({ ...createFormData, benefits: e.target.value })}
+                  className="input-field py-3 resize-none" rows={4}
+                  placeholder="Health insurance, meal allowance, remote work options..." />
+              </div>
+            </div>
 
-                {/* Benefits */}
-                <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">
-                    Benefits &amp; Perks
-                  </label>
-                  <textarea
-                    value={createFormData.benefits}
-                    onChange={(e) =>
-                      setCreateFormData({
-                        ...createFormData,
-                        benefits: e.target.value,
-                      })
-                    }
-                    className="input-field py-2.5 resize-y"
-                    rows={2}
-                    placeholder="Health insurance, meal allowance, remote work options..."
-                  />
+            {/* RIGHT — Timeline */}
+            <div className="space-y-5">
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2.5">Proposed Start Date <span className="text-red-400">*</span></label>
+                <div className="flex gap-2 mb-3 flex-wrap">
+                  {[
+                    { label: "Today", days: 0 },
+                    { label: "+1 Week", days: 7 },
+                    { label: "+2 Weeks", days: 14 },
+                    { label: "+1 Month", days: 30 },
+                  ].map(({ label, days }) => {
+                    const d = new Date(); d.setDate(d.getDate() + days);
+                    const val = d.toISOString().split("T")[0];
+                    return (
+                      <button key={label} type="button" onClick={() => setCreateFormData({ ...createFormData, startDate: val })}
+                        className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all ${createFormData.startDate === val ? "bg-emerald-500 text-white border-emerald-500" : "bg-white text-gray-600 border-gray-200 hover:border-emerald-300"}`}>
+                        {label}
+                      </button>
+                    );
+                  })}
                 </div>
-
-                {/* Notes */}
-                <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">
-                    Internal Notes
-                  </label>
-                  <textarea
-                    value={createFormData.notes}
-                    onChange={(e) =>
-                      setCreateFormData({
-                        ...createFormData,
-                        notes: e.target.value,
-                      })
-                    }
-                    className="input-field py-2.5 resize-y"
-                    rows={2}
-                    placeholder="Approvals, special conditions, reminders..."
-                  />
+                {/* NATIVE DATE INPUT — no overflow */}
+                <input type="date" value={createFormData.startDate}
+                  onChange={(e) => setCreateFormData({ ...createFormData, startDate: e.target.value })}
+                  className="input-field py-3" required />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2.5">Offer Expiry Date</label>
+                <div className="flex gap-2 mb-3 flex-wrap">
+                  {[
+                    { label: "+1 Week", days: 7 },
+                    { label: "+2 Weeks", days: 14 },
+                    { label: "+1 Month", days: 30 },
+                    { label: "+3 Months", days: 90 },
+                  ].map(({ label, days }) => {
+                    const d = new Date(); d.setDate(d.getDate() + days);
+                    const val = d.toISOString().split("T")[0];
+                    return (
+                      <button key={label} type="button" onClick={() => setCreateFormData({ ...createFormData, expiresAt: val })}
+                        className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all ${createFormData.expiresAt === val ? "bg-emerald-500 text-white border-emerald-500" : "bg-white text-gray-600 border-gray-200 hover:border-emerald-300"}`}>
+                        {label}
+                      </button>
+                    );
+                  })}
                 </div>
-
-                {/* Actions */}
-                <div className="pt-2 flex justify-end gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setIsCreateModalOpen(false)}
-                    className="btn-secondary"
-                    disabled={isSubmitting}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="btn-primary px-8"
-                    disabled={isSubmitting || !createFormData.applicationId}
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Generating...
-                      </>
-                    ) : (
-                      <>
-                        <FileText className="w-4 h-4" /> Generate Offer
-                      </>
-                    )}
-                  </button>
+                {/* NATIVE DATE INPUT — replaces the overflowing custom calendar */}
+                <input type="date" value={createFormData.expiresAt}
+                  onChange={(e) => setCreateFormData({ ...createFormData, expiresAt: e.target.value })}
+                  className="input-field py-3" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2.5">Internal Notes</label>
+                <textarea value={createFormData.notes}
+                  onChange={(e) => setCreateFormData({ ...createFormData, notes: e.target.value })}
+                  className="input-field py-3 resize-none" rows={4}
+                  placeholder="Approvals, special conditions, reminders..." />
+              </div>
+              {/* Offer Summary */}
+              <div className="p-5 bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl text-white">
+                <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">Offer Summary</p>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Monthly Salary</span>
+                    <span className="font-bold text-emerald-400">Rp {(createFormData.salary || 0).toLocaleString("id-ID")}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Start Date</span>
+                    <span className="font-medium">{createFormData.startDate || "—"}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Offer Expires</span>
+                    <span className="font-medium">{createFormData.expiresAt || "—"}</span>
+                  </div>
                 </div>
-              </form>
-            </motion.div>
+              </div>
+            </div>
           </div>
-        )}
-      </AnimatePresence>
+        </form>
+      </SlideOver>
 
       {/* ── Edit Offer Modal ─────────────────────────────────────── */}
       <AnimatePresence>

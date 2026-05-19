@@ -28,6 +28,7 @@ import {
   getInterviewFeedback,
 } from "./actions";
 import { getCalendarStatus } from "@/app/actions/settings";
+import { SlideOver } from "@/components/ui/SlideOver";
 import { useEffect } from "react";
 import DateTimePicker from "@/components/ui/DateTimePicker";
 import { toast } from "sonner";
@@ -540,136 +541,137 @@ export default function InterviewsClient({
         </div>
       </div>
 
-      {/* Schedule Modal */}
-      <AnimatePresence>
-        {isModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-              onClick={() => !isSubmitting && setIsModalOpen(false)}
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-white rounded-2xl shadow-xl w-full max-w-3xl relative z-10 max-h-[90vh] flex flex-col overflow-hidden"
+      {/* Schedule Interview — SlideOver */}
+      <SlideOver
+        open={isModalOpen}
+        onClose={() => !isSubmitting && setIsModalOpen(false)}
+        title="Schedule Interview"
+        description="Set up an interview session and notify the candidate automatically"
+        icon={<Calendar size={22} />}
+        size="xxl"
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => setIsModalOpen(false)}
+              className="btn-secondary px-6 py-3 text-sm"
+              disabled={isSubmitting}
             >
-              <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50">
-                <h2 className="text-lg font-bold text-nuanu-navy flex items-center gap-2">
-                  <Calendar className="w-5 h-5 text-gray-400" /> Schedule
-                  Interview
-                </h2>
-                <button
-                  onClick={() => !isSubmitting && setIsModalOpen(false)}
-                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded-full transition-colors"
+              Cancel
+            </button>
+            <button
+              type="submit"
+              form="schedule-interview-form"
+              className="btn-primary px-6 py-3 text-sm flex items-center gap-2"
+              disabled={isSubmitting || !formData.applicationId || !formData.scheduledAt}
+            >
+              {isSubmitting ? (
+                <><Loader2 className="w-4 h-4 animate-spin" /> Scheduling...</>
+              ) : (
+                <><CheckCircle2 className="w-4 h-4" /> Confirm Schedule</>
+              )}
+            </button>
+          </>
+        }
+      >
+        <form id="schedule-interview-form" onSubmit={handleSubmit}>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* LEFT */}
+            <div className="space-y-5">
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2.5">
+                  Candidate Application <span className="text-red-400">*</span>
+                </label>
+                <select
+                  required
+                  value={formData.applicationId}
+                  onChange={(e) => setFormData({ ...formData, applicationId: e.target.value })}
+                  className="input-field py-3"
                 >
-                  <X className="w-5 h-5" />
-                </button>
+                  <option value="" disabled>Select a candidate...</option>
+                  {activeApplications.map((app) => (
+                    <option key={app.id} value={app.id}>
+                      {app.candidateName} — {app.vacancyTitle}
+                    </option>
+                  ))}
+                </select>
               </div>
 
-              <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">
-                    Candidate Application *
-                  </label>
-                  <select
-                    required
-                    value={formData.applicationId}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        applicationId: e.target.value,
-                      })
-                    }
-                    className="input-field py-2.5"
-                  >
-                    <option value="" disabled>
-                      Select a candidate...
-                    </option>
-                    {activeApplications.map((app) => (
-                      <option key={app.id} value={app.id}>
-                        {app.candidateName} - {app.vacancyTitle}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+              <div>
+                <DateTimePicker
+                  label="Date & Time *"
+                  value={formData.scheduledAt}
+                  onChange={(val) => setFormData({ ...formData, scheduledAt: val })}
+                />
+              </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="col-span-2">
-                    <DateTimePicker
-                      label="Date & Time *"
-                      value={formData.scheduledAt}
-                      onChange={(val) =>
-                        setFormData({ ...formData, scheduledAt: val })
-                      }
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">
-                      Interview Type
-                    </label>
-                    <select
-                      value={formData.type}
-                      onChange={(e) =>
-                        setFormData({ ...formData, type: e.target.value })
-                      }
-                      className="input-field py-2.5"
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2.5">
+                  Interview Type
+                </label>
+                <div className="grid grid-cols-3 gap-3">
+                  {[
+                    { value: "video", label: "Video Call" },
+                    { value: "phone", label: "Phone Call" },
+                    { value: "onsite", label: "On-Site" },
+                  ].map((t) => (
+                    <button
+                      key={t.value}
+                      type="button"
+                      onClick={() => setFormData({ ...formData, type: t.value })}
+                      className={`py-3 rounded-xl text-sm font-semibold border-2 transition-all ${
+                        formData.type === t.value
+                          ? "bg-gray-900 text-white border-gray-900"
+                          : "border-gray-200 text-gray-500 hover:border-gray-400"
+                      }`}
                     >
-                      <option value="video">Video Call</option>
-                      <option value="phone">Phone Call</option>
-                      <option value="onsite">On-Site</option>
-                    </select>
-                  </div>
+                      {t.label}
+                    </button>
+                  ))}
                 </div>
+              </div>
+            </div>
 
+            {/* RIGHT */}
+            <div className="space-y-5">
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2.5">
+                  Location / Platform
+                </label>
+                <input
+                  type="text"
+                  value={formData.location}
+                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                  className="input-field py-3"
+                  placeholder="e.g. Google Meet, Zoom, Office Room A"
+                />
+              </div>
+
+              {formData.type === "video" && (
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">
-                    Location / Platform
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2.5">
+                    Meeting URL
                   </label>
                   <input
-                    type="text"
-                    value={formData.location}
-                    onChange={(e) =>
-                      setFormData({ ...formData, location: e.target.value })
-                    }
-                    className="input-field py-2.5"
-                    placeholder="e.g. Google Meet, Zoom, Office Room A"
+                    type="url"
+                    value={formData.meetingUrl}
+                    onChange={(e) => setFormData({ ...formData, meetingUrl: e.target.value })}
+                    className="input-field py-3 font-mono text-xs"
+                    placeholder="https://"
                   />
                 </div>
+              )}
 
-                {formData.type === "video" && (
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">
-                      Meeting URL
-                    </label>
-                    <input
-                      type="url"
-                      value={formData.meetingUrl}
-                      onChange={(e) =>
-                        setFormData({ ...formData, meetingUrl: e.target.value })
-                      }
-                      className="input-field py-2.5"
-                      placeholder="https://"
-                    />
-                  </div>
-                )}
-
-                {isCalendarConnected && (
-                  <div className="p-4 bg-blue-50 border border-blue-100 rounded-xl flex items-center justify-between">
+              {isCalendarConnected && (
+                <div className={`p-5 rounded-2xl border-2 transition-all ${formData.syncWithGoogle ? "border-blue-200 bg-blue-50" : "border-gray-200 bg-gray-50"}`}>
+                  <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="p-2 bg-blue-100 rounded-lg">
-                        <Calendar className="w-5 h-5 text-blue-600" />
+                      <div className="w-10 h-10 bg-white rounded-xl border border-gray-200 flex items-center justify-center shadow-sm">
+                        <Calendar className="w-5 h-5 text-blue-500" />
                       </div>
                       <div>
-                        <p className="text-sm font-bold text-blue-900">
-                          Google Calendar Sync
-                        </p>
-                        <p className="text-[10px] text-blue-600">
-                          Create event and meeting link
-                        </p>
+                        <p className="text-sm font-bold text-gray-800">Google Calendar Sync</p>
+                        <p className="text-xs text-gray-500 mt-0.5">Create event and send invites automatically</p>
                       </div>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
@@ -677,51 +679,17 @@ export default function InterviewsClient({
                         type="checkbox"
                         className="sr-only peer"
                         checked={formData.syncWithGoogle}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            syncWithGoogle: e.target.checked,
-                          })
-                        }
+                        onChange={(e) => setFormData({ ...formData, syncWithGoogle: e.target.checked })}
                       />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                      <div className="w-12 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-6 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500" />
                     </label>
                   </div>
-                )}
-
-                <div className="pt-4 flex justify-end gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setIsModalOpen(false)}
-                    className="btn-secondary"
-                    disabled={isSubmitting}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="btn-primary"
-                    disabled={
-                      isSubmitting ||
-                      !formData.applicationId ||
-                      !formData.scheduledAt
-                    }
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />{" "}
-                        Scheduling...
-                      </>
-                    ) : (
-                      "Confirm Schedule"
-                    )}
-                  </button>
                 </div>
-              </form>
-            </motion.div>
+              )}
+            </div>
           </div>
-        )}
-      </AnimatePresence>
+        </form>
+      </SlideOver>
 
       {/* Feedback Modal */}
       <AnimatePresence>
