@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, User, FileText, DollarSign, FileCheck, Monitor, History, Loader2, CheckCircle2, Clock, AlertCircle, Edit2, Download } from "lucide-react";
+import { X, User, FileText, DollarSign, FileCheck, Monitor, History, Loader2, CheckCircle2, Clock, AlertCircle, Edit2, Download, ClipboardList } from "lucide-react";
 import { toast } from "sonner";
 import { formatDate } from "@/lib/utils";
 import Link from "next/link";
@@ -21,11 +21,16 @@ export default function EmployeeDetailModal({ employeeId, onClose }: EmployeeDet
   const [documents, setDocuments] = useState<any[]>([]);
   const [assets, setAssets] = useState<any[]>([]);
   const [history, setHistory] = useState<any[]>([]);
+  const [probationRecord, setProbationRecord] = useState<any>(null);
 
   // Edit Profile state
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editForm, setEditForm] = useState({ phone: "", department: "", position: "" });
   const [savingProfile, setSavingProfile] = useState(false);
+
+  // Probation state
+  const [showAddEval, setShowAddEval] = useState(false);
+  const [evalForm, setEvalForm] = useState({ evaluated_by: "", score: "good", notes: "", recommendation: "continue" });
 
   useEffect(() => {
     fetchData();
@@ -34,12 +39,13 @@ export default function EmployeeDetailModal({ employeeId, onClose }: EmployeeDet
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [empRes, contractRes, docsRes, assetsRes, historyRes] = await Promise.all([
+      const [empRes, contractRes, docsRes, assetsRes, historyRes, probRes] = await Promise.all([
         fetch(`/api/employees/${employeeId}`),
         fetch(`/api/employees/${employeeId}/contract`),
         fetch(`/api/employees/${employeeId}/documents`),
         fetch(`/api/employees/${employeeId}/assets`),
-        fetch(`/api/employees/${employeeId}/history`)
+        fetch(`/api/employees/${employeeId}/history`),
+        fetch(`/api/probation-records/${employeeId}`)
       ]);
 
       const empData = await empRes.json();
@@ -47,6 +53,7 @@ export default function EmployeeDetailModal({ employeeId, onClose }: EmployeeDet
       const docsData = await docsRes.json();
       const assetsData = await assetsRes.json();
       const historyData = await historyRes.json();
+      const probData = await probRes.json();
 
       setEmployee(empData.employee);
       setEditForm({
@@ -58,6 +65,7 @@ export default function EmployeeDetailModal({ employeeId, onClose }: EmployeeDet
       setDocuments(docsData.documents || []);
       setAssets(assetsData.assets || []);
       setHistory(historyData.events || []);
+      setProbationRecord(probData.record);
     } catch (err) {
       toast.error("Failed to load employee details");
     } finally {
@@ -128,6 +136,71 @@ export default function EmployeeDetailModal({ employeeId, onClose }: EmployeeDet
     }
   };
 
+  const handleSaveEval = async () => {
+    try {
+      const res = await fetch(`/api/probation-evaluations`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          employee_id: employeeId,
+          evaluation_date: new Date().toISOString(),
+          evaluated_by: evalForm.evaluated_by,
+          score: evalForm.score,
+          notes: evalForm.notes,
+          recommendation: evalForm.recommendation
+        }),
+      });
+      if (res.ok) {
+        toast.success("Evaluation saved");
+        setShowAddEval(false);
+        setEvalForm({ evaluated_by: "", score: "good", notes: "", recommendation: "continue" });
+        fetchData();
+      } else {
+        toast.error("Failed to save evaluation");
+      }
+    } catch {
+      toast.error("Error saving evaluation");
+    }
+  };
+
+  const handleDecision = async (decision: string) => {
+    let extend_months = null;
+    let reason = null;
+
+    if (decision === "extend") {
+      const input = window.prompt("Extend by how many months? (1, 2, or 3)");
+      if (!input || !["1", "2", "3"].includes(input)) {
+        toast.error("Invalid extension months");
+        return;
+      }
+      extend_months = parseInt(input);
+    } else if (decision === "terminate") {
+      reason = window.prompt("Reason for termination:");
+      if (!reason) {
+        toast.error("Reason is required");
+        return;
+      }
+    } else if (decision === "pass") {
+      if (!window.confirm(`Are you sure? This will mark ${employee?.user?.name} as a permanent employee.`)) return;
+    }
+
+    try {
+      const res = await fetch(`/api/probation-records/${probationRecord?.id}/decision`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ decision, reason, extend_months })
+      });
+      if (res.ok) {
+        toast.success("Probation decision updated");
+        fetchData();
+      } else {
+        toast.error("Failed to update decision");
+      }
+    } catch {
+      toast.error("Error updating decision");
+    }
+  };
+
   const tabs = [
     { id: "profile", label: "Profile", icon: User },
     { id: "contract", label: "Contract", icon: FileText },
@@ -136,6 +209,10 @@ export default function EmployeeDetailModal({ employeeId, onClose }: EmployeeDet
     { id: "assets", label: "Assets", icon: Monitor },
     { id: "history", label: "History", icon: History }
   ];
+
+  if (employee?.status === "probation" || probationRecord) {
+    tabs.splice(1, 0, { id: "probation", label: "Probation", icon: ClipboardList });
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-nuanu-navy/40 backdrop-blur-sm">
@@ -250,6 +327,145 @@ export default function EmployeeDetailModal({ employeeId, onClose }: EmployeeDet
                       <div><span className="text-gray-500 block text-xs">Probation End Date</span><span className="font-medium">{employee.probationEndDate ? formatDate(employee.probationEndDate) : "—"}</span></div>
                     </div>
                   </div>
+                </div>
+              )}
+
+              {/* PROBATION TAB */}
+              {activeTab === "probation" && probationRecord && (
+                <div className="space-y-6">
+                  {/* Summary Card */}
+                  <div className="card">
+                    <h3 className="font-bold text-lg text-nuanu-navy mb-4">Probation Overview</h3>
+                    <div className="grid grid-cols-3 gap-4 mb-4 text-sm">
+                      <div><span className="text-gray-500 block text-xs">Start Date</span><span className="font-medium">{formatDate(probationRecord.probationStart)}</span></div>
+                      <div><span className="text-gray-500 block text-xs">End Date</span><span className="font-medium">{formatDate(probationRecord.probationEndDate)}</span></div>
+                      <div>
+                        <span className="text-gray-500 block text-xs">Days Remaining</span>
+                        <span className={`font-bold ${
+                          Math.ceil((new Date(probationRecord.probationEndDate).getTime() - new Date().getTime()) / 86400000) <= 14 ? 'text-red-600' :
+                          Math.ceil((new Date(probationRecord.probationEndDate).getTime() - new Date().getTime()) / 86400000) <= 30 ? 'text-amber-600' :
+                          'text-emerald-600'
+                        }`}>
+                          {Math.max(0, Math.ceil((new Date(probationRecord.probationEndDate).getTime() - new Date().getTime()) / 86400000))} Days
+                        </span>
+                      </div>
+                    </div>
+                    {/* Progress Bar */}
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-blue-600 h-2 rounded-full" 
+                        style={{ width: `${Math.min(100, Math.max(0, ((new Date().getTime() - new Date(probationRecord.probationStart).getTime()) / (new Date(probationRecord.probationEndDate).getTime() - new Date(probationRecord.probationStart).getTime())) * 100))}%` }}
+                      ></div>
+                    </div>
+                  </div>
+
+                  {/* Evaluations List */}
+                  <div className="card">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="font-bold text-nuanu-navy">Evaluations</h3>
+                      {probationRecord.outcome === null && !showAddEval && (
+                        <button onClick={() => setShowAddEval(true)} className="btn-primary text-xs py-1.5 px-3">
+                          + Add Evaluation
+                        </button>
+                      )}
+                    </div>
+
+                    {showAddEval && (
+                      <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-6">
+                        <h4 className="font-bold text-sm text-nuanu-navy mb-4">New Evaluation</h4>
+                        <div className="grid grid-cols-2 gap-4 mb-4">
+                          <div>
+                            <label className="block text-xs font-semibold text-gray-600 mb-1">Evaluated By (Manager/HR)</label>
+                            <input type="text" value={evalForm.evaluated_by} onChange={e => setEvalForm({...evalForm, evaluated_by: e.target.value})} className="input-field" placeholder="John Doe" />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-semibold text-gray-600 mb-1">Score</label>
+                            <select value={evalForm.score} onChange={e => setEvalForm({...evalForm, score: e.target.value})} className="input-field">
+                              <option value="excellent">Excellent</option>
+                              <option value="good">Good</option>
+                              <option value="needs_improvement">Needs Improvement</option>
+                              <option value="poor">Poor</option>
+                            </select>
+                          </div>
+                        </div>
+                        <div className="mb-4">
+                          <label className="block text-xs font-semibold text-gray-600 mb-1">Notes / Comments</label>
+                          <textarea value={evalForm.notes} onChange={e => setEvalForm({...evalForm, notes: e.target.value})} className="input-field min-h-[80px]" placeholder="Evaluation notes..."></textarea>
+                        </div>
+                        <div className="mb-4">
+                          <label className="block text-xs font-semibold text-gray-600 mb-1">Recommendation</label>
+                          <select value={evalForm.recommendation} onChange={e => setEvalForm({...evalForm, recommendation: e.target.value})} className="input-field">
+                            <option value="continue">Continue Probation</option>
+                            <option value="extend">Extend Probation</option>
+                            <option value="terminate">Terminate Employment</option>
+                          </select>
+                        </div>
+                        <div className="flex justify-end gap-2 pt-4 border-t border-gray-200">
+                          <button onClick={() => setShowAddEval(false)} className="btn-secondary text-sm">Cancel</button>
+                          <button onClick={handleSaveEval} disabled={!evalForm.evaluated_by} className="btn-primary text-sm">Save Evaluation</button>
+                        </div>
+                      </div>
+                    )}
+
+                    {probationRecord.evaluations && probationRecord.evaluations.length > 0 ? (
+                      <div className="space-y-4">
+                        {probationRecord.evaluations.map((ev: any) => (
+                          <div key={ev.id} className="border border-gray-100 p-4 rounded-lg">
+                            <div className="flex justify-between items-start mb-2">
+                              <div>
+                                <p className="font-semibold text-sm text-nuanu-navy">{formatDate(ev.evaluationDate)}</p>
+                                <p className="text-xs text-gray-500">By: {ev.evaluatedBy}</p>
+                              </div>
+                              <span className={`badge text-[10px] uppercase font-bold tracking-wider ${
+                                ev.score === 'excellent' ? 'bg-emerald-100 text-emerald-700' :
+                                ev.score === 'good' ? 'bg-blue-100 text-blue-700' :
+                                ev.score === 'needs_improvement' ? 'bg-amber-100 text-amber-700' :
+                                'bg-red-100 text-red-700'
+                              }`}>
+                                {ev.score.replace('_', ' ')}
+                              </span>
+                            </div>
+                            {ev.notes && <p className="text-sm text-gray-600 mt-2 bg-gray-50 p-2 rounded">{ev.notes}</p>}
+                            <div className="mt-3">
+                              <span className="text-xs text-gray-500 mr-2">Recommendation:</span>
+                              <span className="text-xs font-semibold text-gray-700 capitalize">{ev.recommendation}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <p className="text-gray-500 text-sm">No evaluations submitted yet.</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Final Decision Section */}
+                  {probationRecord.outcome === null && probationRecord.evaluations?.length > 0 && (
+                    <div className="card bg-gray-50 border border-gray-200 shadow-inner">
+                      <h3 className="font-bold text-nuanu-navy mb-2">Final Probation Decision</h3>
+                      <p className="text-sm text-gray-500 mb-6">Make a final decision to conclude this probation period. This action is permanent.</p>
+                      <div className="flex flex-wrap gap-3">
+                        <button onClick={() => handleDecision('pass')} className="btn-primary bg-emerald-600 border-emerald-600 hover:bg-emerald-700">
+                          Pass Probation → Convert to Permanent
+                        </button>
+                        <button onClick={() => handleDecision('extend')} className="btn-secondary text-amber-600 border-amber-200 hover:bg-amber-50">
+                          Extend Probation
+                        </button>
+                        <button onClick={() => handleDecision('terminate')} className="btn-secondary text-red-600 border-red-200 hover:bg-red-50">
+                          Terminate
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {probationRecord.outcome !== null && (
+                    <div className="card bg-blue-50 border-blue-100">
+                      <h3 className="font-bold text-blue-900 mb-1">Probation Concluded</h3>
+                      <p className="text-sm text-blue-700">Outcome: <strong className="uppercase">{probationRecord.outcome}</strong></p>
+                      {probationRecord.outcomeReason && <p className="text-sm text-blue-700 mt-2">Reason: {probationRecord.outcomeReason}</p>}
+                    </div>
+                  )}
                 </div>
               )}
 

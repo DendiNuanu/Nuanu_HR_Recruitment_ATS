@@ -109,7 +109,7 @@ export async function POST(request: Request) {
         position: offer.application.vacancy.title,
         departmentId: offer.application.vacancy.departmentId ?? null,
         startDate: startDateObj,
-        status: "active",
+        status: probationEndDate ? "probation" : "active",
         entity,
         employmentType: employment_type,
         department,
@@ -119,6 +119,17 @@ export async function POST(request: Request) {
         check180DueAt: new Date(startDateObj.getTime() + 180 * 24 * 60 * 60 * 1000),
       },
     });
+
+    if (probationEndDate) {
+      await tx.probationRecord.create({
+        data: {
+          employeeId: emp.id,
+          probationStart: startDateObj,
+          probationEndDate: probationEndDate,
+          probationPeriodMonths: probation_period === "1_month" ? 1 : probation_period === "3_months" ? 3 : 6,
+        }
+      });
+    }
 
     // 2. Update offer status to "converted"
     await tx.offer.update({

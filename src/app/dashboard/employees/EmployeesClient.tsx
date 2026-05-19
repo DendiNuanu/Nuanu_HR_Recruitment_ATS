@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, Users, Download, CheckCircle2, Clock, AlertCircle } from "lucide-react";
 import { formatDate } from "@/lib/utils";
@@ -27,6 +27,16 @@ export default function EmployeesClient({ employees: initial }: { employees: Emp
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
+  const [probationEndingSoon, setProbationEndingSoon] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetch("/api/employees/probation-ending-soon")
+      .then(res => res.json())
+      .then(data => {
+        if (data.employees) setProbationEndingSoon(data.employees);
+      })
+      .catch(console.error);
+  }, []);
 
   const filtered = employees.filter((e) => {
     const matchSearch =
@@ -115,8 +125,34 @@ export default function EmployeesClient({ employees: initial }: { employees: Emp
           <option value="all">All Status</option>
           <option value="active">Active</option>
           <option value="inactive">Inactive</option>
+          <option value="probation">Probation</option>
         </select>
       </div>
+
+      {probationEndingSoon.length > 0 && (
+        <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-md">
+          <div className="flex items-start">
+            <AlertCircle className="w-5 h-5 text-amber-500 mt-0.5 mr-3" />
+            <div>
+              <h3 className="text-sm font-bold text-amber-800">Probation Ending Soon ({probationEndingSoon.length})</h3>
+              <p className="text-sm text-amber-700 mt-1">
+                The following employees have their probation ending within 30 days. Please complete their evaluations.
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {probationEndingSoon.map(emp => (
+                  <button 
+                    key={emp.id} 
+                    onClick={() => setSelectedEmployeeId(emp.id)}
+                    className="text-xs bg-white text-amber-800 border border-amber-200 px-2 py-1 rounded-md hover:bg-amber-100 transition-colors"
+                  >
+                    {emp.user.name} - {formatDate(emp.probationRecord.probationEndDate)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Table */}
       <div className="card overflow-x-auto">
@@ -169,7 +205,11 @@ export default function EmployeesClient({ employees: initial }: { employees: Emp
                     <td className="text-sm text-nuanu-navy font-medium">{emp.position}</td>
                     <td className="text-sm text-nuanu-gray-500">{formatDate(emp.startDate)}</td>
                     <td>
-                      <span className={`badge text-xs font-bold uppercase ${emp.status === "active" ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-600"}`}>
+                      <span className={`badge text-xs font-bold uppercase ${
+                        emp.status === "active" ? "bg-emerald-100 text-emerald-700" :
+                        emp.status === "probation" ? "bg-amber-100 text-amber-700" :
+                        "bg-gray-100 text-gray-600"
+                      }`}>
                         {emp.status}
                       </span>
                     </td>
