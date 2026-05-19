@@ -58,8 +58,8 @@ export async function moveApplication(applicationId: string, toStage: string) {
       },
     });
 
-    // ── HIRED → create Employee record ──────────────────────────
-    if (stage === "hired") {
+    // ── HIRED or ONBOARDING → create Employee record ────────────
+    if (stage === "hired" || stage === "onboarding") {
       try {
         const existing = await prisma.employee.findUnique({
           where: { userId: app.candidateId },
@@ -73,14 +73,19 @@ export async function moveApplication(applicationId: string, toStage: string) {
               position: app.vacancy.title,
               departmentId: app.vacancy.departmentId,
               startDate,
-              status: "active",
+              status: stage === "hired" ? "active" : "onboarding",
               check90DueAt: new Date(startDate.getTime() + 90 * 24 * 60 * 60 * 1000),
               check180DueAt: new Date(startDate.getTime() + 180 * 24 * 60 * 60 * 1000),
             },
           });
+        } else if (stage === "hired" && existing.status === "onboarding") {
+          // Promote from onboarding → active
+          await prisma.employee.update({
+            where: { userId: app.candidateId },
+            data: { status: "active" },
+          });
         }
       } catch (empErr) {
-        // Non-fatal — employee table may not exist yet (run prisma db push)
         console.warn("Employee record creation failed (non-fatal):", empErr);
       }
     }

@@ -11,7 +11,7 @@ export default async function OnboardingPage() {
         department: true,
         onboardingTasks: { orderBy: { priority: "asc" } },
         applications: {
-          where: { currentStage: "hired" },
+          where: { currentStage: { in: ["hired", "onboarding"] } },
           include: { vacancy: true },
           orderBy: { updatedAt: "desc" },
           take: 1,
@@ -19,8 +19,9 @@ export default async function OnboardingPage() {
       },
       orderBy: { createdAt: "desc" },
     }),
+    // Show candidates in offer, hired, OR onboarding stage for the dropdown
     prisma.application.findMany({
-      where: { currentStage: { in: ["offer", "hired"] } },
+      where: { currentStage: { in: ["offer", "hired", "onboarding"] } },
       include: { candidate: true, vacancy: true },
       orderBy: { createdAt: "desc" },
     }),

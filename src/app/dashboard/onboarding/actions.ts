@@ -17,10 +17,10 @@ export async function startOnboarding(data: {
     });
     if (!application) throw new Error("Application not found");
 
-    // Move to hired stage
+    // Move to onboarding stage (not hired — hired comes after onboarding completes)
     await prisma.application.update({
       where: { id: data.applicationId },
-      data: { currentStage: "hired" },
+      data: { currentStage: "onboarding" },
     });
 
     // Upsert the candidate user
@@ -38,6 +38,29 @@ export async function startOnboarding(data: {
           data.departmentId || application.vacancy.departmentId || undefined,
       },
     });
+
+    // Auto-create Employee record (status: onboarding) if not exists
+    try {
+      const existingEmployee = await prisma.employee.findUnique({ where: { userId: user.id } });
+      if (!existingEmployee) {
+        const { generateCode } = await import("@/lib/utils");
+        const startDate = new Date();
+        await prisma.employee.create({
+          data: {
+            userId: user.id,
+            employeeCode: generateCode("EMP"),
+            position: application.vacancy.title,
+            departmentId: data.departmentId || application.vacancy.departmentId || null,
+            startDate,
+            status: "onboarding",
+            check90DueAt: new Date(startDate.getTime() + 90 * 24 * 60 * 60 * 1000),
+            check180DueAt: new Date(startDate.getTime() + 180 * 24 * 60 * 60 * 1000),
+          },
+        });
+      }
+    } catch (empErr) {
+      console.warn("Employee record creation failed (non-fatal):", empErr);
+    }
 
     // Create default tasks — NOTE: field is "employeeId" NOT "userId"
     const defaultTasks = [
@@ -194,6 +217,60 @@ export async function completeOnboarding(employeeId: string) {
       data: { status: "completed", completedAt: new Date() },
     });
 
+    // ── Activate Employee record ──────────────────────────────────
+    try {
+      await prisma.employee.update({
+        where: { userId: employeeId },
+        data: { status: "active" },
+      });
+    } catch {
+      // Employee record may not exist yet — create it
+      try {
+        const { generateCode } = await import("@/lib/utils");
+        const user = await prisma.user.findUnique({
+          where: { id: employeeId },
+          include: {
+            applications: {
+              where: { currentStage: { in: ["onboarding", "hired"] } },
+              include: { vacancy: { select: { title: true, departmentId: true } } },
+              orderBy: { updatedAt: "desc" },
+              take: 1,
+            },
+          },
+        });
+        if (user) {
+          const startDate = new Date();
+          await prisma.employee.create({
+            data: {
+              userId: employeeId,
+              employeeCode: generateCode("EMP"),
+              position: user.applications[0]?.vacancy?.title ?? "Employee",
+              departmentId: user.applications[0]?.vacancy?.departmentId ?? null,
+              startDate,
+              status: "active",
+              check90DueAt: new Date(startDate.getTime() + 90 * 24 * 60 * 60 * 1000),
+              check180DueAt: new Date(startDate.getTime() + 180 * 24 * 60 * 60 * 1000),
+            },
+          });
+        }
+      } catch (createErr) {
+        console.warn("Employee activation failed (non-fatal):", createErr);
+      }
+    }
+
+    // ── Move application to hired stage ──────────────────────────
+    try {
+      await prisma.application.updateMany({
+        where: {
+          candidateId: employeeId,
+          currentStage: "onboarding",
+        },
+        data: { currentStage: "hired", status: "hired" },
+      });
+    } catch {
+      // Non-fatal
+    }
+
     const [admin, employee] = await Promise.all([
       prisma.user.findFirst({
         where: { userRoles: { some: { role: { slug: "admin" } } } },
@@ -206,12 +283,14 @@ export async function completeOnboarding(employeeId: string) {
         userId: admin.id,
         type: "system",
         title: "Onboarding Completed",
-        message: `${employee.name}'s onboarding checklist is 100% complete.`,
+        message: `${employee.name}'s onboarding checklist is 100% complete. Now Active.`,
         link: "/dashboard/onboarding",
       });
     }
 
     revalidatePath("/dashboard/onboarding");
+    revalidatePath("/dashboard/employees");
+    revalidatePath("/dashboard/pipeline");
     return { success: true };
   } catch (error) {
     console.error("Complete Onboarding Error:", error);
