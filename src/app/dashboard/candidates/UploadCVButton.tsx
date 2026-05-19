@@ -46,11 +46,12 @@ type UploadStep = "idle" | "uploading" | "auto" | "form" | "submitting" | "succe
 
 const STAGES = [
   { value: "applied", label: "Applied" },
-  { value: "screening", label: "Screening" },
-  { value: "hr_interview", label: "HR Interview" },
-  { value: "user_interview", label: "User Interview" },
-  { value: "final_interview", label: "Final Interview" },
-  { value: "offer", label: "Offer" },
+  { value: "screening", label: "CV Screening" },
+  { value: "phone_screening", label: "Phone Screening" },
+  { value: "assessment", label: "Assessment" },
+  { value: "interview_1", label: "Interview 1" },
+  { value: "interview_2", label: "Interview 2" },
+  { value: "offering", label: "Offering" },
   { value: "hired", label: "Hired" },
 ];
 
@@ -376,7 +377,7 @@ export default function UploadCVButton({ vacancies }: { vacancies: Vacancy[] }) 
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden relative z-10 max-h-[95vh] flex flex-col"
+              className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl overflow-hidden relative z-10 max-h-[95vh] flex flex-col"
             >
               {/* Header */}
               <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50 flex-shrink-0">
@@ -411,7 +412,7 @@ export default function UploadCVButton({ vacancies }: { vacancies: Vacancy[] }) 
                       onDragLeave={handleDragLeave}
                       onDrop={handleDrop}
                       onClick={() => step === "idle" && fileInputRef.current?.click()}
-                      className={`relative border-2 border-dashed rounded-2xl p-10 text-center transition-all ${
+                      className={`relative border-2 border-dashed rounded-2xl p-14 text-center transition-all ${
                         step === "idle"
                           ? isDragging
                             ? "border-emerald-500 bg-emerald-50 cursor-pointer"

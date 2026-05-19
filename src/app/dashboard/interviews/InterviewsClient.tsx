@@ -555,7 +555,7 @@ export default function InterviewsClient({
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-white rounded-2xl shadow-xl w-full max-w-lg relative z-10"
+              className="bg-white rounded-2xl shadow-xl w-full max-w-3xl relative z-10 max-h-[90vh] flex flex-col overflow-hidden"
             >
               <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50">
                 <h2 className="text-lg font-bold text-nuanu-navy flex items-center gap-2">
@@ -738,7 +738,7 @@ export default function InterviewsClient({
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden relative z-10"
+              className="bg-white rounded-2xl shadow-xl w-full max-w-4xl overflow-hidden relative z-10 max-h-[90vh] flex flex-col"
             >
               <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50">
                 <h2 className="text-lg font-bold text-nuanu-navy flex items-center gap-2">
@@ -1176,7 +1176,7 @@ export default function InterviewsClient({
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-white rounded-2xl shadow-xl w-full max-w-md relative z-10"
+              className="bg-white rounded-2xl shadow-xl w-full max-w-2xl relative z-10 max-h-[90vh] flex flex-col overflow-hidden"
             >
               <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-red-50/50">
                 <h2 className="text-lg font-bold text-nuanu-navy flex items-center gap-2">

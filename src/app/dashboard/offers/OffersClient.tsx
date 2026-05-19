@@ -844,7 +844,7 @@ export default function OffersClient({
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden relative z-10"
+              className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden relative z-10 max-h-[90vh] flex flex-col"
             >
               <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-red-50">
                 <h2 className="text-lg font-bold text-nuanu-navy flex items-center gap-2">
@@ -930,7 +930,7 @@ export default function OffersClient({
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden relative z-10 max-h-[90vh] flex flex-col"
+              className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden relative z-10 max-h-[90vh] flex flex-col"
             >
               {/* Header */}
               <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50 shrink-0">
@@ -1146,7 +1146,7 @@ export default function OffersClient({
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden relative z-10 max-h-[90vh] flex flex-col"
+              className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden relative z-10 max-h-[90vh] flex flex-col"
             >
               {/* Header */}
               <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-blue-50 shrink-0">

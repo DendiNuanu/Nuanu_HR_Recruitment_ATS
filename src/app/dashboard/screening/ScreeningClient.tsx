@@ -991,7 +991,7 @@ export default function ScreeningClient({
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-white rounded-2xl shadow-2xl w-full max-w-lg relative z-10 overflow-hidden"
+              className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl relative z-10 overflow-hidden max-h-[90vh] flex flex-col"
             >
               {/* Header */}
               <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-nuanu-navy to-nuanu-navy/90 text-white flex items-center justify-between">
@@ -1178,7 +1178,7 @@ export default function ScreeningClient({
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-white rounded-2xl shadow-2xl w-full max-w-lg relative z-10 overflow-hidden"
+              className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl relative z-10 overflow-hidden max-h-[90vh] flex flex-col"
             >
               <div className="p-6 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
                 <h2 className="text-lg font-bold text-nuanu-navy flex items-center gap-2">
@@ -1329,7 +1329,7 @@ export default function ScreeningClient({
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-white rounded-2xl shadow-2xl w-full max-w-lg relative z-10 overflow-hidden"
+              className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl relative z-10 overflow-hidden max-h-[90vh] flex flex-col"
             >
               <div className="p-6 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
                 <h2 className="text-lg font-bold text-nuanu-navy flex items-center gap-2">
