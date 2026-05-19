@@ -32,8 +32,20 @@ export async function moveApplication(applicationId: string, toStage: string) {
       where: { id: applicationId },
       data: { currentStage: stage, lastActivityAt: new Date() },
       include: {
-        candidate: { include: { candidateProfile: true } },
-        vacancy: { include: { department: true } },
+        candidate: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        vacancy: {
+          select: {
+            title: true,
+            departmentId: true,
+            department: { select: { name: true } },
+          },
+        },
       },
     });
 
