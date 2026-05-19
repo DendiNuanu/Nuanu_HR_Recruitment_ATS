@@ -9,6 +9,9 @@ export default async function OnboardingPage() {
       where: { onboardingTasks: { some: {} } },
       include: {
         department: true,
+        employeeRecord: {
+          include: { employeeContract: true }
+        },
         onboardingTasks: { orderBy: { priority: "asc" } },
         applications: {
           where: { currentStage: { in: ["hired", "onboarding"] } },
@@ -69,6 +72,9 @@ export default async function OnboardingPage() {
       startDate: u.createdAt.toISOString(),
       progress,
       status,
+      employeeId: u.employeeRecord?.id ?? null,
+      contractId: u.employeeRecord?.employeeContract?.id ?? null,
+      contractStatus: u.employeeRecord?.employeeContract?.status ?? null,
       tasksCompleted: completed,
       tasksTotal: total,
       overdueTasks,

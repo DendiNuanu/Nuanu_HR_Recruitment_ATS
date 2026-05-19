@@ -25,6 +25,7 @@ import {
   Calendar,
   RotateCcw,
   Building2,
+  FileText,
 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import {
@@ -63,7 +64,19 @@ export type OnboardingData = {
   tasksCompleted: number;
   tasksTotal: number;
   overdueTasks: number;
+  employeeId: string | null;
+  contractId: string | null;
+  contractStatus: string | null;
   tasks: OnboardingTask[];
+};
+
+export type MemoHire = {
+  id: string;
+  memoNumber: string;
+  pdfUrl: string;
+  generatedAt: string;
+  sentAt: string | null;
+  sentToEmail: string | null;
 };
 
 type ActiveApp = {
@@ -181,6 +194,13 @@ export default function OnboardingClient({
   // Modal state for pending confirmations
   const [selectedPendingConfirm, setSelectedPendingConfirm] = useState<PendingConfirmation | null>(null);
 
+  // Memos state
+  const [employeeMemos, setEmployeeMemos] = useState<Record<string, MemoHire[]>>({});
+  const [loadingMemos, setLoadingMemos] = useState<Record<string, boolean>>({});
+  const [sendEmailModalMemo, setSendEmailModalMemo] = useState<MemoHire | null>(null);
+  const [sendEmailData, setSendEmailData] = useState({ to: "", subject: "", message: "" });
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
+
   // Local optimistic state
   const [localOnboardings, setLocalOnboardings] =
     useState<OnboardingData[]>(onboardings);
@@ -208,6 +228,21 @@ export default function OnboardingClient({
   useEffect(() => {
     setShowAddTask(false);
     setNewTaskData({ title: "", category: "general", dueDate: "" });
+    
+    // Fetch memos when row expands
+    if (expandedId) {
+      const onboardUser = localOnboardings.find(o => o.id === expandedId);
+      const empId = onboardUser?.employeeId;
+      if (empId && !employeeMemos[expandedId] && !loadingMemos[expandedId]) {
+        setLoadingMemos((p) => ({ ...p, [expandedId]: true }));
+        fetch(`/api/memo-hire/${empId}`)
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.memos) setEmployeeMemos((p) => ({ ...p, [expandedId]: data.memos }));
+          })
+          .finally(() => setLoadingMemos((p) => ({ ...p, [expandedId]: false })));
+      }
+    }
   }, [expandedId]);
 
   // ── Task handlers ────────────────────────────────────────────
@@ -366,6 +401,41 @@ export default function OnboardingClient({
   );
 
   // ── Filtered list ────────────────────────────────────────────
+  const handleSendEmail = async () => {
+    if (!sendEmailModalMemo) return;
+    setIsSendingEmail(true);
+    try {
+      const res = await fetch(`/api/memo-hire/${sendEmailModalMemo.id}/send-email`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          to_email: sendEmailData.to,
+          subject: sendEmailData.subject,
+          message: sendEmailData.message,
+        })
+      });
+      if (res.ok) {
+        toast.success("Email sent successfully!");
+        // Update local state to reflect sentAt
+        setEmployeeMemos((prev) => {
+          const newMemos = { ...prev };
+          if (expandedId && newMemos[expandedId]) {
+            newMemos[expandedId] = newMemos[expandedId].map(m => m.id === sendEmailModalMemo.id ? { ...m, sentAt: new Date().toISOString() } : m);
+          }
+          return newMemos;
+        });
+        setSendEmailModalMemo(null);
+      } else {
+        const err = await res.json();
+        toast.error(err.error || "Failed to send email");
+      }
+    } catch (e) {
+      toast.error("An error occurred");
+    } finally {
+      setIsSendingEmail(false);
+    }
+  };
+
   const filtered = localOnboardings.filter((o) => {
     const matchSearch =
       o.candidateName.toLowerCase().includes(search.toLowerCase()) ||
@@ -882,6 +952,106 @@ export default function OnboardingClient({
                             </button>
                           )}
                         </div>
+
+                        {/* ── Documents Section ── */}
+                        {item.employeeId && (
+                          <div className="mt-8 border-t border-gray-100 pt-6">
+                            <div className="flex items-center justify-between mb-4">
+                              <h4 className="text-sm font-bold text-nuanu-navy uppercase tracking-wider flex items-center gap-2">
+                                <FileText className="w-4 h-4 text-nuanu-gray-400" />
+                                Official Documents
+                              </h4>
+                              {item.contractStatus === "finalized" ? (
+                                <button
+                                  onClick={async () => {
+                                    toast.loading("Generating Memo Hire...", { id: "genMemo" });
+                                    try {
+                                      const res = await fetch(`/api/memo-hire/generate/${item.contractId}`, { method: "POST" });
+                                      if (res.ok) {
+                                        toast.success("Memo generated successfully!", { id: "genMemo" });
+                                        // Refetch memos for this employee
+                                        setLoadingMemos((p) => ({ ...p, [item.id]: true }));
+                                        const memoRes = await fetch(`/api/memo-hire/${item.employeeId}`);
+                                        const memoData = await memoRes.json();
+                                        if (memoData.memos) setEmployeeMemos((p) => ({ ...p, [item.id]: memoData.memos }));
+                                        setLoadingMemos((p) => ({ ...p, [item.id]: false }));
+                                      } else {
+                                        const err = await res.json();
+                                        toast.error(err.error || "Failed to generate memo", { id: "genMemo" });
+                                      }
+                                    } catch (e) {
+                                      toast.error("Error generating memo", { id: "genMemo" });
+                                    }
+                                  }}
+                                  className="btn-primary py-1.5 px-3 text-xs"
+                                >
+                                  Generate Memo Hire
+                                </button>
+                              ) : (
+                                <button
+                                  disabled
+                                  title="Please finalize the contract first"
+                                  className="btn-primary py-1.5 px-3 text-xs opacity-50 cursor-not-allowed"
+                                >
+                                  Generate Memo Hire
+                                </button>
+                              )}
+                            </div>
+
+                            {loadingMemos[item.id] ? (
+                              <div className="flex items-center gap-2 text-sm text-gray-500">
+                                <Loader2 className="w-4 h-4 animate-spin" /> Loading documents...
+                              </div>
+                            ) : employeeMemos[item.id]?.length > 0 ? (
+                              <div className="space-y-3">
+                                {employeeMemos[item.id].map(memo => (
+                                  <div key={memo.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-xl bg-gray-50/50 hover:bg-gray-50 transition-colors">
+                                    <div className="flex items-center gap-4">
+                                      <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-600">
+                                        <FileText className="w-5 h-5" />
+                                      </div>
+                                      <div>
+                                        <p className="font-bold text-sm text-nuanu-navy">{memo.memoNumber}</p>
+                                        <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
+                                          <span>Generated: {new Date(memo.generatedAt).toLocaleDateString()}</span>
+                                          {memo.sentAt && (
+                                            <>
+                                              <span>•</span>
+                                              <span className="text-emerald-600 flex items-center gap-1">
+                                                <CheckCircle2 className="w-3 h-3" /> Sent to {memo.sentToEmail}
+                                              </span>
+                                            </>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <div className="flex flex-wrap items-center gap-2 justify-end">
+                                      <a href={memo.pdfUrl} target="_blank" rel="noreferrer" className="btn-secondary py-1.5 px-3 text-xs bg-white">Preview</a>
+                                      <a href={memo.pdfUrl} download className="btn-secondary py-1.5 px-3 text-xs bg-white">Download PDF</a>
+                                      <button 
+                                        onClick={() => {
+                                          setSendEmailModalMemo(memo);
+                                          setSendEmailData({
+                                            to: `${item.candidateName.split(" ")[0].toLowerCase()}@nuanu.com`,
+                                            subject: `Memo Hire – ${item.candidateName} – ${item.position}`,
+                                            message: `Dear ${item.candidateName},\n\nWe are pleased to inform you of your employment details.\nPlease find attached your official Memo Hire document.\n\nBest regards,\nHR Team`
+                                          });
+                                        }} 
+                                        className="btn-primary py-1.5 px-3 text-xs"
+                                      >
+                                        {memo.sentAt ? "Resend via Email" : "Send via Email"}
+                                      </button>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="p-4 border border-dashed border-gray-200 rounded-xl text-center">
+                                <p className="text-sm text-gray-500 italic">No Memo Hire has been generated yet.</p>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -1036,6 +1206,83 @@ export default function OnboardingClient({
               router.refresh();
             }}
           />
+        )}
+      </AnimatePresence>
+      {/* ── Send Email Modal ── */}
+      <AnimatePresence>
+        {sendEmailModalMemo && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-nuanu-navy/40 backdrop-blur-sm"
+              onClick={() => !isSendingEmail && setSendEmailModalMemo(null)}
+            />
+
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-white rounded-2xl shadow-2xl w-full max-w-lg relative z-10"
+            >
+              <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+                <h2 className="text-lg font-bold text-nuanu-navy">Send Memo Hire</h2>
+                <button
+                  onClick={() => !isSendingEmail && setSendEmailModalMemo(null)}
+                  className="p-2 text-gray-400 hover:text-gray-600 rounded-full transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="p-6 space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1.5">To (Email)</label>
+                  <input 
+                    type="email" 
+                    value={sendEmailData.to} 
+                    onChange={e => setSendEmailData(p => ({ ...p, to: e.target.value }))}
+                    className="input-field py-2"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1.5">Subject</label>
+                  <input 
+                    type="text" 
+                    value={sendEmailData.subject} 
+                    onChange={e => setSendEmailData(p => ({ ...p, subject: e.target.value }))}
+                    className="input-field py-2"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1.5">Message</label>
+                  <textarea 
+                    value={sendEmailData.message} 
+                    onChange={e => setSendEmailData(p => ({ ...p, message: e.target.value }))}
+                    className="input-field py-2 min-h-[120px]"
+                  />
+                </div>
+              </div>
+
+              <div className="p-6 border-t border-gray-100 flex justify-end gap-3 bg-gray-50 rounded-b-2xl">
+                <button 
+                  onClick={() => setSendEmailModalMemo(null)} 
+                  disabled={isSendingEmail}
+                  className="text-sm font-semibold text-gray-500 hover:text-gray-700 px-4 py-2"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={handleSendEmail} 
+                  disabled={isSendingEmail || !sendEmailData.to || !sendEmailData.subject}
+                  className="btn-primary gap-2"
+                >
+                  {isSendingEmail ? <Loader2 className="w-4 h-4 animate-spin" /> : "Send Email"}
+                </button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </div>

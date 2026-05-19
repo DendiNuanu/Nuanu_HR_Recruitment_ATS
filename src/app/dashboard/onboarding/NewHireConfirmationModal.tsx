@@ -132,7 +132,23 @@ export default function NewHireConfirmationModal({ employee, onClose, onSuccess 
       });
 
       if (res.ok) {
-        toast.success(action === "draft" ? "Draft saved!" : "Contract finalized!");
+        const data = await res.json();
+        
+        if (action === "finalize" && data.contract_id) {
+          toast.success("Contract finalized! Generating memo...");
+          try {
+            const genRes = await fetch(`/api/memo-hire/generate/${data.contract_id}`, { method: "POST" });
+            if (genRes.ok) {
+              toast.success("Memo Hire generated successfully!");
+            } else {
+              toast.error("Failed to generate Memo Hire");
+            }
+          } catch (e) {
+            toast.error("Error generating Memo Hire");
+          }
+        } else {
+          toast.success("Draft saved!");
+        }
         onSuccess();
       } else {
         const err = await res.json();
