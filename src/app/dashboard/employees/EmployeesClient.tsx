@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Search, Users, Download, CheckCircle2, Clock, AlertCircle } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { toast } from "sonner";
+import EmployeeDetailModal from "./EmployeeDetailModal";
 
 interface Employee {
   id: string;
@@ -25,6 +26,7 @@ export default function EmployeesClient({ employees: initial }: { employees: Emp
   const [employees, setEmployees] = useState(initial);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
 
   const filtered = employees.filter((e) => {
     const matchSearch =
@@ -149,6 +151,8 @@ export default function EmployeesClient({ employees: initial }: { employees: Emp
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.03 }}
+                    onClick={() => setSelectedEmployeeId(emp.id)}
+                    className="cursor-pointer hover:bg-gray-50 transition-colors"
                   >
                     <td>
                       <div className="flex items-center gap-3">
@@ -216,6 +220,15 @@ export default function EmployeesClient({ employees: initial }: { employees: Emp
           </table>
         )}
       </div>
+
+      <AnimatePresence>
+        {selectedEmployeeId && (
+          <EmployeeDetailModal
+            employeeId={selectedEmployeeId}
+            onClose={() => setSelectedEmployeeId(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
