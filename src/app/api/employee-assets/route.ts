@@ -2,6 +2,28 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 
+export async function GET(request: Request) {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { searchParams } = new URL(request.url);
+  const employeeId = searchParams.get("employeeId");
+
+  if (!employeeId) {
+    return NextResponse.json({ error: "employeeId query param required" }, { status: 400 });
+  }
+
+  try {
+    const assets = await prisma.employeeAsset.findMany({
+      where: { employeeId },
+      orderBy: { createdAt: "asc" },
+    });
+    return NextResponse.json({ assets }, { status: 200 });
+  } catch (error: any) {
+    return NextResponse.json({ error: "Failed to fetch assets" }, { status: 500 });
+  }
+}
+
 export async function POST(request: Request) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
