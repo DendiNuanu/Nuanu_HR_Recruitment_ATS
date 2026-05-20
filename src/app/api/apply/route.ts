@@ -103,9 +103,7 @@ export async function POST(request: Request) {
 
     if (isPdf) {
       try {
-        // pdf-parse uses require() — keep it dynamic to avoid bundler issues
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const pdfParse = require("pdf-parse");
+        const pdfParse = (await import("pdf-parse")).default;
         const parsed = await pdfParse(buffer);
         resumeText = parsed.text || "";
       } catch (parseError) {
@@ -135,21 +133,24 @@ export async function POST(request: Request) {
     });
 
     // ── Upsert CandidateProfile ────────────────────────────────────────────────
+    const profileData: {
+      resumeUrl?: string;
+      resumeText?: string;
+      gender?: string;
+      dateOfBirth?: Date;
+    } = {};
+    if (resumeUrl) profileData.resumeUrl = resumeUrl;
+    if (resumeText) profileData.resumeText = resumeText;
+    if (gender) profileData.gender = gender;
+    if (dateOfBirth) {
+      const dob = new Date(dateOfBirth);
+      if (!Number.isNaN(dob.getTime())) profileData.dateOfBirth = dob;
+    }
+
     await prisma.candidateProfile.upsert({
       where: { userId: user.id },
-      update: {
-        ...(resumeUrl && { resumeUrl }),
-        ...(resumeText && { resumeText }),
-        ...(gender && { gender }),
-        ...(dateOfBirth && { dateOfBirth: new Date(dateOfBirth) }),
-      },
-      create: {
-        userId: user.id,
-        resumeUrl: resumeUrl || undefined,
-        resumeText: resumeText || undefined,
-        ...(gender && { gender }),
-        ...(dateOfBirth && { dateOfBirth: new Date(dateOfBirth) }),
-      },
+      update: profileData,
+      create: { userId: user.id, ...profileData },
     });
 
     // ── Create Application ─────────────────────────────────────────────────────

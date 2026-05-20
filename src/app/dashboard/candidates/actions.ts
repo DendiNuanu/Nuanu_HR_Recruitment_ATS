@@ -23,29 +23,38 @@ export async function updateCandidateOverviewDetails(
   },
 ) {
   try {
-    if (data.referPosition !== undefined || data.domicile !== undefined) {
-      await prisma.candidateProfile.upsert({
-        where: { userId },
-        update: {
-          ...(data.referPosition !== undefined && { referPosition: data.referPosition }),
-          ...(data.domicile !== undefined && { domicile: data.domicile }),
-        },
-        create: {
-          userId,
-          referPosition: data.referPosition ?? null,
-          domicile: data.domicile ?? null,
-        },
-      });
+    const session = await getSession();
+    if (!session?.id) {
+      return { success: false, error: "Unauthorized" };
     }
-    if (data.source !== undefined || data.appliedAt !== undefined) {
-      await prisma.application.update({
-        where: { id: applicationId },
-        data: {
-          ...(data.source !== undefined && { source: data.source }),
-          ...(data.appliedAt !== undefined && { appliedAt: new Date(data.appliedAt) }),
-        },
-      });
-    }
+
+    await prisma.$transaction(async (tx) => {
+      if (data.referPosition !== undefined || data.domicile !== undefined) {
+        await tx.candidateProfile.upsert({
+          where: { userId },
+          update: {
+            ...(data.referPosition !== undefined && { referPosition: data.referPosition }),
+            ...(data.domicile !== undefined && { domicile: data.domicile }),
+          },
+          create: {
+            userId,
+            referPosition: data.referPosition ?? null,
+            domicile: data.domicile ?? null,
+          },
+        });
+      }
+
+      if (data.source !== undefined || data.appliedAt !== undefined) {
+        await tx.application.update({
+          where: { id: applicationId },
+          data: {
+            ...(data.source !== undefined && { source: data.source }),
+            ...(data.appliedAt !== undefined && { appliedAt: new Date(data.appliedAt) }),
+          },
+        });
+      }
+    });
+
     revalidatePath("/dashboard/candidates");
     return { success: true };
   } catch (error) {
@@ -584,49 +593,5 @@ export async function sendCandidateEmail(data: {
       success: false,
       error: error instanceof Error ? error.message : "Failed to send email",
     };
-  }
-}
-
-export async function updateCandidateOverviewDetails(
-  applicationId: string,
-  candidateId: string,
-  data: {
-    domicile?: string;
-    referPosition?: string;
-    source?: string;
-    appliedAt?: string;
-  }
-) {
-  try {
-    const session = await getSession();
-    if (!session?.user?.id) throw new Error("Unauthorized");
-    
-    await prisma.$transaction(async (tx) => {
-      if (data.domicile !== undefined || data.referPosition !== undefined) {
-        await tx.candidateProfile.update({
-          where: { userId: candidateId },
-          data: {
-            ...(data.domicile !== undefined && { domicile: data.domicile }),
-            ...(data.referPosition !== undefined && { referPosition: data.referPosition }),
-          }
-        });
-      }
-
-      if (data.source !== undefined || data.appliedAt !== undefined) {
-        await tx.application.update({
-          where: { id: applicationId },
-          data: {
-            ...(data.source !== undefined && { source: data.source }),
-            ...(data.appliedAt !== undefined && { appliedAt: new Date(data.appliedAt) }),
-          }
-        });
-      }
-    });
-
-    revalidatePath("/dashboard/candidates");
-    return { success: true };
-  } catch (error) {
-    console.error("Failed to update overview details:", error);
-    return { success: false, error: "Failed to update details" };
   }
 }

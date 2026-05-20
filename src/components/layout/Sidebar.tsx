@@ -132,10 +132,16 @@ export default function Sidebar() {
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    async function loadData() {
-      // ── Branding: read from localStorage cache first ─────────────────────────
-      // Only hits the DB if cache is missing or older than 10 minutes.
-      const CACHE_TTL = 10 * 60 * 1000; // 10 min
+    // Hydrate user immediately from localStorage (no network wait)
+    try {
+      const storedUser = localStorage.getItem("nuanu_user");
+      if (storedUser) setUser(JSON.parse(storedUser));
+    } catch {
+      // ignore malformed cache
+    }
+
+    async function loadBranding() {
+      const CACHE_TTL = 10 * 60 * 1000;
       try {
         const cached = localStorage.getItem("nuanu_branding");
         if (cached) {
@@ -143,9 +149,6 @@ export default function Sidebar() {
           if (Date.now() - ts < CACHE_TTL) {
             if (data.logo) setLogo(data.logo);
             if (data.companyName) setCompanyName(data.companyName);
-            // Still load user below
-            const storedUser = localStorage.getItem("nuanu_user");
-            if (storedUser) setUser(JSON.parse(storedUser));
             return;
           }
         }
@@ -153,11 +156,11 @@ export default function Sidebar() {
         // ignore malformed cache
       }
 
-      // ── Fetch from server and populate cache ─────────────────────────────────
       const settings = await getIntegrationSettings("general_info");
       const brandData = {
-        logo: (settings?.config as any)?.logo ?? null,
-        companyName: (settings?.config as any)?.companyName ?? "Nuanu",
+        logo: (settings?.config as { logo?: string })?.logo ?? null,
+        companyName:
+          (settings?.config as { companyName?: string })?.companyName ?? "Nuanu",
       };
       try {
         localStorage.setItem(
@@ -165,16 +168,13 @@ export default function Sidebar() {
           JSON.stringify({ data: brandData, ts: Date.now() }),
         );
       } catch {
-        // ignore storage errors (private browsing, quota, etc.)
+        // ignore storage errors
       }
       if (brandData.logo) setLogo(brandData.logo);
       setCompanyName(brandData.companyName);
-
-      // ── User ─────────────────────────────────────────────────────────────────
-      const storedUser = localStorage.getItem("nuanu_user");
-      if (storedUser) setUser(JSON.parse(storedUser));
     }
-    loadData();
+
+    void loadBranding();
   }, []);
 
   const handleLogout = async () => {

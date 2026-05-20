@@ -7,12 +7,30 @@ const getCachedCandidatesData = unstable_cache(
   async () => {
     // Pull real applications from the database
     const applications = await prisma.application.findMany({
+      take: 200,
       include: {
-        candidate: true,
-        vacancy: {
-          include: { department: true },
+        candidate: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true,
+          },
         },
-        candidateScore: true,
+        vacancy: {
+          select: {
+            id: true,
+            title: true,
+            location: true,
+            department: { select: { name: true } },
+          },
+        },
+        candidateScore: {
+          select: {
+            overallScore: true,
+            recommendations: true,
+          },
+        },
       },
       orderBy: { createdAt: "desc" },
     });
@@ -93,7 +111,7 @@ const getCachedCandidatesData = unstable_cache(
     return candidates;
   },
   ["candidates-page-data"],
-  { revalidate: 60, tags: ["applications", "candidates"] },
+  { revalidate: 120, tags: ["applications", "candidates"] },
 );
 
 export default async function CandidatesPage() {
