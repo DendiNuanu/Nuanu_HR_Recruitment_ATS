@@ -44,6 +44,22 @@ import { formatDate } from "@/lib/utils";
 import { PIPELINE_STAGES } from "@/lib/utils";
 import { toast } from "sonner";
 import CandidateProfile360 from "./CandidateProfile360";
+import Portal from "@/components/ui/Portal";
+
+function normalizeRecommendations(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item): item is string => typeof item === "string");
+}
+
+function normalizeCandidate(candidate: Candidate): Candidate {
+  return {
+    ...candidate,
+    notes: candidate.notes ?? [],
+    customFields: candidate.customFields ?? [],
+    skills: Array.isArray(candidate.skills) ? candidate.skills : [],
+    recommendations: normalizeRecommendations(candidate.recommendations),
+  };
+}
 
 export type Candidate = {
   id: string;
@@ -285,12 +301,14 @@ export default function CandidatesTable({
   };
 
   const openProfile = (c: Candidate) => {
-    setSelectedProfile(c);
+    const normalized = normalizeCandidate(c);
+    setSelectedProfile(normalized);
     setProfileTab("overview");
-    setLocalNotes(c.notes);
-    setLocalFields(c.customFields);
+    setLocalNotes(normalized.notes);
+    setLocalFields(normalized.customFields);
     setNoteText("");
     setCvFile(null);
+    setShow360(false);
   };
 
   const openEmailModal = (c: Candidate) => {
@@ -572,9 +590,14 @@ export default function CandidatesTable({
                 <td className="text-right pr-8">
                   <div className="flex items-center justify-end gap-2">
                     <button
-                      onClick={() => openProfile(candidate)}
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openProfile(candidate);
+                      }}
                       className="p-2 text-nuanu-gray-400 hover:text-nuanu-emerald bg-nuanu-gray-50 hover:bg-emerald-50 rounded-lg transition-all hover:scale-110"
                       title="View Profile"
+                      aria-label={`View profile for ${candidate.name}`}
                     >
                       <Eye className="w-4 h-4" />
                     </button>
@@ -676,10 +699,11 @@ export default function CandidatesTable({
         )}
       </div>
 
-      {/* Profile Modal */}
+      {/* Profile Modal — portaled above sidebar (z-50) */}
+      <Portal>
       <AnimatePresence>
         {selectedProfile && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -930,7 +954,9 @@ export default function CandidatesTable({
                       <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
                         AI Match Analysis
                       </p>
-                      {selectedProfile.recommendations?.includes("Fallback Mode: CV Only Analysis") && (
+                      {normalizeRecommendations(selectedProfile.recommendations).includes(
+                        "Fallback Mode: CV Only Analysis",
+                      ) && (
                         <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700 uppercase tracking-widest">
                           Fallback: CV Only
                         </span>
@@ -1518,10 +1544,13 @@ export default function CandidatesTable({
           </div>
         )}
       </AnimatePresence>
+      </Portal>
 
-      {/* Draft Email Modal */}      <AnimatePresence>
+      {/* Draft Email Modal */}
+      <Portal>
+      <AnimatePresence>
         {selectedEmail && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -1651,8 +1680,10 @@ export default function CandidatesTable({
           </div>
         )}
       </AnimatePresence>
+      </Portal>
 
       {/* 360° Profile Modal */}
+      <Portal>
       <AnimatePresence>
         {show360 && selectedProfile && (
           <CandidateProfile360
@@ -1661,6 +1692,7 @@ export default function CandidatesTable({
           />
         )}
       </AnimatePresence>
+      </Portal>
     </div>
   );
 }

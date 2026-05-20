@@ -86,7 +86,9 @@ const getCachedCandidatesData = unstable_cache(
         domicile: profile?.domicile ?? undefined,
         referPosition: profile?.referPosition ?? undefined,
         emailSentAt: (app as any).emailSentAt ? new Date((app as any).emailSentAt).toISOString() : undefined,
-        emailSentSubject: (app as any).emailSentSubject ?? undefined,        recommendations: (app.candidateScore?.recommendations as string[]) ?? [],
+        emailSentSubject: (app as any).emailSentSubject ?? undefined,        recommendations: Array.isArray(app.candidateScore?.recommendations)
+          ? app.candidateScore.recommendations
+          : [],
         notes: notesAll
           .filter((n) => n.applicationId === app.id)
           .map((n) => ({
