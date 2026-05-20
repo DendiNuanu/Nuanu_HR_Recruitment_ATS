@@ -40,6 +40,7 @@ import {
   uploadCandidateResume,
 } from "./actions";
 import { formatDate } from "@/lib/utils";
+import { PIPELINE_STAGES } from "@/lib/utils";
 import { toast } from "sonner";
 import CandidateProfile360 from "./CandidateProfile360";
 
@@ -59,6 +60,13 @@ export type Candidate = {
   coverLetter?: string;
   resumeUrl?: string;
   resumeText?: string;
+  // New fields
+  source?: string;
+  domicile?: string;
+  referPosition?: string;
+  emailSentAt?: string;
+  emailSentSubject?: string;
+  recommendations?: string[];
   notes: {
     id: string;
     content: string;
@@ -87,7 +95,7 @@ export default function CandidatesTable({
 
   // Profile tab
   const [profileTab, setProfileTab] = useState<
-    "overview" | "resume" | "notes" | "fields"
+    "overview" | "resume" | "interview_results" | "notes" | "fields"
   >("overview");
 
   // Modals state
@@ -123,6 +131,12 @@ export default function CandidatesTable({
   // 360° profile state
   const [show360, setShow360] = useState(false);
 
+  // Change 2: stage selector state
+  const [stageSelectorId, setStageSelectorId] = useState<string | null>(null);
+
+  // Change 3: email template state
+  const [emailTemplate, setEmailTemplate] = useState("");
+
   // Local state for live notes/fields (so UI updates without full reload)
   const [localNotes, setLocalNotes] = useState<Candidate["notes"]>([]);
   const [localFields, setLocalFields] = useState<Candidate["customFields"]>([]);
@@ -150,6 +164,44 @@ export default function CandidatesTable({
     }
   };
 
+  // Change 2: move to specific stage
+  const handleStageSelect = async (applicationId: string, stageId: string) => {
+    setStageSelectorId(null);
+    setLoadingActionId(applicationId);
+    try {
+      // Call updateCandidateStage with the target stage ID
+      await updateCandidateStage(applicationId, stageId);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoadingActionId(null);
+    }
+  };
+
+  // Change 3: email templates
+  const EMAIL_TEMPLATES: Record<string, { subject: string; body: string }> = {
+    rejected: {
+      subject: `Update on your application at Nuanu`,
+      body: `Hi {{name}},\n\nThank you for your interest in joining Nuanu and for taking the time to go through our recruitment process.\n\nAfter careful consideration, we regret to inform you that we will not be moving forward with your application at this time.\n\nWe appreciate your effort and encourage you to apply for future openings that match your profile.\n\nBest regards,\nNuanu Recruitment Team`,
+    },
+    on_hold: {
+      subject: `Your application is on hold — Nuanu`,
+      body: `Hi {{name}},\n\nThank you for applying to Nuanu. We wanted to let you know that your application is currently on hold while we complete our review process.\n\nWe will be in touch with an update as soon as possible.\n\nBest regards,\nNuanu Recruitment Team`,
+    },
+    not_open: {
+      subject: `Position no longer available — Nuanu`,
+      body: `Hi {{name}},\n\nThank you for your interest in the {{position}} role at Nuanu.\n\nUnfortunately, this position is no longer open. We will keep your profile on file and reach out if a suitable opportunity arises.\n\nBest regards,\nNuanu Recruitment Team`,
+    },
+    process_slow: {
+      subject: `Update on your application process — Nuanu`,
+      body: `Hi {{name}},\n\nWe wanted to reach out and let you know that our recruitment process is taking a bit longer than expected. We appreciate your patience.\n\nWe are still reviewing your application and will be in touch with next steps shortly.\n\nBest regards,\nNuanu Recruitment Team`,
+    },
+    been_fulfilled: {
+      subject: `Position has been filled — Nuanu`,
+      body: `Hi {{name}},\n\nThank you for your application for the {{position}} position at Nuanu.\n\nWe are pleased to inform you that this position has been filled. We will keep your details on file for future opportunities.\n\nBest regards,\nNuanu Recruitment Team`,
+    },
+  };
+
   const openMailtoFallback = (to: string, subject: string, body: string) => {
     const mailto = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     window.open(mailto, "_blank");
@@ -162,6 +214,7 @@ export default function CandidatesTable({
     try {
       const result = await sendCandidateEmail({
         candidateId: selectedEmail.userId,
+        applicationId: selectedEmail.id,
         to: selectedEmail.email,
         subject: emailSubject,
         body: emailBody,
@@ -231,6 +284,7 @@ export default function CandidatesTable({
 
   const openEmailModal = (c: Candidate) => {
     setSelectedEmail(c);
+    setEmailTemplate("");
     setEmailSubject(
       `Update regarding your application for ${c.vacancyTitle} at Nuanu`,
     );
@@ -515,8 +569,12 @@ export default function CandidatesTable({
                     </button>
                     <button
                       onClick={() => openEmailModal(candidate)}
-                      className="p-2 text-nuanu-gray-400 hover:text-blue-600 bg-nuanu-gray-50 hover:bg-blue-50 rounded-lg transition-all hover:scale-110"
-                      title="Send Email"
+                      className={`p-2 rounded-lg transition-all hover:scale-110 ${
+                        candidate.emailSentAt
+                          ? "text-emerald-600 bg-emerald-50 hover:bg-emerald-100"
+                          : "text-nuanu-gray-400 hover:text-blue-600 bg-nuanu-gray-50 hover:bg-blue-50"
+                      }`}
+                      title={candidate.emailSentAt ? `Email sent ${formatDate(candidate.emailSentAt)}` : "Send Email"}
                     >
                       <Mail className="w-4 h-4" />
                     </button>
@@ -526,62 +584,19 @@ export default function CandidatesTable({
                           <Loader2 className="w-4 h-4 animate-spin" />
                         </div>
                       ) : (
-                        <button
-                          onClick={() =>
-                            setActiveMenuId(
-                              activeMenuId === candidate.id
-                                ? null
-                                : candidate.id,
-                            )
-                          }
-                          className="p-2 text-nuanu-gray-400 hover:text-nuanu-navy bg-nuanu-gray-50 hover:bg-nuanu-gray-200 rounded-lg transition-all active:scale-95"
-                          title="More Options"
+                        <select
+                          className="py-2 px-3 text-xs font-semibold bg-nuanu-gray-50 hover:bg-nuanu-gray-100 border border-nuanu-gray-200 text-nuanu-navy rounded-lg cursor-pointer outline-none transition-colors"
+                          value={candidate.stage}
+                          onChange={(e) => handleStageSelect(candidate.id, e.target.value)}
+                          title="Change Stage"
                         >
-                          <MoreVertical className="w-4 h-4" />
-                        </button>
+                          {PIPELINE_STAGES.map((s) => (
+                            <option key={s.id} value={s.id}>
+                              {s.label}
+                            </option>
+                          ))}
+                        </select>
                       )}
-
-                      <AnimatePresence>
-                        {activeMenuId === candidate.id && (
-                          <>
-                            <div
-                              className="fixed inset-0 z-10"
-                              onClick={() => setActiveMenuId(null)}
-                            />
-                            <motion.div
-                              initial={{ opacity: 0, scale: 0.95, x: 10 }}
-                              animate={{ opacity: 1, scale: 1, x: 0 }}
-                              exit={{ opacity: 0, scale: 0.95, x: 10 }}
-                              className="absolute right-0 mt-3 w-60 bg-white border border-nuanu-gray-200 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] overflow-hidden z-20 origin-top-right"
-                            >
-                              <div className="p-2">
-                                <button
-                                  onClick={() =>
-                                    handleStageAction(candidate.id, "next")
-                                  }
-                                  className="w-full text-left px-4 py-3 text-sm font-bold text-nuanu-navy hover:bg-emerald-50 hover:text-emerald-700 transition-colors rounded-xl flex items-center gap-3 group"
-                                >
-                                  <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center group-hover:bg-emerald-200 transition-colors">
-                                    <Check className="w-4 h-4" />
-                                  </div>
-                                  Move to Next Stage
-                                </button>
-                                <button
-                                  onClick={() =>
-                                    handleStageAction(candidate.id, "reject")
-                                  }
-                                  className="w-full text-left px-4 py-3 text-sm font-bold text-red-600 hover:bg-red-50 transition-colors rounded-xl flex items-center gap-3 group mt-1"
-                                >
-                                  <div className="w-8 h-8 rounded-lg bg-red-100 text-red-600 flex items-center justify-center group-hover:bg-red-200 transition-colors">
-                                    <X className="w-4 h-4" />
-                                  </div>
-                                  Reject Candidate
-                                </button>
-                              </div>
-                            </motion.div>
-                          </>
-                        )}
-                      </AnimatePresence>
                     </div>
                   </div>
                 </td>
@@ -675,6 +690,16 @@ export default function CandidatesTable({
                   )}
                 </button>
                 <button
+                  onClick={() => setProfileTab("interview_results")}
+                  className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-all border-b-2 ${
+                    profileTab === "interview_results"
+                      ? "border-emerald-500 text-emerald-700 bg-white"
+                      : "border-transparent text-nuanu-gray-400 hover:text-nuanu-navy hover:bg-white/60"
+                  }`}
+                >
+                  <MessageSquare className="w-4 h-4" /> Interview Results
+                </button>
+                <button
                   onClick={() => setProfileTab("notes")}
                   className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-all border-b-2 ${
                     profileTab === "notes"
@@ -718,21 +743,52 @@ export default function CandidatesTable({
                         {selectedProfile.vacancyTitle}
                       </p>
                     </div>
+                    {/* Change 1: Refer As */}
+                    <div>
+                      <p className="text-[11px] font-bold text-nuanu-gray-400 uppercase tracking-[0.1em] mb-2">
+                        Refer As
+                      </p>
+                      <input
+                        className="input-field text-lg font-bold text-nuanu-navy leading-snug py-1 px-2 -ml-2"
+                        defaultValue={selectedProfile.referPosition || ""}
+                        placeholder={selectedProfile.vacancyTitle}
+                        onBlur={async (e) => {
+                          const val = e.target.value.trim();
+                          if (val !== (selectedProfile.referPosition || "")) {
+                            setSelectedProfile({ ...selectedProfile, referPosition: val });
+                            const res = await updateCandidateOverviewDetails(selectedProfile.id, selectedProfile.candidateId, { referPosition: val });
+                            if (res.success) toast.success("Refer As updated");
+                            else toast.error(res.error || "Failed to update Refer As");
+                          }
+                        }}
+                      />
+                    </div>
                     <div>
                       <p className="text-[11px] font-bold text-nuanu-gray-400 uppercase tracking-[0.1em] mb-2">
                         Current Stage
                       </p>
                       <span className="badge bg-blue-100 text-blue-700 px-3 py-1.5 text-xs font-bold uppercase tracking-wider">
-                        {selectedProfile.stage.replace("_", " ")}
+                        {selectedProfile.stage.replace(/_/g, " ")}
                       </span>
                     </div>
                     <div>
                       <p className="text-[11px] font-bold text-nuanu-gray-400 uppercase tracking-[0.1em] mb-2">
                         Applied Date
                       </p>
-                      <p className="text-lg font-bold text-nuanu-navy">
-                        {formatDate(selectedProfile.appliedAt)}
-                      </p>
+                      <input
+                        type="date"
+                        className="input-field text-lg font-bold text-nuanu-navy py-1 px-2 -ml-2 w-full"
+                        defaultValue={new Date(selectedProfile.appliedAt).toISOString().split('T')[0]}
+                        onChange={async (e) => {
+                          const val = e.target.value;
+                          if (val) {
+                            setSelectedProfile({ ...selectedProfile, appliedAt: new Date(val).toISOString() });
+                            const res = await updateCandidateOverviewDetails(selectedProfile.id, selectedProfile.candidateId, { appliedAt: new Date(val).toISOString() });
+                            if (res.success) toast.success("Applied Date updated");
+                            else toast.error(res.error || "Failed to update Applied Date");
+                          }
+                        }}
+                      />
                     </div>
                     <div>
                       <p className="text-[11px] font-bold text-nuanu-gray-400 uppercase tracking-[0.1em] mb-2">
@@ -742,6 +798,26 @@ export default function CandidatesTable({
                         {selectedProfile.location}
                       </p>
                     </div>
+                    {/* Change 1: Domicile */}
+                    <div>
+                      <p className="text-[11px] font-bold text-nuanu-gray-400 uppercase tracking-[0.1em] mb-2">
+                        Domisili
+                      </p>
+                      <input
+                        className="input-field text-lg font-bold text-nuanu-navy py-1 px-2 -ml-2 w-full"
+                        defaultValue={selectedProfile.domicile || ""}
+                        placeholder={selectedProfile.location || "Enter city/region..."}
+                        onBlur={async (e) => {
+                          const val = e.target.value.trim();
+                          if (val !== (selectedProfile.domicile || "")) {
+                            setSelectedProfile({ ...selectedProfile, domicile: val });
+                            const res = await updateCandidateOverviewDetails(selectedProfile.id, selectedProfile.candidateId, { domicile: val });
+                            if (res.success) toast.success("Domisili updated");
+                            else toast.error(res.error || "Failed to update Domisili");
+                          }
+                        }}
+                      />
+                    </div>
                     <div>
                       <p className="text-[11px] font-bold text-nuanu-gray-400 uppercase tracking-[0.1em] mb-2">
                         Phone Number
@@ -750,12 +826,59 @@ export default function CandidatesTable({
                         {selectedProfile.phone || "Not provided"}
                       </p>
                     </div>
+                    {/* Change 1: Source */}
+                    <div>
+                      <p className="text-[11px] font-bold text-nuanu-gray-400 uppercase tracking-[0.1em] mb-2">
+                        Source
+                      </p>
+                      <select
+                        className="input-field py-1.5 px-2 text-xs font-bold bg-nuanu-gray-50 text-nuanu-gray-600 capitalize cursor-pointer -ml-2"
+                        value={selectedProfile.source || "direct"}
+                        onChange={async (e) => {
+                          const val = e.target.value;
+                          setSelectedProfile({ ...selectedProfile, source: val });
+                          const res = await updateCandidateOverviewDetails(selectedProfile.id, selectedProfile.candidateId, { source: val });
+                          if (res.success) toast.success("Source updated");
+                          else toast.error(res.error || "Failed to update Source");
+                        }}
+                      >
+                        <option value="direct">Direct</option>
+                        <option value="linkedin">LinkedIn</option>
+                        <option value="walk_in">Walk-in</option>
+                        <option value="referral">Referral</option>
+                        <option value="job_board">Job Board</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </div>
+                    {/* Email sent indicator */}
+                    {selectedProfile.emailSentAt && (
+                      <div>
+                        <p className="text-[11px] font-bold text-nuanu-gray-400 uppercase tracking-[0.1em] mb-2">
+                          Last Email Sent
+                        </p>
+                        <p className="text-sm font-semibold text-emerald-600">
+                          {formatDate(selectedProfile.emailSentAt)}
+                        </p>
+                        {selectedProfile.emailSentSubject && (
+                          <p className="text-xs text-nuanu-gray-400 mt-0.5 truncate max-w-[180px]">
+                            {selectedProfile.emailSentSubject}
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   <div className="mb-8">
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-                      AI Match Analysis
-                    </p>
+                    <div className="flex items-center gap-2 mb-3">
+                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                        AI Match Analysis
+                      </p>
+                      {selectedProfile.recommendations?.includes("Fallback Mode: CV Only Analysis") && (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700 uppercase tracking-widest">
+                          Fallback: CV Only
+                        </span>
+                      )}
+                    </div>
                     <div className="flex items-center gap-4 bg-gray-50 p-4 rounded-xl border border-gray-100">
                       <div className="relative w-16 h-16 flex-shrink-0">
                         <svg className="w-full h-full -rotate-90">
@@ -977,6 +1100,60 @@ export default function CandidatesTable({
                         </div>
                       </div>
                     )}
+                </div>
+              )}
+
+              {/* ── Tab: Interview Results ──────────────────────────────── */}
+              {profileTab === "interview_results" && (
+                <div className="p-6 overflow-y-auto flex-1 bg-gray-50/30">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {["HR Comment", "User 1 Comment", "User 2 Comment"].map((fieldName) => {
+                      const field = localFields.find((f) => f.fieldName === fieldName);
+                      return (
+                        <div key={fieldName} className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm flex flex-col h-full">
+                          <label className="block text-xs font-black text-nuanu-gray-500 uppercase tracking-widest mb-3">
+                            {fieldName}
+                          </label>
+                          <textarea
+                            className="flex-1 input-field min-h-[200px] resize-none text-sm p-4 bg-gray-50 hover:bg-white focus:bg-white transition-colors"
+                            placeholder={`Enter ${fieldName.toLowerCase()}...`}
+                            defaultValue={field?.fieldValue || ""}
+                            onBlur={async (e) => {
+                              const val = e.target.value.trim();
+                              if (val === (field?.fieldValue || "")) return;
+                              setSavingField(true);
+                              if (field) {
+                                if (val) {
+                                  const res = await updateCustomField(field.id, fieldName, val);
+                                  if (res.success) {
+                                    setLocalFields(localFields.map(f => f.id === field.id ? { ...f, fieldValue: val } : f));
+                                    toast.success(`${fieldName} updated`);
+                                  } else {
+                                    toast.error(res.error || "Failed to update");
+                                  }
+                                } else {
+                                  const res = await deleteCustomField(field.id);
+                                  if (res.success) {
+                                    setLocalFields(localFields.filter(f => f.id !== field.id));
+                                    toast.success(`${fieldName} deleted`);
+                                  }
+                                }
+                              } else if (val) {
+                                const res = await addCustomField(selectedProfile.id, fieldName, val);
+                                if (res.success && res.field) {
+                                  setLocalFields([...localFields, { ...res.field, createdAt: res.field.createdAt.toString() }]);
+                                  toast.success(`${fieldName} saved`);
+                                } else {
+                                  toast.error(res.error || "Failed to save");
+                                }
+                              }
+                              setSavingField(false);
+                            }}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
 
@@ -1328,19 +1505,45 @@ export default function CandidatesTable({
                 </div>
               ) : (
                 <>
-                  <div className="p-8 space-y-6">
+                  <div className="p-8 space-y-5">
+                    {/* To */}
                     <div>
-                      <label className="block text-xs font-bold text-nuanu-gray-400 uppercase tracking-widest mb-2">
-                        To:
-                      </label>
+                      <label className="block text-xs font-bold text-nuanu-gray-400 uppercase tracking-widest mb-2">To:</label>
                       <div className="input-field bg-gray-50 text-nuanu-navy font-bold text-lg py-3 px-4">
                         {selectedEmail.name} &lt;{selectedEmail.email}&gt;
                       </div>
                     </div>
+                    {/* Change 3: Template selector */}
                     <div>
-                      <label className="block text-xs font-bold text-nuanu-gray-400 uppercase tracking-widest mb-2">
-                        Subject:
-                      </label>
+                      <label className="block text-xs font-bold text-nuanu-gray-400 uppercase tracking-widest mb-2">Template:</label>
+                      <select
+                        value={emailTemplate}
+                        onChange={(e) => {
+                          const key = e.target.value;
+                          setEmailTemplate(key);
+                          if (key && EMAIL_TEMPLATES[key]) {
+                            const tpl = EMAIL_TEMPLATES[key];
+                            setEmailSubject(tpl.subject);
+                            setEmailBody(
+                              tpl.body
+                                .replace(/\{\{name\}\}/g, selectedEmail.name)
+                                .replace(/\{\{position\}\}/g, selectedEmail.vacancyTitle)
+                            );
+                          }
+                        }}
+                        className="input-field py-2.5"
+                      >
+                        <option value="">— Select a template (optional) —</option>
+                        <option value="rejected">Rejected</option>
+                        <option value="on_hold">On Hold</option>
+                        <option value="not_open">Not Open</option>
+                        <option value="process_slow">Process Slow</option>
+                        <option value="been_fulfilled">Been Fulfilled</option>
+                      </select>
+                    </div>
+                    {/* Subject */}
+                    <div>
+                      <label className="block text-xs font-bold text-nuanu-gray-400 uppercase tracking-widest mb-2">Subject:</label>
                       <input
                         type="text"
                         value={emailSubject}
@@ -1349,14 +1552,13 @@ export default function CandidatesTable({
                         placeholder="Email subject"
                       />
                     </div>
+                    {/* Body */}
                     <div>
-                      <label className="block text-xs font-bold text-nuanu-gray-400 uppercase tracking-widest mb-2">
-                        Message:
-                      </label>
+                      <label className="block text-xs font-bold text-nuanu-gray-400 uppercase tracking-widest mb-2">Message:</label>
                       <textarea
                         value={emailBody}
                         onChange={(e) => setEmailBody(e.target.value)}
-                        className="input-field min-h-[250px] resize-y text-base leading-relaxed py-3 px-4"
+                        className="input-field min-h-[220px] resize-y text-base leading-relaxed py-3 px-4"
                         placeholder="Type your message here..."
                       />
                     </div>

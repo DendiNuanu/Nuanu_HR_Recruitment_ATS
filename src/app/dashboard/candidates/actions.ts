@@ -8,20 +8,9 @@ import { delCache } from "@/lib/cache";
 import { getSession } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
-const STAGES = [
-  "applied",
-  "screening",
-  "phone_screening",
-  "assessment",
-  "interview_1",
-  "interview_2",
-  "offering",
-  "hired",
-];
-
 export async function updateCandidateStage(
   applicationId: string,
-  action: "next" | "reject",
+  actionOrStageId: string,
 ) {
   try {
     const application = await prisma.application.findUnique({
@@ -35,13 +24,13 @@ export async function updateCandidateStage(
 
     let newStage = application.currentStage;
 
-    if (action === "reject") {
+    if (actionOrStageId === "reject") {
       newStage = "rejected";
-    } else if (action === "next") {
-      const currentIndex = STAGES.indexOf(application.currentStage);
-      if (currentIndex !== -1 && currentIndex < STAGES.length - 1) {
-        newStage = STAGES[currentIndex + 1];
-      }
+    } else if (actionOrStageId === "next") {
+      // Fallback for any legacy calls
+      newStage = "assessment"; 
+    } else {
+      newStage = actionOrStageId;
     }
 
     await prisma.$transaction(async (tx) => {
@@ -495,6 +484,7 @@ export async function uploadCandidateResume(
 
 export async function sendCandidateEmail(data: {
   candidateId: string;
+  applicationId?: string;
   to: string;
   subject: string;
   body: string;
@@ -527,6 +517,16 @@ export async function sendCandidateEmail(data: {
           metadata: { subject: data.subject },
         },
       });
+      // Persist emailSentAt on the application record
+      if (data.applicationId) {
+        await prisma.application.update({
+          where: { id: data.applicationId },
+          data: {
+            emailSentAt: new Date(),
+            emailSentSubject: data.subject,
+          },
+        });
+      }
     } catch {
       // activity log failure must not break email success
     }
@@ -538,5 +538,49 @@ export async function sendCandidateEmail(data: {
       success: false,
       error: error instanceof Error ? error.message : "Failed to send email",
     };
+  }
+}
+
+export async function updateCandidateOverviewDetails(
+  applicationId: string,
+  candidateId: string,
+  data: {
+    domicile?: string;
+    referPosition?: string;
+    source?: string;
+    appliedAt?: string;
+  }
+) {
+  try {
+    const session = await getSession();
+    if (!session?.user?.id) throw new Error("Unauthorized");
+    
+    await prisma.$transaction(async (tx) => {
+      if (data.domicile !== undefined || data.referPosition !== undefined) {
+        await tx.candidateProfile.update({
+          where: { userId: candidateId },
+          data: {
+            ...(data.domicile !== undefined && { domicile: data.domicile }),
+            ...(data.referPosition !== undefined && { referPosition: data.referPosition }),
+          }
+        });
+      }
+
+      if (data.source !== undefined || data.appliedAt !== undefined) {
+        await tx.application.update({
+          where: { id: applicationId },
+          data: {
+            ...(data.source !== undefined && { source: data.source }),
+            ...(data.appliedAt !== undefined && { appliedAt: new Date(data.appliedAt) }),
+          }
+        });
+      }
+    });
+
+    revalidatePath("/dashboard/candidates");
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to update overview details:", error);
+    return { success: false, error: "Failed to update details" };
   }
 }

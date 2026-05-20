@@ -28,8 +28,9 @@ export async function scanResumes() {
     for (const app of unscoredApps) {
       const profile = await prisma.candidateProfile.findUnique({ where: { userId: app.candidateId } });
       const resumeText = profile?.resumeText;
-      const vacancyTitle = app.vacancy.title;
-      const vacancyDesc = app.vacancy.description || vacancyTitle;
+      const isFallback = Boolean(profile?.referPosition) || app.vacancy.title.toLowerCase().includes("open application") || app.vacancy.title.toLowerCase().includes("general");
+      const vacancyTitle = profile?.referPosition || app.vacancy.title;
+      const vacancyDesc = isFallback ? "General candidate profiling based on CV" : (app.vacancy.description || vacancyTitle);
 
       if (!resumeText || resumeText.length < 50) {
         // Create a default fallback score if no resume text could be parsed
@@ -152,7 +153,10 @@ Return ONLY a valid JSON object in this exact format (no markdown, no extra text
             missingKeywords: Array.isArray(result.missingKeywords) ? result.missingKeywords : [],
             skillGaps: Array.isArray(result.skillGaps) ? result.skillGaps : [],
             strengths: Array.isArray(result.strengths) ? result.strengths : [],
-            recommendations: Array.isArray(result.recommendations) ? result.recommendations : [],
+            recommendations: [
+              ...(Array.isArray(result.recommendations) ? result.recommendations : []),
+              ...(isFallback ? ["Fallback Mode: CV Only Analysis"] : [])
+            ],
           }
         });
         processedCount++;

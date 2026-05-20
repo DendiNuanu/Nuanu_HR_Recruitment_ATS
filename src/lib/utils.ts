@@ -58,17 +58,16 @@ export function slugify(text: string): string {
 }
 
 export const PIPELINE_STAGES = [
-  { id: "applied",         label: "Applied",              color: "#6366F1" },
-  { id: "screening",       label: "CV Screening",         color: "#8B5CF6" },
-  { id: "phone_screening", label: "Phone Screening",      color: "#A855F7" },
-  { id: "assessment",      label: "Assessment",           color: "#3B82F6" },
-  { id: "interview_1",     label: "Interview 1",          color: "#0EA5E9" },
-  { id: "interview_2",     label: "Interview 2",          color: "#06B6D4" },
+  { id: "talent_bank",     label: "Talent Bank",          color: "#64748B" },
+  { id: "screening",       label: "Screening",            color: "#8B5CF6" },
+  { id: "hr_interview",    label: "HR Interview",         color: "#3B82F6" },
+  { id: "user_interview",  label: "User Interview",       color: "#0EA5E9" },
+  { id: "assessment",      label: "Assessment",           color: "#06B6D4" },
+  { id: "user_interview_2",label: "User Interview II",    color: "#14B8A6" },
   { id: "offering",        label: "Offering",             color: "#F59E0B" },
-  { id: "medical_check",   label: "Medical Check Up",     color: "#F97316" },
-  { id: "onboarding",      label: "Onboarding",           color: "#84CC16" },
   { id: "hired",           label: "Hired",                color: "#22C55E" },
-  { id: "withdrawn",       label: "Withdrawn / Rejected", color: "#94A3B8" },
+  { id: "rejected",        label: "Rejected",             color: "#EF4444" },
+  { id: "onboarding",      label: "Onboarding",           color: "#84CC16" },
 ] as const;
 
 export type PipelineStageId = typeof PIPELINE_STAGES[number]["id"];

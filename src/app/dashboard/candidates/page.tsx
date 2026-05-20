@@ -50,7 +50,7 @@ const getCachedCandidatesData = unstable_cache(
       const profile = profiles.find((p) => p.userId === app.candidateId);
       return {
         id: app.id,
-        userId: app.candidateId, // Add the actual User ID
+        userId: app.candidateId,
         name: app.candidate.name,
         email: app.candidate.email,
         vacancyTitle: app.vacancy.title,
@@ -64,6 +64,12 @@ const getCachedCandidatesData = unstable_cache(
         coverLetter: app.coverLetter ?? undefined,
         resumeUrl: profile?.resumeUrl ?? undefined,
         resumeText: profile?.resumeText ?? undefined,
+        source: app.source ?? "direct",
+        domicile: profile?.domicile ?? undefined,
+        referPosition: profile?.referPosition ?? undefined,
+        emailSentAt: (app as any).emailSentAt ? new Date((app as any).emailSentAt).toISOString() : undefined,
+        emailSentSubject: (app as any).emailSentSubject ?? undefined,
+        recommendations: (app.candidateScore?.recommendations as string[]) ?? [],
         notes: notesAll
           .filter((n) => n.applicationId === app.id)
           .map((n) => ({

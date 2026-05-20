@@ -280,14 +280,14 @@ export default function JobCard({ job }: { job: any }) {
         </div>
 
         <div className="flex items-center justify-between pt-4 border-t border-nuanu-gray-50">
-          <div className="flex items-center gap-2">
+          <Link href={`/dashboard/pipeline?vacancyId=${job.id}`} className="flex items-center gap-2 hover:bg-blue-50 p-1 -ml-1 rounded-lg transition-colors cursor-pointer">
             <span className="flex items-center justify-center bg-blue-50 text-blue-600 text-xs font-bold w-6 h-6 rounded-md">
               {job._count?.applications || 0}
             </span>
-            <span className="text-xs text-nuanu-gray-500 font-medium">
+            <span className="text-xs text-nuanu-gray-500 font-medium group-hover:text-blue-600 transition-colors">
               Candidates
             </span>
-          </div>
+          </Link>
           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
             <Link
               href={`/careers/${job.id}`}
