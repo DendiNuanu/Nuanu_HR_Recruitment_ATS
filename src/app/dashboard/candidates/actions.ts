@@ -8,6 +8,52 @@ import { delCache } from "@/lib/cache";
 import { getSession } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
+/**
+ * Update editable overview fields on a candidate profile/application.
+ * applicationId = Application.id, userId = User.id (candidateId)
+ */
+export async function updateCandidateOverviewDetails(
+  applicationId: string,
+  userId: string,
+  data: {
+    referPosition?: string;
+    domicile?: string;
+    source?: string;
+    appliedAt?: string;
+  },
+) {
+  try {
+    if (data.referPosition !== undefined || data.domicile !== undefined) {
+      await prisma.candidateProfile.upsert({
+        where: { userId },
+        update: {
+          ...(data.referPosition !== undefined && { referPosition: data.referPosition }),
+          ...(data.domicile !== undefined && { domicile: data.domicile }),
+        },
+        create: {
+          userId,
+          referPosition: data.referPosition ?? null,
+          domicile: data.domicile ?? null,
+        },
+      });
+    }
+    if (data.source !== undefined || data.appliedAt !== undefined) {
+      await prisma.application.update({
+        where: { id: applicationId },
+        data: {
+          ...(data.source !== undefined && { source: data.source }),
+          ...(data.appliedAt !== undefined && { appliedAt: new Date(data.appliedAt) }),
+        },
+      });
+    }
+    revalidatePath("/dashboard/candidates");
+    return { success: true };
+  } catch (error) {
+    console.error("updateCandidateOverviewDetails error:", error);
+    return { success: false, error: "Failed to update" };
+  }
+}
+
 export async function updateCandidateStage(
   applicationId: string,
   actionOrStageId: string,

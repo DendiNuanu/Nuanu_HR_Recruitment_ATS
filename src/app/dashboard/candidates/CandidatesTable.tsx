@@ -38,6 +38,7 @@ import {
   updateCustomField,
   deleteCustomField,
   uploadCandidateResume,
+  updateCandidateOverviewDetails,
 } from "./actions";
 import { formatDate } from "@/lib/utils";
 import { PIPELINE_STAGES } from "@/lib/utils";
@@ -812,7 +813,7 @@ export default function CandidatesTable({
                           const val = e.target.value.trim();
                           if (val !== (selectedProfile.referPosition || "")) {
                             setSelectedProfile({ ...selectedProfile, referPosition: val });
-                            const res = await updateCandidateOverviewDetails(selectedProfile.id, selectedProfile.candidateId, { referPosition: val });
+                            const res = await updateCandidateOverviewDetails(selectedProfile.id, selectedProfile.userId, { referPosition: val });
                             if (res.success) toast.success("Refer As updated");
                             else toast.error(res.error || "Failed to update Refer As");
                           }
@@ -839,7 +840,7 @@ export default function CandidatesTable({
                           const val = e.target.value;
                           if (val) {
                             setSelectedProfile({ ...selectedProfile, appliedAt: new Date(val).toISOString() });
-                            const res = await updateCandidateOverviewDetails(selectedProfile.id, selectedProfile.candidateId, { appliedAt: new Date(val).toISOString() });
+                            const res = await updateCandidateOverviewDetails(selectedProfile.id, selectedProfile.userId, { appliedAt: new Date(val).toISOString() });
                             if (res.success) toast.success("Applied Date updated");
                             else toast.error(res.error || "Failed to update Applied Date");
                           }
@@ -867,7 +868,7 @@ export default function CandidatesTable({
                           const val = e.target.value.trim();
                           if (val !== (selectedProfile.domicile || "")) {
                             setSelectedProfile({ ...selectedProfile, domicile: val });
-                            const res = await updateCandidateOverviewDetails(selectedProfile.id, selectedProfile.candidateId, { domicile: val });
+                            const res = await updateCandidateOverviewDetails(selectedProfile.id, selectedProfile.userId, { domicile: val });
                             if (res.success) toast.success("Domisili updated");
                             else toast.error(res.error || "Failed to update Domisili");
                           }
@@ -893,7 +894,7 @@ export default function CandidatesTable({
                         onChange={async (e) => {
                           const val = e.target.value;
                           setSelectedProfile({ ...selectedProfile, source: val });
-                          const res = await updateCandidateOverviewDetails(selectedProfile.id, selectedProfile.candidateId, { source: val });
+                          const res = await updateCandidateOverviewDetails(selectedProfile.id, selectedProfile.userId, { source: val });
                           if (res.success) toast.success("Source updated");
                           else toast.error(res.error || "Failed to update Source");
                         }}
