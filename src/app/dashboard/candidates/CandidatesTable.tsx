@@ -137,6 +137,13 @@ export default function CandidatesTable({
   // Change 3: email template state
   const [emailTemplate, setEmailTemplate] = useState("");
 
+  // Optimistic email sent tracking (candidateId → ISO timestamp)
+  const [emailSentMap, setEmailSentMap] = useState<Record<string, string>>(() => {
+    // Pre-populate from initial candidate data
+    const map: Record<string, string> = {};
+    return map;
+  });
+
   // Local state for live notes/fields (so UI updates without full reload)
   const [localNotes, setLocalNotes] = useState<Candidate["notes"]>([]);
   const [localFields, setLocalFields] = useState<Candidate["customFields"]>([]);
@@ -222,6 +229,9 @@ export default function CandidatesTable({
 
       if (result.success) {
         setEmailSent(true);
+        // Optimistic update — show badge immediately without page reload
+        const now = new Date().toISOString();
+        setEmailSentMap((prev) => ({ ...prev, [selectedEmail.id]: now }));
         toast.success("Email sent successfully!", {
           description: `Message delivered to ${selectedEmail.email}`,
         });
@@ -567,17 +577,63 @@ export default function CandidatesTable({
                     >
                       <Eye className="w-4 h-4" />
                     </button>
-                    <button
-                      onClick={() => openEmailModal(candidate)}
-                      className={`p-2 rounded-lg transition-all hover:scale-110 ${
-                        candidate.emailSentAt
-                          ? "text-emerald-600 bg-emerald-50 hover:bg-emerald-100"
-                          : "text-nuanu-gray-400 hover:text-blue-600 bg-nuanu-gray-50 hover:bg-blue-50"
-                      }`}
-                      title={candidate.emailSentAt ? `Email sent ${formatDate(candidate.emailSentAt)}` : "Send Email"}
-                    >
-                      <Mail className="w-4 h-4" />
-                    </button>
+                    {/* Email button + persistent "Email Sent" badge */}
+                    {(() => {
+                      const sentAt = emailSentMap[candidate.id] ?? candidate.emailSentAt;
+                      const sentDate = sentAt ? new Date(sentAt) : null;
+                      const shortTs = sentDate
+                        ? `${String(sentDate.getDate()).padStart(2, "0")}/${String(sentDate.getMonth() + 1).padStart(2, "0")} · ${String(sentDate.getHours()).padStart(2, "0")}:${String(sentDate.getMinutes()).padStart(2, "0")}`
+                        : null;
+                      const fullTs = sentDate
+                        ? sentDate.toLocaleString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })
+                        : null;
+
+                      return (
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            onClick={() => openEmailModal(candidate)}
+                            className={`p-2 rounded-lg transition-all hover:scale-110 flex-shrink-0 ${
+                              sentAt
+                                ? "text-emerald-700 bg-emerald-50 hover:bg-emerald-100"
+                                : "text-nuanu-gray-400 hover:text-blue-600 bg-nuanu-gray-50 hover:bg-blue-50"
+                            }`}
+                            title={sentAt ? `Email sent on ${fullTs}. Click to send another.` : "Send Email"}
+                          >
+                            {sentAt ? (
+                              <CheckCircle2 className="w-4 h-4" />
+                            ) : (
+                              <Mail className="w-4 h-4" />
+                            )}
+                          </button>
+
+                          {sentAt && (
+                            <div
+                              className="flex items-center gap-1 flex-shrink-0"
+                              title={`Email sent on ${fullTs}. Click icon to send another.`}
+                            >
+                              {/* Pill badge */}
+                              <span
+                                className="flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[11px] font-medium"
+                                style={{
+                                  background: "#E1F5EE",
+                                  border: "0.5px solid #5DCAA5",
+                                  color: "#085041",
+                                }}
+                              >
+                                <Check className="w-2.5 h-2.5 flex-shrink-0" />
+                                Email Sent
+                              </span>
+                              {/* Timestamp — hidden on very narrow screens */}
+                              {shortTs && (
+                                <span className="hidden sm:inline text-[11px] text-nuanu-gray-400 whitespace-nowrap">
+                                  {shortTs}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
                     <div className="relative">
                       {loadingActionId === candidate.id ? (
                         <div className="p-2 text-nuanu-emerald">
