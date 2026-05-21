@@ -1,5 +1,13 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## SEEK Employer import
+
+External scraper (runs locally, not on Vercel) POSTs candidates to `/api/candidates/import-seek` with header `x-api-key`.
+
+1. Copy `.env.example` to `.env` and set `SEEK_IMPORT_KEY` (see example value in `.env.example`).
+2. Add the same variable in Vercel → Project → Settings → Environment Variables.
+3. Run the companion `seek-scraper` project (sibling folder) with matching `NUANU_API_KEY`.
+
 ## Getting Started
 
 First, run the development server:

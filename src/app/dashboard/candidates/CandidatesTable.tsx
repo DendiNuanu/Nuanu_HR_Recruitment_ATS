@@ -444,6 +444,9 @@ export default function CandidatesTable({
   };
 
   const SOURCE_ALIASES: Record<string, string> = {
+    seek: "seek",
+    "hr upload": "other",
+    jobstreet: "jobstreet",
     "careers page": "career_page",
     "career page": "career_page",
     "nuanu career page": "career_page",
@@ -783,6 +786,11 @@ export default function CandidatesTable({
                       <p className="text-xs text-nuanu-gray-500">
                         {candidate.email}
                       </p>
+                      {candidate.source?.toLowerCase() === "seek" && (
+                        <span className="inline-block mt-1 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-100">
+                          SEEK
+                        </span>
+                      )}
                     </div>
                   </div>
                 </td>
