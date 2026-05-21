@@ -80,6 +80,120 @@ const SEEK_ROLE_VACANCY_ENV: Record<string, string | undefined> = {
   "safety officer": process.env.SEEK_VACANCY_SAFETY_OFFICER,
 };
 
+const SEEK_AUTO_CREATE_VACANCIES = process.env.SEEK_AUTO_CREATE_VACANCIES !== "false";
+
+function seekVacancyCode(role: string): string {
+  const slug = role
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 24);
+  return `SEEK-${slug || "ROLE"}`;
+}
+
+async function getSeekImportDefaults(): Promise<{
+  creatorId: string;
+  departmentId: string;
+} | null> {
+  const admin =
+    (await prisma.user.findFirst({
+      where: { email: "admin@nuanu.com", deletedAt: null },
+      select: { id: true },
+    })) ??
+    (await prisma.user.findFirst({
+      where: {
+        deletedAt: null,
+        userRoles: { some: { role: { slug: "super-admin" } } },
+      },
+      select: { id: true },
+    }));
+
+  const department = await prisma.department.findFirst({
+    where: { deletedAt: null, isActive: true },
+    orderBy: { createdAt: "asc" },
+    select: { id: true },
+  });
+
+  if (!admin?.id || !department?.id) return null;
+  return { creatorId: admin.id, departmentId: department.id };
+}
+
+async function createVacancyForSeekRole(role: string): Promise<string> {
+  const defaults = await getSeekImportDefaults();
+  if (!defaults) {
+    throw new Error(
+      "Cannot auto-create vacancy: ATS needs at least one department and an admin user",
+    );
+  }
+
+  const baseCode = seekVacancyCode(role);
+  let code = baseCode;
+  for (let attempt = 0; attempt < 8; attempt++) {
+    const taken = await prisma.vacancy.findUnique({
+      where: { code },
+      select: { id: true },
+    });
+    if (!taken) break;
+    code = `${baseCode}-${Date.now().toString(36).slice(-5)}${attempt}`;
+  }
+
+  const vacancy = await prisma.vacancy.create({
+    data: {
+      title: role,
+      code,
+      departmentId: defaults.departmentId,
+      creatorId: defaults.creatorId,
+      status: "published",
+      publishedAt: new Date(),
+      isApproved: true,
+      description: `Imported from SEEK Employer (${role}). Applications sync via the SEEK scraper.`,
+      location: "Bali, Indonesia",
+      employmentType: "full-time",
+      locationType: "onsite",
+      currency: "IDR",
+      skills: [],
+    },
+    select: { id: true, title: true },
+  });
+
+  return vacancy.id;
+}
+
+/** Find existing vacancy or create a published one for this SEEK role title. */
+async function ensureVacancyForSeekRole(
+  explicitVacancyId: string | undefined,
+  appliedRole: string | undefined,
+): Promise<{ vacancyId: string; created: boolean; title: string } | null> {
+  const existing = await resolveVacancyId(explicitVacancyId, appliedRole);
+  if (existing) {
+    const row = await prisma.vacancy.findFirst({
+      where: { id: existing, deletedAt: null },
+      select: { title: true },
+    });
+    return {
+      vacancyId: existing,
+      created: false,
+      title: row?.title ?? appliedRole ?? "Vacancy",
+    };
+  }
+
+  const role = appliedRole?.trim();
+  if (!role) {
+    const fallback = await resolveVacancyId(undefined, undefined);
+    if (!fallback) return null;
+    const row = await prisma.vacancy.findFirst({
+      where: { id: fallback, deletedAt: null },
+      select: { title: true },
+    });
+    return { vacancyId: fallback, created: false, title: row?.title ?? "Vacancy" };
+  }
+
+  if (!SEEK_AUTO_CREATE_VACANCIES) return null;
+
+  const vacancyId = await createVacancyForSeekRole(role);
+  return { vacancyId, created: true, title: role };
+}
+
 async function resolveVacancyId(
   vacancyId: string | undefined,
   appliedRole: string | undefined,
@@ -168,8 +282,10 @@ function resolveImportEmail(raw: SeekCandidateInput, phone: string | null): stri
 
 async function importOneCandidate(
   raw: SeekCandidateInput,
-  defaultVacancyId: string | null,
-): Promise<"imported" | "skipped" | "error"> {
+): Promise<
+  | { status: "imported"; vacancyCreated: boolean; vacancyTitle: string }
+  | { status: "skipped" }
+> {
   const name = raw.name?.trim() || "Unknown";
   const phone = normalizePhone(raw.phone);
   const email = resolveImportEmail(raw, phone);
@@ -183,16 +299,20 @@ async function importOneCandidate(
   const currentEmployment = raw.mostRecentRole?.trim() || null;
   const experienceYears = parseExperienceYears(raw.experience);
 
-  const vacancyId =
-    (await resolveVacancyId(raw.vacancyId, seekAppliedRole ?? undefined)) ??
-    (seekAppliedRole ? null : defaultVacancyId);
+  const ensured = await ensureVacancyForSeekRole(
+    raw.vacancyId,
+    seekAppliedRole ?? undefined,
+  );
 
-  if (!vacancyId) {
-    const hint = seekAppliedRole
-      ? `No ATS job matches SEEK role "${seekAppliedRole}". Create a vacancy with that title or set SEEK_VACANCY_SITE_MANAGER / SEEK_VACANCY_ACCOUNTING_OFFICER in Vercel env.`
-      : "No vacancy found (publish a vacancy or set appliedRole from SEEK)";
-    throw new Error(hint);
+  if (!ensured?.vacancyId) {
+    throw new Error(
+      seekAppliedRole
+        ? `Could not find or create vacancy for SEEK role "${seekAppliedRole}"`
+        : "No vacancy found and none could be auto-created",
+    );
   }
+
+  const { vacancyId, created: vacancyCreated, title: vacancyTitle } = ensured;
 
   const existingUser = await findExistingUser(
     raw.email?.trim() && !raw.email.includes("@noemail") ? email : null,
@@ -205,7 +325,7 @@ async function importOneCandidate(
       select: { id: true },
     });
     if (existingApp) {
-      return "skipped";
+      return { status: "skipped" };
     }
   }
 
@@ -286,7 +406,7 @@ async function importOneCandidate(
     });
   }
 
-  return "imported";
+  return { status: "imported", vacancyCreated, vacancyTitle };
 }
 
 export async function GET(request: NextRequest) {
@@ -324,19 +444,20 @@ export async function POST(request: NextRequest) {
     details: [],
   };
 
-  const defaultVacancyId = await resolveVacancyId(undefined, undefined);
-
   for (const candidate of candidates) {
     const label = candidate.name?.trim() || candidate.email || "Unknown";
     try {
-      const outcome = await importOneCandidate(candidate, defaultVacancyId);
-      if (outcome === "skipped") {
+      const outcome = await importOneCandidate(candidate);
+      if (outcome.status === "skipped") {
         results.skipped++;
         results.details.push(`SKIP: ${label} (already exists)`);
       } else {
         results.imported++;
         const stage = mapSeekStatus(candidate.seekStatus);
-        results.details.push(`OK: ${label} → stage: ${stage}`);
+        const vacancyNote = outcome.vacancyCreated
+          ? `, auto-created job: ${outcome.vacancyTitle}`
+          : `, job: ${outcome.vacancyTitle}`;
+        results.details.push(`OK: ${label} → stage: ${stage}${vacancyNote}`);
       }
     } catch (err: unknown) {
       results.errors++;
@@ -348,6 +469,7 @@ export async function POST(request: NextRequest) {
   await delCache("dashboard_metrics");
   revalidatePath("/dashboard/candidates");
   revalidatePath("/dashboard/pipeline");
+  revalidatePath("/dashboard/jobs");
 
   return NextResponse.json({
     success: true,
