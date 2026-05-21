@@ -1,10 +1,40 @@
 import { prisma } from "@/lib/prisma";
 import AnalyticsClient, { AnalyticsData } from "./AnalyticsClient";
+import { checkRole } from "@/lib/rbac";
 import {
   formatSourceLabel,
   getChannelCost,
   normalizeSourceKey,
 } from "@/lib/recruitment-sources";
+
+export const dynamic = "force-dynamic";
+
+const ACTIVE_APP_WHERE = { deletedAt: null } as const;
+
+const PIPELINE_STAGES = [
+  "applied",
+  "screening",
+  "hr_interview",
+  "user_interview",
+  "final_interview",
+  "offer",
+  "hired",
+] as const;
+
+const PIPELINE_STAGE_LABELS: Record<string, string> = {
+  applied: "Applied",
+  screening: "Screening",
+  hr_interview: "HR Interview",
+  user_interview: "User Interview",
+  final_interview: "Final Interview",
+  offer: "Offer",
+  hired: "Hired",
+};
+
+function pipelineStageIndex(stage: string): number {
+  const idx = PIPELINE_STAGES.indexOf(stage as (typeof PIPELINE_STAGES)[number]);
+  return idx >= 0 ? idx : 0;
+}
 
 // ─────────────────────────────────────────────
 // Constants
@@ -45,6 +75,15 @@ function quarterOf(d: Date): number {
 // ─────────────────────────────────────────────
 
 export default async function AnalyticsPage() {
+  await checkRole([
+    "admin",
+    "hr",
+    "recruiter",
+    "interviewer",
+    "finance",
+    "manager",
+  ]);
+
   // ── Parallel data fetching ──────────────────
   const [
     allApplications,
@@ -85,7 +124,7 @@ export default async function AnalyticsPage() {
           },
         },
       },
-      where: { deletedAt: null },
+      where: ACTIVE_APP_WHERE,
     }),
 
     prisma.offer.findMany({
@@ -99,6 +138,7 @@ export default async function AnalyticsPage() {
     }),
 
     prisma.interview.findMany({
+      where: { application: ACTIVE_APP_WHERE },
       select: {
         applicationId: true,
         status: true,
@@ -393,7 +433,7 @@ export default async function AnalyticsPage() {
 
   // 9c. Age group breakdown (from dateOfBirth)
   const ageGroupMap = new Map<string, number>();
-  const ageOrder = ["Under 25", "25–34", "35–44", "45–54", "55+", "Unknown"];
+  const ageOrder = ["Under 25", "25-34", "35-44", "45-54", "55+", "Unknown"];
   for (const profile of allCandidateProfiles) {
     let label = "Unknown";
     if (profile.dateOfBirth) {
@@ -401,9 +441,9 @@ export default async function AnalyticsPage() {
         (now.getTime() - new Date(profile.dateOfBirth).getTime()) / 86_400_000;
       const ageYears = ageDays / 365.25;
       if (ageYears < 25) label = "Under 25";
-      else if (ageYears < 35) label = "25–34";
-      else if (ageYears < 45) label = "35–44";
-      else if (ageYears < 55) label = "45–54";
+      else if (ageYears < 35) label = "25-34";
+      else if (ageYears < 45) label = "35-44";
+      else if (ageYears < 55) label = "45-54";
       else label = "55+";
     }
     ageGroupMap.set(label, (ageGroupMap.get(label) ?? 0) + 1);
@@ -479,16 +519,13 @@ export default async function AnalyticsPage() {
       ? (retained180.length / hires180DaysAgo.length) * 100
       : 0;
 
-  // ─── FUNNEL STAGES ────────────────────────────
-  const funnelOrder = ["applied", "screening", "interview", "offer", "hired"];
-  const funnelCounts = funnelOrder.map((stage) => ({
-    stage: stage.charAt(0).toUpperCase() + stage.slice(1),
+  // ─── FUNNEL STAGES (cumulative — apps at or past each stage) ─────────────
+  const funnelCounts = PIPELINE_STAGES.map((stage, i) => ({
+    stage: PIPELINE_STAGE_LABELS[stage] ?? stage,
     count: allApplications.filter(
-      (a) => a.currentStage === stage || a.status === stage,
+      (a) => pipelineStageIndex(a.currentStage) >= i,
     ).length,
   }));
-  // Accumulate: each stage includes all applications that reached at least that stage
-  // Use cumulative counts from the most inclusive stage
   const funnelStages = funnelCounts.map((s, i) => {
     const prevCount = i > 0 ? funnelCounts[i - 1].count : s.count;
     const dropOffRate =

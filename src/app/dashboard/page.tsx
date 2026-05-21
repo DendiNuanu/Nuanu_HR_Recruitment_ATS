@@ -2,16 +2,17 @@ import { prisma } from "@/lib/prisma";
 import DashboardClient, { DashboardMetrics } from "./DashboardClient";
 import { formatDate } from "@/lib/utils";
 import { checkRole } from "@/lib/rbac";
-import { unstable_cache } from "next/cache";
 import {
-  CHANNEL_COST_IDR,
   formatSourceLabel,
   getChannelCost,
   normalizeSourceKey,
 } from "@/lib/recruitment-sources";
 
-const getDashboardMetrics = unstable_cache(
-  async (): Promise<DashboardMetrics> => {
+export const dynamic = "force-dynamic";
+
+const ACTIVE_APP_WHERE = { deletedAt: null } as const;
+
+async function getDashboardMetrics(): Promise<DashboardMetrics> {
     const now = new Date();
     const oneMonthAgo = new Date(now);
     oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
@@ -36,7 +37,6 @@ const getDashboardMetrics = unstable_cache(
       hiredApplications,
       vacanciesForCost,
       allScores,
-      activities,
       topApps,
       interviews,
       newVacancies30d,
@@ -46,18 +46,31 @@ const getDashboardMetrics = unstable_cache(
     ] = await Promise.all([
       prisma.vacancy.count({ where: { status: "published" } }),
       prisma.vacancy.count(),
-      prisma.application.count(),
-      prisma.application.count({ where: { appliedAt: { gte: oneMonthAgo } } }),
+      prisma.application.count({ where: ACTIVE_APP_WHERE }),
+      prisma.application.count({
+        where: { ...ACTIVE_APP_WHERE, appliedAt: { gte: oneMonthAgo } },
+      }),
       prisma.offer.findMany({ select: { status: true } }),
-      prisma.candidateScore.aggregate({ _avg: { overallScore: true } }),
-      prisma.application.groupBy({ by: ["currentStage"], _count: true }),
-      prisma.application.groupBy({ by: ["source"], _count: true }),
+      prisma.candidateScore.aggregate({
+        where: { application: ACTIVE_APP_WHERE },
+        _avg: { overallScore: true },
+      }),
+      prisma.application.groupBy({
+        by: ["currentStage"],
+        where: ACTIVE_APP_WHERE,
+        _count: true,
+      }),
+      prisma.application.groupBy({
+        by: ["source"],
+        where: ACTIVE_APP_WHERE,
+        _count: true,
+      }),
       prisma.application.findMany({
-        where: { createdAt: { gte: sixMonthsAgo } },
+        where: { ...ACTIVE_APP_WHERE, createdAt: { gte: sixMonthsAgo } },
         select: { createdAt: true, currentStage: true },
       }),
       prisma.application.findMany({
-        where: { currentStage: "hired" },
+        where: { ...ACTIVE_APP_WHERE, currentStage: "hired" },
         select: {
           createdAt: true,
           updatedAt: true,
@@ -71,14 +84,12 @@ const getDashboardMetrics = unstable_cache(
         where: { status: "published" },
         select: { salaryMin: true, salaryMax: true },
       }),
-      prisma.candidateScore.findMany({ select: { overallScore: true } }),
-      prisma.activityLog.findMany({
-        take: 5,
-        orderBy: { createdAt: "desc" },
-        include: { user: true },
+      prisma.candidateScore.findMany({
+        where: { application: ACTIVE_APP_WHERE },
+        select: { overallScore: true },
       }),
       prisma.application.findMany({
-        where: { candidateScore: { isNot: null } },
+        where: { ...ACTIVE_APP_WHERE, candidateScore: { isNot: null } },
         include: { candidate: true, vacancy: true, candidateScore: true },
         orderBy: { candidateScore: { overallScore: "desc" } },
         take: 4,
@@ -86,6 +97,7 @@ const getDashboardMetrics = unstable_cache(
       prisma.interview.findMany({
         where: {
           status: { in: ["scheduled", "confirmed"] },
+          application: ACTIVE_APP_WHERE,
           // Include from 24 hours ago to handle timezone edge cases where a
           // server UTC "now" might fall slightly ahead of WIB-based entries.
           scheduledAt: {
@@ -103,28 +115,51 @@ const getDashboardMetrics = unstable_cache(
       // Count apps that had at least one non-cancelled interview (for yield ratio)
       prisma.interview.groupBy({
         by: ["applicationId"],
-        where: { status: { not: "cancelled" } },
+        where: {
+          status: { not: "cancelled" },
+          application: ACTIVE_APP_WHERE,
+        },
       }),
       // Channel cost lookup (for channel effectiveness)
       prisma.application.groupBy({
         by: ["source"],
-        where: { currentStage: "hired" },
+        where: { ...ACTIVE_APP_WHERE, currentStage: "hired" },
         _count: true,
       }),
     ]);
 
-    const activeCandidateIds = await prisma.application.findMany({
-      where: { deletedAt: null },
-      select: { candidateId: true },
-      distinct: ["candidateId"],
+    const activeApplications = await prisma.application.findMany({
+      where: ACTIVE_APP_WHERE,
+      select: { id: true, candidateId: true },
     });
+    const activeAppIds = activeApplications.map((a) => a.id);
+    const activeCandidateIds = [
+      ...new Set(activeApplications.map((a) => a.candidateId)),
+    ];
+
+    const activities =
+      activeAppIds.length > 0
+        ? await prisma.activityLog.findMany({
+            where: {
+              OR: [
+                { resourceId: { in: activeAppIds } },
+                {
+                  resourceId: { in: activeCandidateIds },
+                  userId: { in: activeCandidateIds },
+                },
+              ],
+            },
+            take: 5,
+            orderBy: { createdAt: "desc" },
+            include: { user: true },
+          })
+        : [];
+
     const candidateProfiles =
       activeCandidateIds.length > 0
         ? await prisma.candidateProfile.findMany({
             where: {
-              userId: {
-                in: activeCandidateIds.map((a) => a.candidateId),
-              },
+              userId: { in: activeCandidateIds },
             },
             select: { location: true, gender: true, dateOfBirth: true },
           })
@@ -498,21 +533,22 @@ const getDashboardMetrics = unstable_cache(
       { range: "Below 50", count: below50 },
     ];
 
-    // Recent activity
-    const recentActivity = activities.map((a) => {
-      const app = relatedApps.find(
-        (app) => app.id === a.resourceId || app.candidateId === a.resourceId,
-      );
-      return {
-        id: a.id,
-        type: a.resource.toLowerCase(),
-        action: a.action,
-        resource: app
-          ? `${app.candidate.name} (${app.vacancy.title})`
-          : a.user?.name || a.resourceId || a.resource,
-        time: formatDate(a.createdAt),
-      };
-    });
+    // Recent activity — only entries tied to current applications (live DB data)
+    const recentActivity = activities
+      .map((a) => {
+        const app = relatedApps.find(
+          (app) => app.id === a.resourceId || app.candidateId === a.resourceId,
+        );
+        if (!app) return null;
+        return {
+          id: a.id,
+          type: a.resource.toLowerCase(),
+          action: a.action,
+          resource: `${app.candidate.name} (${app.vacancy.title})`,
+          time: formatDate(a.createdAt),
+        };
+      })
+      .filter((entry): entry is NonNullable<typeof entry> => entry !== null);
 
     // Top candidates
     const topCandidates = topApps.map((app) => ({
@@ -572,10 +608,7 @@ const getDashboardMetrics = unstable_cache(
       genderBreakdown,
       ageBreakdown,
     };
-  },
-  ["dashboard-metrics"],
-  { revalidate: 15, tags: ["dashboard", "interviews", "applications", "offers"] },
-);
+}
 
 export default async function DashboardPage() {
   await checkRole([

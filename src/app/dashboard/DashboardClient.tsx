@@ -893,25 +893,32 @@ export default function DashboardClient({
             Recent Activity
           </h3>
           <div className="space-y-3">
-            {metrics.recentActivity.map((activity) => (
-              <div
-                key={activity.id}
-                className="flex items-start gap-3 p-3 rounded-xl hover:bg-nuanu-gray-50 transition-colors"
-              >
-                <ActivityIcon type={activity.type} />
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-nuanu-navy">
-                    {activity.action}
-                  </p>
-                  <p className="text-xs text-nuanu-gray-400 truncate">
-                    {activity.resource}
-                  </p>
+            {metrics.recentActivity.length === 0 ? (
+              <p className="text-sm text-nuanu-gray-400 py-6 text-center">
+                No recent activity yet. Updates appear here when you move
+                candidates, send emails, or schedule interviews.
+              </p>
+            ) : (
+              metrics.recentActivity.map((activity) => (
+                <div
+                  key={activity.id}
+                  className="flex items-start gap-3 p-3 rounded-xl hover:bg-nuanu-gray-50 transition-colors"
+                >
+                  <ActivityIcon type={activity.type} />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-nuanu-navy">
+                      {activity.action}
+                    </p>
+                    <p className="text-xs text-nuanu-gray-400 truncate">
+                      {activity.resource}
+                    </p>
+                  </div>
+                  <span className="text-xs text-nuanu-gray-400 whitespace-nowrap">
+                    {activity.time}
+                  </span>
                 </div>
-                <span className="text-xs text-nuanu-gray-400 whitespace-nowrap">
-                  {activity.time}
-                </span>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </motion.div>
 

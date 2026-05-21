@@ -1165,7 +1165,7 @@ export default function AnalyticsClient({
             <h3 className="font-bold text-nuanu-navy mb-4">
               Recruitment Pipeline Funnel
             </h3>
-            {d.funnelStages.length === 0 ? (
+            {d.funnelStages.every((s) => s.count === 0) ? (
               <EmptyState message="No pipeline data yet" />
             ) : (
               <div className="space-y-2">
