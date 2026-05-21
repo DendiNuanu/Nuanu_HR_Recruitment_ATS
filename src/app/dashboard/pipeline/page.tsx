@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { unstable_cache } from "next/cache";
 import PipelineBoard from "./PipelineBoard";
-import { PIPELINE_STAGES } from "@/lib/utils";
+import { PIPELINE_STAGES, resolvePipelineColumn } from "@/lib/utils";
 
 const getCachedPipelineData = unstable_cache(
   async () => {
@@ -23,49 +23,23 @@ const getCachedPipelineData = unstable_cache(
     for (const s of PIPELINE_STAGES) {
       formattedCandidates[s.id] = [];
     }
-    // Also initialise legacy stage IDs so existing DB records don't crash
-    const LEGACY_STAGES = [
-      "applied", "phone_screening", "hr_interview", "user_interview",
-      "final_interview", "interview_1", "interview_2", "offer",
-      "medical_check", "onboarding", "withdrawn", "rejected",
-    ];
-    for (const s of LEGACY_STAGES) {
-      if (!formattedCandidates[s]) formattedCandidates[s] = [];
-    }
-
     applications.forEach((app) => {
-      const stage = app.currentStage.toLowerCase();
-      if (formattedCandidates[stage] !== undefined) {
-        formattedCandidates[stage].push({
-          id: app.id,
-          applicationId: app.id,
-          name: app.candidate.name,
-          position: app.vacancy.title,
-          vacancyId: app.vacancyId,
-          score: app.candidateScore?.overallScore ?? 0,
-          appliedAt: app.appliedAt.toISOString(),
-          stage: stage,
-          tags:
-            app.candidateScore?.overallScore &&
-            app.candidateScore.overallScore >= 80
-              ? ["top_candidate"]
-              : [],
-        });
-      } else {
-        // Truly unknown stage → put in talent_bank (first stage)
-        const fallback = PIPELINE_STAGES[0].id;
-        formattedCandidates[fallback].push({
-          id: app.id,
-          applicationId: app.id,
-          name: app.candidate.name,
-          position: app.vacancy.title,
-          vacancyId: app.vacancyId,
-          score: app.candidateScore?.overallScore ?? 0,
-          appliedAt: app.appliedAt.toISOString(),
-          stage: fallback,
-          tags: [],
-        });
-      }
+      const columnId = resolvePipelineColumn(app.currentStage);
+      formattedCandidates[columnId].push({
+        id: app.id,
+        applicationId: app.id,
+        name: app.candidate.name,
+        position: app.vacancy.title,
+        vacancyId: app.vacancyId,
+        score: app.candidateScore?.overallScore ?? 0,
+        appliedAt: app.appliedAt.toISOString(),
+        stage: columnId,
+        tags:
+          app.candidateScore?.overallScore &&
+          app.candidateScore.overallScore >= 80
+            ? ["top_candidate"]
+            : [],
+      });
     });
 
     return { formattedCandidates, vacancies };

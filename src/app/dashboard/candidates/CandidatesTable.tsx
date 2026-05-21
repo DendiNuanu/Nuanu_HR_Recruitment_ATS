@@ -38,8 +38,11 @@ import {
   uploadCandidateResume,
   updateCandidateOverviewDetails,
 } from "./actions";
-import { formatDate } from "@/lib/utils";
-import { PIPELINE_STAGES } from "@/lib/utils";
+import {
+  formatDate,
+  PIPELINE_STAGES,
+  SOURCE_PRESET_OPTIONS,
+} from "@/lib/utils";
 import { toast } from "sonner";
 import CandidateProfile360 from "./CandidateProfile360";
 import Portal from "@/components/ui/Portal";
@@ -137,6 +140,11 @@ export default function CandidatesTable({
   // Interview comments state
   const [interviewCommentText, setInterviewCommentText] = useState("");
   const [savingInterviewComment, setSavingInterviewComment] = useState(false);
+
+  // Source field state
+  const [sourcePreset, setSourcePreset] = useState("direct");
+  const [sourceCustom, setSourceCustom] = useState("");
+  const [savingSource, setSavingSource] = useState(false);
 
   // CV Upload state
   const [uploadingCv, setUploadingCv] = useState(false);
@@ -299,6 +307,18 @@ export default function CandidatesTable({
     }
   };
 
+  const resetSourceFields = (source: string | null | undefined) => {
+    const src = (source || "direct").toLowerCase();
+    const preset = SOURCE_PRESET_OPTIONS.find((p) => p.value === src);
+    if (preset) {
+      setSourcePreset(preset.value);
+      setSourceCustom("");
+    } else {
+      setSourcePreset("other");
+      setSourceCustom(source || "");
+    }
+  };
+
   const openProfile = (c: Candidate) => {
     const normalized = normalizeCandidate(c);
     setSelectedProfile(normalized);
@@ -307,8 +327,31 @@ export default function CandidatesTable({
     setLocalInterviewComments(normalized.interviewComments);
     setNoteText("");
     setInterviewCommentText("");
+    resetSourceFields(normalized.source);
     setCvFile(null);
     setShow360(false);
+  };
+
+  const handleSaveSource = async () => {
+    if (!selectedProfile) return;
+    const value = (sourceCustom.trim() || sourcePreset || "direct").toLowerCase();
+    setSavingSource(true);
+    try {
+      const res = await updateCandidateOverviewDetails(
+        selectedProfile.id,
+        selectedProfile.userId,
+        { source: value },
+      );
+      if (res.success) {
+        setSelectedProfile({ ...selectedProfile, source: value });
+        resetSourceFields(value);
+        toast.success("Source updated");
+      } else {
+        toast.error(res.error || "Failed to update Source");
+      }
+    } finally {
+      setSavingSource(false);
+    }
   };
 
   const openEmailModal = (c: Candidate) => {
@@ -882,29 +925,52 @@ export default function CandidatesTable({
                         {selectedProfile.phone || "Not provided"}
                       </p>
                     </div>
-                    {/* Change 1: Source */}
+                    {/* Source — preset select + custom input + Apply */}
                     <div>
                       <p className="text-[11px] font-bold text-nuanu-gray-400 uppercase tracking-[0.1em] mb-2">
                         Source
                       </p>
-                      <select
-                        className="input-field py-1.5 px-2 text-xs font-bold bg-nuanu-gray-50 text-nuanu-gray-600 capitalize cursor-pointer -ml-2"
-                        value={selectedProfile.source || "direct"}
-                        onChange={async (e) => {
-                          const val = e.target.value;
-                          setSelectedProfile({ ...selectedProfile, source: val });
-                          const res = await updateCandidateOverviewDetails(selectedProfile.id, selectedProfile.userId, { source: val });
-                          if (res.success) toast.success("Source updated");
-                          else toast.error(res.error || "Failed to update Source");
-                        }}
-                      >
-                        <option value="direct">Direct</option>
-                        <option value="linkedin">LinkedIn</option>
-                        <option value="walk_in">Walk-in</option>
-                        <option value="referral">Referral</option>
-                        <option value="job_board">Job Board</option>
-                        <option value="other">Other</option>
-                      </select>
+                      <div className="flex flex-col gap-2 -ml-2">
+                        <select
+                          className="input-field py-1.5 px-2 text-xs font-bold bg-nuanu-gray-50 text-nuanu-gray-600 cursor-pointer"
+                          value={sourcePreset}
+                          onChange={(e) => setSourcePreset(e.target.value)}
+                        >
+                          {SOURCE_PRESET_OPTIONS.map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </option>
+                          ))}
+                        </select>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={sourceCustom}
+                            onChange={(e) => setSourceCustom(e.target.value)}
+                            onKeyDown={(e) =>
+                              e.key === "Enter" && handleSaveSource()
+                            }
+                            placeholder="Custom source..."
+                            className="flex-1 input-field py-1.5 px-2 text-xs font-medium"
+                          />
+                          <button
+                            onClick={handleSaveSource}
+                            disabled={
+                              savingSource ||
+                              (!sourceCustom.trim() &&
+                                sourcePreset === (selectedProfile.source || "direct"))
+                            }
+                            className="btn-primary px-3 py-1.5 text-xs flex items-center gap-1.5 shrink-0"
+                          >
+                            {savingSource ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Check className="w-3.5 h-3.5" />
+                            )}
+                            Apply
+                          </button>
+                        </div>
+                      </div>
                     </div>
                     {/* Email sent indicator */}
                     {selectedProfile.emailSentAt && (

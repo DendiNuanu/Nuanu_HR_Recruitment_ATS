@@ -5,32 +5,34 @@ import { revalidatePath } from "next/cache";
 import { createNotification } from "@/lib/notifications";
 import { delCache } from "@/lib/cache";
 import { sendEmail } from "@/lib/email";
-import { generateCode } from "@/lib/utils";
+import {
+  generateCode,
+  normalizePipelineStage,
+  PIPELINE_STAGE_IDS,
+} from "@/lib/utils";
 
-const VALID_STAGES = [
-  "applied",
-  "screening",
-  "phone_screening",
-  "assessment",
-  "interview_1",
-  "interview_2",
-  "offering",
-  "medical_check",
-  "onboarding",
-  "hired",
-  "withdrawn",
-];
+const VALID_STAGES = new Set(PIPELINE_STAGE_IDS);
 
 export async function moveApplication(applicationId: string, toStage: string) {
   try {
-    const stage = toStage.toLowerCase();
-    if (!VALID_STAGES.includes(stage)) {
+    const stage = normalizePipelineStage(toStage);
+    if (!VALID_STAGES.has(stage as (typeof PIPELINE_STAGE_IDS)[number])) {
       return { success: false, error: "Invalid stage" };
     }
 
     const app = await prisma.application.update({
       where: { id: applicationId },
-      data: { currentStage: stage, lastActivityAt: new Date() },
+      data: {
+        currentStage: stage,
+        lastActivityAt: new Date(),
+        status:
+          stage === "rejected"
+            ? "rejected"
+            : stage === "hired"
+              ? "hired"
+              : "active",
+        ...(stage === "rejected" ? { rejectedAt: new Date() } : {}),
+      },
       include: {
         candidate: {
           select: {
@@ -49,7 +51,6 @@ export async function moveApplication(applicationId: string, toStage: string) {
       },
     });
 
-    // ── Log pipeline stage history ──────────────────────────────
     await prisma.pipelineStage.create({
       data: {
         applicationId,
@@ -58,7 +59,6 @@ export async function moveApplication(applicationId: string, toStage: string) {
       },
     });
 
-    // ── HIRED or ONBOARDING → create Employee record ────────────
     if (stage === "hired" || stage === "onboarding") {
       try {
         const existing = await prisma.employee.findUnique({
@@ -79,7 +79,6 @@ export async function moveApplication(applicationId: string, toStage: string) {
             },
           });
         } else if (stage === "hired" && existing.status === "onboarding") {
-          // Promote from onboarding → active
           await prisma.employee.update({
             where: { userId: app.candidateId },
             data: { status: "active" },
@@ -90,12 +89,7 @@ export async function moveApplication(applicationId: string, toStage: string) {
       }
     }
 
-    // ── WITHDRAWN → send rejection email ────────────────────────
-    if (stage === "withdrawn") {
-      await prisma.application.update({
-        where: { id: applicationId },
-        data: { rejectedAt: new Date(), status: "rejected" },
-      });
+    if (stage === "rejected") {
       try {
         await sendEmail({
           to: app.candidate.email,
@@ -117,7 +111,6 @@ export async function moveApplication(applicationId: string, toStage: string) {
       }
     }
 
-    // ── Notify Admin/HR ─────────────────────────────────────────
     const admin = await prisma.user.findFirst({
       where: { userRoles: { some: { role: { slug: "admin" } } } },
     });
@@ -131,7 +124,6 @@ export async function moveApplication(applicationId: string, toStage: string) {
       });
     }
 
-    // Notify the recruiter/hiring manager if different from admin
     try {
       const appWithRecruiter = await prisma.application.findUnique({
         where: { id: applicationId },
@@ -148,7 +140,7 @@ export async function moveApplication(applicationId: string, toStage: string) {
         });
       }
     } catch {
-      // Non-fatal — notification failure must never break stage move
+      // Non-fatal
     }
 
     await delCache("dashboard_metrics");

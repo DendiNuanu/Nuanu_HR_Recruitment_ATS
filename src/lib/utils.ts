@@ -72,6 +72,45 @@ export const PIPELINE_STAGES = [
 
 export type PipelineStageId = typeof PIPELINE_STAGES[number]["id"];
 
+export const PIPELINE_STAGE_IDS = PIPELINE_STAGES.map((s) => s.id);
+
+/** Map legacy DB stage slugs to canonical pipeline column IDs */
+export const LEGACY_STAGE_TO_PIPELINE: Record<string, PipelineStageId> = {
+  applied: "talent_bank",
+  phone_screening: "screening",
+  interview_1: "hr_interview",
+  interview_2: "user_interview",
+  final_interview: "user_interview_2",
+  offer: "offering",
+  withdrawn: "rejected",
+  shortlisted: "screening",
+  tech_interview: "user_interview",
+};
+
+export function normalizePipelineStage(stage: string): string {
+  const key = stage.toLowerCase().trim();
+  if (PIPELINE_STAGE_IDS.includes(key as PipelineStageId)) return key;
+  return LEGACY_STAGE_TO_PIPELINE[key] ?? key;
+}
+
+export function resolvePipelineColumn(stage: string): PipelineStageId {
+  const normalized = normalizePipelineStage(stage);
+  if (PIPELINE_STAGE_IDS.includes(normalized as PipelineStageId)) {
+    return normalized as PipelineStageId;
+  }
+  return "talent_bank";
+}
+
+export const SOURCE_PRESET_OPTIONS = [
+  { value: "jobstreet", label: "Jobstreet" },
+  { value: "direct", label: "Direct" },
+  { value: "linkedin", label: "LinkedIn" },
+  { value: "walk_in", label: "Walk-In" },
+  { value: "referral", label: "Referral" },
+  { value: "job_board", label: "Job Board" },
+  { value: "other", label: "Other" },
+] as const;
+
 export const VACANCY_STATUSES = [
   { id: "draft", label: "Draft", color: "#94A3B8" },
   { id: "pending_approval", label: "Pending Approval", color: "#F59E0B" },
