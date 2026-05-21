@@ -350,61 +350,40 @@ export async function deleteNote(noteId: string) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// CUSTOM FIELD CRUD
+// INTERVIEW COMMENT CRUD
 // ─────────────────────────────────────────────────────────────
 
-export async function addCustomField(
+/** Fetch interview comments for an application (used server-side in page.tsx) */
+export async function getInterviewComments(applicationId: string) {
+  return prisma.interviewComment.findMany({
+    where: { applicationId },
+    include: { author: { select: { id: true, name: true, avatar: true } } },
+    orderBy: { createdAt: "desc" },
+  });
+}
+
+export async function addInterviewComment(
   applicationId: string,
-  fieldName: string,
-  fieldValue: string,
+  content: string,
 ) {
   try {
-    const field = await prisma.applicationCustomField.create({
+    const session = await getSession();
+    if (!session) return { success: false, error: "Unauthorized" };
+
+    const comment = await prisma.interviewComment.create({
       data: {
         applicationId,
-        fieldName: fieldName.trim(),
-        fieldValue: fieldValue.trim(),
+        content: content.trim(),
+        authorId: session.id,
       },
+      include: { author: { select: { id: true, name: true, avatar: true } } },
     });
     revalidatePath("/dashboard/candidates");
-    return { success: true, field };
+    return { success: true, comment };
   } catch (e: unknown) {
-    console.error("Failed to add field:", e);
-    const errorMessage = e instanceof Error ? e.message : "Failed to add field";
-    if (
-      errorMessage.includes("relation") ||
-      errorMessage.includes("table") ||
-      errorMessage.includes("does not exist")
-    ) {
-      return {
-        success: false,
-        error: "Database tables not set up. Please run the migration.",
-      };
-    }
-    return { success: false, error: "Failed to add field" };
-  }
-}
-
-export async function updateCustomField(
-  fieldId: string,
-  fieldName: string,
-  fieldValue: string,
-) {
-  try {
-    const field = await prisma.applicationCustomField.update({
-      where: { id: fieldId },
-      data: {
-        fieldName: fieldName.trim(),
-        fieldValue: fieldValue.trim(),
-        updatedAt: new Date(),
-      },
-    });
-    revalidatePath("/dashboard/candidates");
-    return { success: true, field };
-  } catch (e: unknown) {
-    console.error("Failed to update field:", e);
+    console.error("Failed to add interview comment:", e);
     const errorMessage =
-      e instanceof Error ? e.message : "Failed to update field";
+      e instanceof Error ? e.message : "Failed to add comment";
     if (
       errorMessage.includes("relation") ||
       errorMessage.includes("table") ||
@@ -415,19 +394,19 @@ export async function updateCustomField(
         error: "Database tables not set up. Please run the migration.",
       };
     }
-    return { success: false, error: "Failed to update field" };
+    return { success: false, error: "Failed to add comment" };
   }
 }
 
-export async function deleteCustomField(fieldId: string) {
+export async function deleteInterviewComment(commentId: string) {
   try {
-    await prisma.applicationCustomField.delete({ where: { id: fieldId } });
+    await prisma.interviewComment.delete({ where: { id: commentId } });
     revalidatePath("/dashboard/candidates");
     return { success: true };
   } catch (e: unknown) {
-    console.error("Failed to delete field:", e);
+    console.error("Failed to delete interview comment:", e);
     const errorMessage =
-      e instanceof Error ? e.message : "Failed to delete field";
+      e instanceof Error ? e.message : "Failed to delete comment";
     if (
       errorMessage.includes("relation") ||
       errorMessage.includes("table") ||
@@ -438,7 +417,7 @@ export async function deleteCustomField(fieldId: string) {
         error: "Database tables not set up. Please run the migration.",
       };
     }
-    return { success: false, error: "Failed to delete field" };
+    return { success: false, error: "Failed to delete comment" };
   }
 }
 

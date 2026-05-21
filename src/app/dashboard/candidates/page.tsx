@@ -45,28 +45,29 @@ const getCachedCandidatesData = unstable_cache(
           })
         : [];
 
-    // Fetch notes and custom fields for all applications
+    // Fetch notes and interview comments for all applications
     let notesAll: any[] = [];
-    let customFieldsAll: any[] = [];
+    let interviewCommentsAll: any[] = [];
     try {
       if (applicationIds.length > 0) {
-        const [notes, fields] = await Promise.all([
+        const [notes, interviewComments] = await Promise.all([
           prisma.candidateNote.findMany({
             where: { applicationId: { in: applicationIds } },
             include: { author: { select: { id: true, name: true } } },
             orderBy: { createdAt: "desc" },
           }),
-          prisma.applicationCustomField.findMany({
+          prisma.interviewComment.findMany({
             where: { applicationId: { in: applicationIds } },
-            orderBy: { createdAt: "asc" },
+            include: { author: { select: { id: true, name: true } } },
+            orderBy: { createdAt: "desc" },
           }),
         ]);
         notesAll = notes;
-        customFieldsAll = fields;
+        interviewCommentsAll = interviewComments;
       }
     } catch (error) {
       // Tables don't exist yet - that's okay, we'll show empty state
-      console.warn("Notes or custom fields tables not found:", error);
+      console.warn("Notes or interview comments tables not found:", error);
     }
 
     const candidates = applications.map((app) => {
@@ -105,13 +106,15 @@ const getCachedCandidatesData = unstable_cache(
             createdAt: n.createdAt.toISOString(),
             updatedAt: n.updatedAt.toISOString(),
           })),
-        customFields: customFieldsAll
-          .filter((f) => f.applicationId === app.id)
-          .map((f) => ({
-            id: f.id,
-            fieldName: f.fieldName,
-            fieldValue: f.fieldValue,
-            createdAt: f.createdAt.toISOString(),
+        interviewComments: interviewCommentsAll
+          .filter((c) => c.applicationId === app.id)
+          .map((c) => ({
+            id: c.id,
+            content: c.content,
+            authorName: c.author.name,
+            authorId: c.authorId,
+            createdAt: c.createdAt.toISOString(),
+            updatedAt: c.updatedAt.toISOString(),
           })),
       };
     });

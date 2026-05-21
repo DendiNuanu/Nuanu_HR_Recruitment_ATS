@@ -18,9 +18,7 @@ import {
   ExternalLink,
   AlertCircle,
   StickyNote,
-  Tag,
   Plus,
-  Pencil,
   Trash2,
   UploadCloud,
   CheckCircle2,
@@ -35,9 +33,8 @@ import {
   addNote,
   editNote,
   deleteNote,
-  addCustomField,
-  updateCustomField,
-  deleteCustomField,
+  addInterviewComment,
+  deleteInterviewComment,
   uploadCandidateResume,
   updateCandidateOverviewDetails,
 } from "./actions";
@@ -57,7 +54,7 @@ function normalizeCandidate(candidate: Candidate): Candidate {
   return {
     ...candidate,
     notes: candidate.notes ?? [],
-    customFields: candidate.customFields ?? [],
+    interviewComments: candidate.interviewComments ?? [],
     skills: Array.isArray(candidate.skills) ? candidate.skills : [],
     recommendations: normalizeRecommendations(candidate.recommendations),
   };
@@ -94,11 +91,13 @@ export type Candidate = {
     createdAt: string;
     updatedAt: string;
   }[];
-  customFields: {
+  interviewComments: {
     id: string;
-    fieldName: string;
-    fieldValue: string;
+    content: string;
+    authorName: string;
+    authorId: string;
     createdAt: string;
+    updatedAt: string;
   }[];
 };
 
@@ -114,7 +113,7 @@ export default function CandidatesTable({
 
   // Profile tab
   const [profileTab, setProfileTab] = useState<
-    "overview" | "resume" | "interview_results" | "notes" | "fields"
+    "overview" | "resume" | "interview_results" | "notes"
   >("overview");
 
   // Modals state
@@ -135,13 +134,9 @@ export default function CandidatesTable({
   const [editNoteText, setEditNoteText] = useState("");
   const [savingNote, setSavingNote] = useState(false);
 
-  // Custom fields state
-  const [newFieldName, setNewFieldName] = useState("");
-  const [newFieldValue, setNewFieldValue] = useState("");
-  const [editingFieldId, setEditingFieldId] = useState<string | null>(null);
-  const [editFieldName, setEditFieldName] = useState("");
-  const [editFieldValue, setEditFieldValue] = useState("");
-  const [savingField, setSavingField] = useState(false);
+  // Interview comments state
+  const [interviewCommentText, setInterviewCommentText] = useState("");
+  const [savingInterviewComment, setSavingInterviewComment] = useState(false);
 
   // CV Upload state
   const [uploadingCv, setUploadingCv] = useState(false);
@@ -163,9 +158,11 @@ export default function CandidatesTable({
     return map;
   });
 
-  // Local state for live notes/fields (so UI updates without full reload)
+  // Local state for live notes/comments (so UI updates without full reload)
   const [localNotes, setLocalNotes] = useState<Candidate["notes"]>([]);
-  const [localFields, setLocalFields] = useState<Candidate["customFields"]>([]);
+  const [localInterviewComments, setLocalInterviewComments] = useState<
+    Candidate["interviewComments"]
+  >([]);
 
   const filteredCandidates = candidates.filter((c) => {
     const matchSearch =
@@ -307,8 +304,9 @@ export default function CandidatesTable({
     setSelectedProfile(normalized);
     setProfileTab("overview");
     setLocalNotes(normalized.notes);
-    setLocalFields(normalized.customFields);
+    setLocalInterviewComments(normalized.interviewComments);
     setNoteText("");
+    setInterviewCommentText("");
     setCvFile(null);
     setShow360(false);
   };
@@ -384,71 +382,42 @@ export default function CandidatesTable({
     }
   };
 
-  // ── Custom field handlers ───────────────────────────────────
-  const handleAddField = async () => {
-    if (!selectedProfile || !newFieldName.trim() || !newFieldValue.trim())
-      return;
-    setSavingField(true);
-    const res = await addCustomField(
+  // ── Interview comment handlers ──────────────────────────────
+  const handleAddInterviewComment = async () => {
+    if (!selectedProfile || !interviewCommentText.trim()) return;
+    setSavingInterviewComment(true);
+    const res = await addInterviewComment(
       selectedProfile.id,
-      newFieldName.trim(),
-      newFieldValue.trim(),
+      interviewCommentText.trim(),
     );
-    if (res.success && res.field) {
-      setLocalFields([
-        ...localFields,
-        {
-          id: res.field.id,
-          fieldName: res.field.fieldName,
-          fieldValue: res.field.fieldValue,
-          createdAt: res.field.createdAt.toString(),
-        },
-      ]);
-      setNewFieldName("");
-      setNewFieldValue("");
-      toast.success("Field added");
+    if (res.success && res.comment) {
+      const newComment = {
+        id: res.comment.id,
+        content: res.comment.content,
+        authorName: res.comment.author.name,
+        authorId: res.comment.authorId,
+        createdAt: res.comment.createdAt.toString(),
+        updatedAt: res.comment.updatedAt.toString(),
+      };
+      setLocalInterviewComments([newComment, ...localInterviewComments]);
+      setInterviewCommentText("");
+      toast.success("Comment posted");
     } else {
-      toast.error(res.error || "Failed to add field");
+      toast.error(res.error || "Failed to post comment");
     }
-    setSavingField(false);
+    setSavingInterviewComment(false);
   };
 
-  const handleUpdateField = async (fieldId: string) => {
-    if (!editFieldName.trim() || !editFieldValue.trim()) return;
-    setSavingField(true);
-    const res = await updateCustomField(
-      fieldId,
-      editFieldName.trim(),
-      editFieldValue.trim(),
-    );
-    if (res.success && res.field) {
-      setLocalFields(
-        localFields.map((f) =>
-          f.id === fieldId
-            ? {
-                ...f,
-                fieldName: res.field!.fieldName,
-                fieldValue: res.field!.fieldValue,
-              }
-            : f,
-        ),
-      );
-      setEditingFieldId(null);
-      toast.success("Field updated");
-    } else {
-      toast.error(res.error || "Failed to update field");
-    }
-    setSavingField(false);
-  };
-
-  const handleDeleteField = async (fieldId: string) => {
-    if (!confirm("Delete this field?")) return;
-    const res = await deleteCustomField(fieldId);
+  const handleDeleteInterviewComment = async (commentId: string) => {
+    if (!confirm("Delete this comment?")) return;
+    const res = await deleteInterviewComment(commentId);
     if (res.success) {
-      setLocalFields(localFields.filter((f) => f.id !== fieldId));
-      toast.success("Field deleted");
+      setLocalInterviewComments(
+        localInterviewComments.filter((c) => c.id !== commentId),
+      );
+      toast.success("Comment deleted");
     } else {
-      toast.error("Failed to delete field");
+      toast.error("Failed to delete comment");
     }
   };
 
@@ -781,6 +750,11 @@ export default function CandidatesTable({
                   }`}
                 >
                   <MessageSquare className="w-4 h-4" /> Interview Results
+                  {localInterviewComments.length > 0 && (
+                    <span className="ml-1 bg-blue-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                      {localInterviewComments.length}
+                    </span>
+                  )}
                 </button>
                 <button
                   onClick={() => setProfileTab("notes")}
@@ -794,21 +768,6 @@ export default function CandidatesTable({
                   {localNotes.length > 0 && (
                     <span className="ml-1 bg-emerald-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
                       {localNotes.length}
-                    </span>
-                  )}
-                </button>
-                <button
-                  onClick={() => setProfileTab("fields")}
-                  className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-all border-b-2 ${
-                    profileTab === "fields"
-                      ? "border-emerald-500 text-emerald-700 bg-white"
-                      : "border-transparent text-nuanu-gray-400 hover:text-nuanu-navy hover:bg-white/60"
-                  }`}
-                >
-                  <Tag className="w-4 h-4" /> Custom Fields
-                  {localFields.length > 0 && (
-                    <span className="ml-1 bg-purple-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
-                      {localFields.length}
                     </span>
                   )}
                 </button>
@@ -1204,54 +1163,90 @@ export default function CandidatesTable({
 
               {/* ── Tab: Interview Results ──────────────────────────────── */}
               {profileTab === "interview_results" && (
-                <div className="p-6 overflow-y-auto flex-1 bg-gray-50/30">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {["HR Comment", "User 1 Comment", "User 2 Comment"].map((fieldName) => {
-                      const field = localFields.find((f) => f.fieldName === fieldName);
-                      return (
-                        <div key={fieldName} className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm flex flex-col h-full">
-                          <label className="block text-xs font-black text-nuanu-gray-500 uppercase tracking-widest mb-3">
-                            {fieldName}
-                          </label>
-                          <textarea
-                            className="flex-1 input-field min-h-[200px] resize-none text-sm p-4 bg-gray-50 hover:bg-white focus:bg-white transition-colors"
-                            placeholder={`Enter ${fieldName.toLowerCase()}...`}
-                            defaultValue={field?.fieldValue || ""}
-                            onBlur={async (e) => {
-                              const val = e.target.value.trim();
-                              if (val === (field?.fieldValue || "")) return;
-                              setSavingField(true);
-                              if (field) {
-                                if (val) {
-                                  const res = await updateCustomField(field.id, fieldName, val);
-                                  if (res.success) {
-                                    setLocalFields(localFields.map(f => f.id === field.id ? { ...f, fieldValue: val } : f));
-                                    toast.success(`${fieldName} updated`);
-                                  } else {
-                                    toast.error(res.error || "Failed to update");
-                                  }
-                                } else {
-                                  const res = await deleteCustomField(field.id);
-                                  if (res.success) {
-                                    setLocalFields(localFields.filter(f => f.id !== field.id));
-                                    toast.success(`${fieldName} deleted`);
-                                  }
-                                }
-                              } else if (val) {
-                                const res = await addCustomField(selectedProfile.id, fieldName, val);
-                                if (res.success && res.field) {
-                                  setLocalFields([...localFields, { ...res.field, createdAt: res.field.createdAt.toString() }]);
-                                  toast.success(`${fieldName} saved`);
-                                } else {
-                                  toast.error(res.error || "Failed to save");
-                                }
-                              }
-                              setSavingField(false);
-                            }}
-                          />
+                <div className="flex-1 flex flex-col overflow-hidden">
+                  <div className="p-6 border-b border-gray-100 bg-white">
+                    <div className="flex gap-3">
+                      <input
+                        type="text"
+                        value={interviewCommentText}
+                        onChange={(e) => setInterviewCommentText(e.target.value)}
+                        onKeyDown={(e) =>
+                          e.key === "Enter" && handleAddInterviewComment()
+                        }
+                        placeholder="Add interview feedback..."
+                        className="flex-1 input-field"
+                      />
+                      <button
+                        onClick={handleAddInterviewComment}
+                        disabled={
+                          !interviewCommentText.trim() || savingInterviewComment
+                        }
+                        className="btn-primary px-4 py-2 flex items-center gap-2"
+                      >
+                        {savingInterviewComment ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Check className="w-4 h-4" />
+                        )}
+                        Apply
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                    {localInterviewComments.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-12 text-center">
+                        <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center mb-4">
+                          <MessageSquare className="w-8 h-8 text-blue-400" />
                         </div>
-                      );
-                    })}
+                        <p className="text-lg font-bold text-nuanu-navy mb-1">
+                          No Interview Comments Yet
+                        </p>
+                        <p className="text-sm text-nuanu-gray-400 max-w-xs">
+                          Post interview feedback and notes from HR and
+                          interviewers.
+                        </p>
+                      </div>
+                    ) : (
+                      localInterviewComments.map((comment) => (
+                        <div
+                          key={comment.id}
+                          className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm"
+                        >
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                              <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold">
+                                {comment.authorName
+                                  .split(" ")
+                                  .map((n) => n[0])
+                                  .join("")
+                                  .substring(0, 2)
+                                  .toUpperCase()}
+                              </div>
+                              <div>
+                                <p className="text-sm font-bold text-nuanu-navy">
+                                  {comment.authorName}
+                                </p>
+                                <p className="text-xs text-nuanu-gray-400">
+                                  {formatDate(comment.createdAt)}
+                                </p>
+                              </div>
+                            </div>
+                            <button
+                              onClick={() =>
+                                handleDeleteInterviewComment(comment.id)
+                              }
+                              className="p-1.5 text-nuanu-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                          <div className="text-sm text-nuanu-gray-700 whitespace-pre-wrap">
+                            {comment.content}
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
                 </div>
               )}
@@ -1381,153 +1376,6 @@ export default function CandidatesTable({
                           )}
                         </div>
                       ))
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* ── Tab: Custom Fields ────────────────────────────────────── */}
-              {profileTab === "fields" && (
-                <div className="flex-1 flex flex-col overflow-hidden">
-                  <div className="p-6 border-b border-gray-100 bg-white">
-                    <div className="flex gap-3">
-                      <input
-                        type="text"
-                        value={newFieldName}
-                        onChange={(e) => setNewFieldName(e.target.value)}
-                        placeholder="Field name (e.g., LinkedIn, Portfolio)"
-                        className="flex-1 input-field"
-                      />
-                      <input
-                        type="text"
-                        value={newFieldValue}
-                        onChange={(e) => setNewFieldValue(e.target.value)}
-                        placeholder="Field value"
-                        className="flex-1 input-field"
-                        onKeyDown={(e) => e.key === "Enter" && handleAddField()}
-                      />
-                      <button
-                        onClick={handleAddField}
-                        disabled={
-                          !newFieldName.trim() ||
-                          !newFieldValue.trim() ||
-                          savingField
-                        }
-                        className="btn-primary px-4 py-2 flex items-center gap-2"
-                      >
-                        {savingField ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <Plus className="w-4 h-4" />
-                        )}
-                        Add Field
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="flex-1 overflow-y-auto p-6">
-                    {localFields.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center py-12 text-center">
-                        <div className="w-16 h-16 rounded-full bg-purple-50 flex items-center justify-center mb-4">
-                          <Tag className="w-8 h-8 text-purple-400" />
-                        </div>
-                        <p className="text-lg font-bold text-nuanu-navy mb-1">
-                          No Custom Fields
-                        </p>
-                        <p className="text-sm text-nuanu-gray-400 max-w-xs">
-                          Add custom fields to store additional information
-                          about this candidate.
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {localFields.map((field) => (
-                          <div
-                            key={field.id}
-                            className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm"
-                          >
-                            {editingFieldId === field.id ? (
-                              <div className="space-y-3">
-                                <input
-                                  type="text"
-                                  value={editFieldName}
-                                  onChange={(e) =>
-                                    setEditFieldName(e.target.value)
-                                  }
-                                  className="w-full input-field"
-                                  placeholder="Field name"
-                                />
-                                <input
-                                  type="text"
-                                  value={editFieldValue}
-                                  onChange={(e) =>
-                                    setEditFieldValue(e.target.value)
-                                  }
-                                  className="w-full input-field"
-                                  placeholder="Field value"
-                                />
-                                <div className="flex gap-2">
-                                  <button
-                                    onClick={() => handleUpdateField(field.id)}
-                                    disabled={
-                                      savingField ||
-                                      !editFieldName.trim() ||
-                                      !editFieldValue.trim()
-                                    }
-                                    className="btn-primary px-3 py-1.5 text-xs"
-                                  >
-                                    {savingField ? "Saving..." : "Save"}
-                                  </button>
-                                  <button
-                                    onClick={() => {
-                                      setEditingFieldId(null);
-                                      setEditFieldName("");
-                                      setEditFieldValue("");
-                                    }}
-                                    className="btn-secondary px-3 py-1.5 text-xs"
-                                  >
-                                    Cancel
-                                  </button>
-                                </div>
-                              </div>
-                            ) : (
-                              <>
-                                <div className="flex items-start justify-between mb-2">
-                                  <p className="text-xs font-bold text-nuanu-gray-400 uppercase tracking-wider">
-                                    {field.fieldName}
-                                  </p>
-                                  <div className="flex items-center gap-1">
-                                    <button
-                                      onClick={() => {
-                                        setEditingFieldId(field.id);
-                                        setEditFieldName(field.fieldName);
-                                        setEditFieldValue(field.fieldValue);
-                                      }}
-                                      className="p-1.5 text-nuanu-gray-400 hover:text-nuanu-navy hover:bg-gray-100 rounded-lg transition-colors"
-                                    >
-                                      <Edit className="w-4 h-4" />
-                                    </button>
-                                    <button
-                                      onClick={() =>
-                                        handleDeleteField(field.id)
-                                      }
-                                      className="p-1.5 text-nuanu-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                                    >
-                                      <Trash2 className="w-4 h-4" />
-                                    </button>
-                                  </div>
-                                </div>
-                                <p className="text-base font-bold text-nuanu-navy">
-                                  {field.fieldValue}
-                                </p>
-                                <p className="text-xs text-nuanu-gray-400 mt-2">
-                                  Added {formatDate(field.createdAt)}
-                                </p>
-                              </>
-                            )}
-                          </div>
-                        ))}
-                      </div>
                     )}
                   </div>
                 </div>

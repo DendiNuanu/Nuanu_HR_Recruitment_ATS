@@ -36,6 +36,7 @@ model User {
   createdVacancies    Vacancy[]           @relation("VacancyCreator")
   assignedVacancies   Vacancy[]           @relation("VacancyRecruiter")
   candidateNotes      CandidateNote[]
+  interviewComments   InterviewComment[]
   passwordResetTokens PasswordResetToken[]
   employeeRecord      Employee?
   verifiedDocuments   EmployeeDocument[]
@@ -288,9 +289,10 @@ model Application {
   interviews      Interview[]
   offer           Offer?
   pipelineStages  PipelineStage[]
-  notes           CandidateNote[]
-  customFields    ApplicationCustomField[]
-  referenceChecks ReferenceCheck[]
+  notes              CandidateNote[]
+  interviewComments  InterviewComment[]
+  customFields       ApplicationCustomField[]
+  referenceChecks    ReferenceCheck[]
 
   @@unique([vacancyId, candidateId])
   @@index([status])
@@ -340,6 +342,20 @@ model CandidateNote {
 
   @@index([applicationId])
   @@map("candidate_notes")
+}
+
+model InterviewComment {
+  id            String      @id @default(uuid())
+  applicationId String
+  content       String
+  authorId      String
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  author        User        @relation(fields: [authorId], references: [id])
+
+  @@index([applicationId])
+  @@map("interview_comments")
 }
 
 model ApplicationCustomField {

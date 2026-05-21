@@ -147,6 +147,26 @@ async function main() {
 
   try {
     await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS interview_comments (
+        id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+        "applicationId" TEXT NOT NULL,
+        content TEXT NOT NULL,
+        "authorId" TEXT NOT NULL,
+        "createdAt" TIMESTAMP NOT NULL DEFAULT NOW(),
+        "updatedAt" TIMESTAMP NOT NULL DEFAULT NOW()
+      )
+    `);
+    await prisma.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS interview_comments_applicationId_idx
+        ON interview_comments("applicationId")
+    `);
+    console.log("[migrate] ✅ interview_comments table OK");
+  } catch (e) {
+    console.warn("[migrate] interview_comments table (non-fatal):", e);
+  }
+
+  try {
+    await prisma.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS recruitment_channel_costs (
         id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
         channel TEXT NOT NULL,
