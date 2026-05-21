@@ -143,10 +143,9 @@ export default function CandidatesTable({
 
   // Source field state
   const [sourcePreset, setSourcePreset] = useState("direct");
-  const [sourceCustom, setSourceCustom] = useState("");
   const [savingSource, setSavingSource] = useState(false);
 
-  // Refer As / Domisili field state
+  // Refer As / Domicile field state
   const [referAsDraft, setReferAsDraft] = useState("");
   const [domicileDraft, setDomicileDraft] = useState("");
   const [savingReferAs, setSavingReferAs] = useState(false);
@@ -313,16 +312,22 @@ export default function CandidatesTable({
     }
   };
 
+  const SOURCE_ALIASES: Record<string, string> = {
+    "careers page": "career_page",
+    "career page": "career_page",
+    "nuanu career page": "career_page",
+    "nuanu careers": "career_page",
+  };
+
+  const normalizeSourcePreset = (source: string | null | undefined) => {
+    const src = (source || "direct").toLowerCase().trim();
+    const key = SOURCE_ALIASES[src] ?? src;
+    const preset = SOURCE_PRESET_OPTIONS.find((p) => p.value === key);
+    return preset ? preset.value : "other";
+  };
+
   const resetSourceFields = (source: string | null | undefined) => {
-    const src = (source || "direct").toLowerCase();
-    const preset = SOURCE_PRESET_OPTIONS.find((p) => p.value === src);
-    if (preset) {
-      setSourcePreset(preset.value);
-      setSourceCustom("");
-    } else {
-      setSourcePreset("other");
-      setSourceCustom(source || "");
-    }
+    setSourcePreset(normalizeSourcePreset(source));
   };
 
   const openProfile = (c: Candidate) => {
@@ -377,9 +382,9 @@ export default function CandidatesTable({
       if (res.success) {
         setSelectedProfile({ ...selectedProfile, domicile: val });
         setDomicileDraft(val);
-        toast.success("Domisili updated");
+        toast.success("Domicile updated");
       } else {
-        toast.error(res.error || "Failed to update Domisili");
+        toast.error(res.error || "Failed to update Domicile");
       }
     } finally {
       setSavingDomicile(false);
@@ -388,7 +393,7 @@ export default function CandidatesTable({
 
   const handleSaveSource = async () => {
     if (!selectedProfile) return;
-    const value = (sourceCustom.trim() || sourcePreset || "direct").toLowerCase();
+    const value = sourcePreset || "direct";
     setSavingSource(true);
     try {
       const res = await updateCandidateOverviewDetails(
@@ -969,7 +974,7 @@ export default function CandidatesTable({
                     {/* Change 1: Domicile */}
                     <div>
                       <p className="text-[11px] font-bold text-nuanu-gray-400 uppercase tracking-[0.1em] mb-2">
-                        Domisili
+                        Domicile
                       </p>
                       <div className="flex gap-2 -ml-2">
                         <input
@@ -1011,14 +1016,14 @@ export default function CandidatesTable({
                         {selectedProfile.phone || "Not provided"}
                       </p>
                     </div>
-                    {/* Source — preset select + custom input + Apply */}
+                    {/* Source — preset dropdown + Apply */}
                     <div>
                       <p className="text-[11px] font-bold text-nuanu-gray-400 uppercase tracking-[0.1em] mb-2">
                         Source
                       </p>
-                      <div className="flex flex-col gap-2 -ml-2">
+                      <div className="flex gap-2 -ml-2">
                         <select
-                          className="input-field py-1.5 px-2 text-xs font-bold bg-nuanu-gray-50 text-nuanu-gray-600 cursor-pointer"
+                          className="flex-1 input-field py-1.5 px-2 text-xs font-bold bg-nuanu-gray-50 text-nuanu-gray-600 cursor-pointer"
                           value={sourcePreset}
                           onChange={(e) => setSourcePreset(e.target.value)}
                         >
@@ -1028,34 +1033,22 @@ export default function CandidatesTable({
                             </option>
                           ))}
                         </select>
-                        <div className="flex gap-2">
-                          <input
-                            type="text"
-                            value={sourceCustom}
-                            onChange={(e) => setSourceCustom(e.target.value)}
-                            onKeyDown={(e) =>
-                              e.key === "Enter" && handleSaveSource()
-                            }
-                            placeholder="Custom source..."
-                            className="flex-1 input-field py-1.5 px-2 text-xs font-medium"
-                          />
-                          <button
-                            onClick={handleSaveSource}
-                            disabled={
-                              savingSource ||
-                              (!sourceCustom.trim() &&
-                                sourcePreset === (selectedProfile.source || "direct"))
-                            }
-                            className="btn-primary px-3 py-1.5 text-xs flex items-center gap-1.5 shrink-0"
-                          >
-                            {savingSource ? (
-                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                            ) : (
-                              <Check className="w-3.5 h-3.5" />
-                            )}
-                            Apply
-                          </button>
-                        </div>
+                        <button
+                          onClick={handleSaveSource}
+                          disabled={
+                            savingSource ||
+                            sourcePreset ===
+                              normalizeSourcePreset(selectedProfile.source)
+                          }
+                          className="btn-primary px-3 py-1.5 text-xs flex items-center gap-1.5 shrink-0"
+                        >
+                          {savingSource ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Check className="w-3.5 h-3.5" />
+                          )}
+                          Apply
+                        </button>
                       </div>
                     </div>
                     {/* Email sent indicator */}

@@ -103,6 +103,7 @@ export function resolvePipelineColumn(stage: string): PipelineStageId {
 
 export const SOURCE_PRESET_OPTIONS = [
   { value: "jobstreet", label: "Jobstreet" },
+  { value: "career_page", label: "Career Page" },
   { value: "direct", label: "Direct" },
   { value: "linkedin", label: "LinkedIn" },
   { value: "walk_in", label: "Walk-In" },
