@@ -146,6 +146,12 @@ export default function CandidatesTable({
   const [sourceCustom, setSourceCustom] = useState("");
   const [savingSource, setSavingSource] = useState(false);
 
+  // Refer As / Domisili field state
+  const [referAsDraft, setReferAsDraft] = useState("");
+  const [domicileDraft, setDomicileDraft] = useState("");
+  const [savingReferAs, setSavingReferAs] = useState(false);
+  const [savingDomicile, setSavingDomicile] = useState(false);
+
   // CV Upload state
   const [uploadingCv, setUploadingCv] = useState(false);
   const [cvFile, setCvFile] = useState<File | null>(null);
@@ -328,8 +334,56 @@ export default function CandidatesTable({
     setNoteText("");
     setInterviewCommentText("");
     resetSourceFields(normalized.source);
+    setReferAsDraft(normalized.referPosition || "");
+    setDomicileDraft(normalized.domicile || "");
     setCvFile(null);
     setShow360(false);
+  };
+
+  const handleSaveReferAs = async () => {
+    if (!selectedProfile) return;
+    const val = referAsDraft.trim();
+    if (!val || val === (selectedProfile.referPosition || "")) return;
+    setSavingReferAs(true);
+    try {
+      const res = await updateCandidateOverviewDetails(
+        selectedProfile.id,
+        selectedProfile.userId,
+        { referPosition: val },
+      );
+      if (res.success) {
+        setSelectedProfile({ ...selectedProfile, referPosition: val });
+        setReferAsDraft(val);
+        toast.success("Refer As updated");
+      } else {
+        toast.error(res.error || "Failed to update Refer As");
+      }
+    } finally {
+      setSavingReferAs(false);
+    }
+  };
+
+  const handleSaveDomicile = async () => {
+    if (!selectedProfile) return;
+    const val = domicileDraft.trim();
+    if (!val || val === (selectedProfile.domicile || "")) return;
+    setSavingDomicile(true);
+    try {
+      const res = await updateCandidateOverviewDetails(
+        selectedProfile.id,
+        selectedProfile.userId,
+        { domicile: val },
+      );
+      if (res.success) {
+        setSelectedProfile({ ...selectedProfile, domicile: val });
+        setDomicileDraft(val);
+        toast.success("Domisili updated");
+      } else {
+        toast.error(res.error || "Failed to update Domisili");
+      }
+    } finally {
+      setSavingDomicile(false);
+    }
   };
 
   const handleSaveSource = async () => {
@@ -833,20 +887,35 @@ export default function CandidatesTable({
                       <p className="text-[11px] font-bold text-nuanu-gray-400 uppercase tracking-[0.1em] mb-2">
                         Refer As
                       </p>
-                      <input
-                        className="input-field text-lg font-bold text-nuanu-navy leading-snug py-1 px-2 -ml-2"
-                        defaultValue={selectedProfile.referPosition || ""}
-                        placeholder={selectedProfile.vacancyTitle}
-                        onBlur={async (e) => {
-                          const val = e.target.value.trim();
-                          if (val !== (selectedProfile.referPosition || "")) {
-                            setSelectedProfile({ ...selectedProfile, referPosition: val });
-                            const res = await updateCandidateOverviewDetails(selectedProfile.id, selectedProfile.userId, { referPosition: val });
-                            if (res.success) toast.success("Refer As updated");
-                            else toast.error(res.error || "Failed to update Refer As");
+                      <div className="flex gap-2 -ml-2">
+                        <input
+                          type="text"
+                          value={referAsDraft}
+                          onChange={(e) => setReferAsDraft(e.target.value)}
+                          onKeyDown={(e) =>
+                            e.key === "Enter" && handleSaveReferAs()
                           }
-                        }}
-                      />
+                          placeholder={selectedProfile.vacancyTitle}
+                          className="flex-1 input-field text-lg font-bold text-nuanu-navy leading-snug py-1 px-2"
+                        />
+                        <button
+                          onClick={handleSaveReferAs}
+                          disabled={
+                            savingReferAs ||
+                            !referAsDraft.trim() ||
+                            referAsDraft.trim() ===
+                              (selectedProfile.referPosition || "")
+                          }
+                          className="btn-primary px-3 py-1.5 text-xs flex items-center gap-1.5 shrink-0"
+                        >
+                          {savingReferAs ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Check className="w-3.5 h-3.5" />
+                          )}
+                          Apply
+                        </button>
+                      </div>
                     </div>
                     <div>
                       <p className="text-[11px] font-bold text-nuanu-gray-400 uppercase tracking-[0.1em] mb-2">
@@ -902,20 +971,37 @@ export default function CandidatesTable({
                       <p className="text-[11px] font-bold text-nuanu-gray-400 uppercase tracking-[0.1em] mb-2">
                         Domisili
                       </p>
-                      <input
-                        className="input-field text-lg font-bold text-nuanu-navy py-1 px-2 -ml-2 w-full"
-                        defaultValue={selectedProfile.domicile || ""}
-                        placeholder={selectedProfile.location || "Enter city/region..."}
-                        onBlur={async (e) => {
-                          const val = e.target.value.trim();
-                          if (val !== (selectedProfile.domicile || "")) {
-                            setSelectedProfile({ ...selectedProfile, domicile: val });
-                            const res = await updateCandidateOverviewDetails(selectedProfile.id, selectedProfile.userId, { domicile: val });
-                            if (res.success) toast.success("Domisili updated");
-                            else toast.error(res.error || "Failed to update Domisili");
+                      <div className="flex gap-2 -ml-2">
+                        <input
+                          type="text"
+                          value={domicileDraft}
+                          onChange={(e) => setDomicileDraft(e.target.value)}
+                          onKeyDown={(e) =>
+                            e.key === "Enter" && handleSaveDomicile()
                           }
-                        }}
-                      />
+                          placeholder={
+                            selectedProfile.location || "Enter city/region..."
+                          }
+                          className="flex-1 input-field text-lg font-bold text-nuanu-navy py-1 px-2"
+                        />
+                        <button
+                          onClick={handleSaveDomicile}
+                          disabled={
+                            savingDomicile ||
+                            !domicileDraft.trim() ||
+                            domicileDraft.trim() ===
+                              (selectedProfile.domicile || "")
+                          }
+                          className="btn-primary px-3 py-1.5 text-xs flex items-center gap-1.5 shrink-0"
+                        >
+                          {savingDomicile ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Check className="w-3.5 h-3.5" />
+                          )}
+                          Apply
+                        </button>
+                      </div>
                     </div>
                     <div>
                       <p className="text-[11px] font-bold text-nuanu-gray-400 uppercase tracking-[0.1em] mb-2">
