@@ -67,8 +67,13 @@ const MONTH_SHORT = [
   "Dec",
 ];
 
-const DOB_YEAR_MIN = 1940;
+const DOB_YEAR_SPAN = 100;
 const DOB_DEFAULT_AGE_YEARS = 25;
+
+function dobMinYear(maxDate?: string): number {
+  const cap = yearFromISO(maxDate, new Date().getFullYear());
+  return cap - DOB_YEAR_SPAN;
+}
 
 function addDaysFromToday(days: number): string {
   const d = new Date();
@@ -104,9 +109,11 @@ function yearFromISO(iso: string | undefined, fallback: number): number {
 }
 
 function buildYearRange(minDate?: string, maxDate?: string): number[] {
-  const now = new Date().getFullYear();
-  const minY = Math.max(DOB_YEAR_MIN, yearFromISO(minDate, DOB_YEAR_MIN));
-  const maxY = yearFromISO(maxDate, now);
+  const maxY = yearFromISO(maxDate, new Date().getFullYear());
+  const minY = Math.max(
+    dobMinYear(maxDate),
+    yearFromISO(minDate, dobMinYear(maxDate)),
+  );
   const years: number[] = [];
   for (let y = maxY; y >= minY; y--) years.push(y);
   return years;
@@ -301,8 +308,7 @@ export default function DatePickerField({
 
   const onHeaderClick = () => {
     if (!isDob) return;
-    if (pickerView === "day") setPickerView("year");
-    else if (pickerView === "month") setPickerView("year");
+    if (pickerView === "day" || pickerView === "month") setPickerView("year");
   };
 
   const selectYear = (y: number) => {
@@ -394,11 +400,11 @@ export default function DatePickerField({
               <button
                 type="button"
                 onClick={onHeaderClick}
-                disabled={pickerView !== "day"}
+                disabled={pickerView === "year"}
                 className="flex-1 flex items-center justify-center gap-1.5 min-w-0 px-3 py-1.5 rounded-xl text-sm font-black text-nuanu-navy tracking-tight border border-emerald-200/80 bg-emerald-50/60 hover:bg-emerald-100 hover:border-emerald-400 transition-all shadow-sm disabled:opacity-100 disabled:cursor-default"
               >
                 <span className="truncate">{headerLabel()}</span>
-                {pickerView === "day" && (
+                {pickerView !== "year" && (
                   <ChevronDown className="w-4 h-4 text-emerald-600 shrink-0" />
                 )}
               </button>

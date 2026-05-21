@@ -5,6 +5,17 @@ import { UploadCloud, CheckCircle2 } from "lucide-react";
 import DatePickerField from "@/components/ui/DatePickerField";
 
 const MAX_RESUME_SIZE = 5 * 1024 * 1024;
+const DOB_MIN_YEARS = 100;
+
+function todayISO(): string {
+  return new Date().toISOString().split("T")[0];
+}
+
+function dobMinDateISO(): string {
+  const d = new Date();
+  d.setFullYear(d.getFullYear() - DOB_MIN_YEARS);
+  return d.toISOString().split("T")[0];
+}
 
 function validateResumeFile(file: File): string | null {
   const name = file.name.toLowerCase();
@@ -222,7 +233,8 @@ export default function ApplicationForm({ jobId }: { jobId: string }) {
               setFormData({ ...formData, dateOfBirth })
             }
             placeholder="dd/mm/yyyy"
-            maxDate={new Date().toISOString().split("T")[0]}
+            minDate={dobMinDateISO()}
+            maxDate={todayISO()}
           />
         </div>
       </div>
