@@ -6,6 +6,13 @@ External scraper (runs locally, not on Vercel) POSTs candidates to `/api/candida
 
 When a SEEK role (e.g. **Site Manager**, **Accounting Officer**) has no matching ATS vacancy, the API **auto-creates** a published job with that title (`SEEK_AUTO_CREATE_VACANCIES=true` by default).
 
+Resumes from the scraper are sent as base64 in the import payload and uploaded to **Supabase Storage** (`resumes` bucket). On Vercel, set:
+
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+
+Without these, candidates import but CVs show “No Resume on File” in the dashboard.
+
 1. Copy `.env.example` to `.env` and set `SEEK_IMPORT_KEY` (see example value in `.env.example`). Set the same value as `SEEK_IMPORT_KEY` on Vercel.
 2. Add the same variable in Vercel → Project → Settings → Environment Variables.
 3. Run the companion `seek-scraper` project (sibling folder) with matching `NUANU_API_KEY`.

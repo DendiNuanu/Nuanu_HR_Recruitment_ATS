@@ -7,6 +7,10 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import bcrypt from "bcryptjs";
 import { delCache } from "@/lib/cache";
+import {
+  guessResumeMimeType,
+  uploadResumeBase64,
+} from "@/lib/resume-storage";
 
 const IMPORT_SECRET = process.env.SEEK_IMPORT_KEY;
 
@@ -19,6 +23,10 @@ type SeekCandidateInput = {
   seekStatus?: string;
   location?: string;
   resumeUrl?: string;
+  /** Base64-encoded CV from SEEK scraper (uploaded to Supabase on import) */
+  resumeBase64?: string;
+  resumeFileName?: string;
+  resumeMimeType?: string;
   experience?: string | number;
   appliedAt?: string;
   vacancyId?: string;
@@ -267,6 +275,57 @@ async function findExistingUser(
   return null;
 }
 
+async function resolveSeekResumeUrl(raw: SeekCandidateInput): Promise<string | null> {
+  if (raw.resumeUrl?.trim()) return raw.resumeUrl.trim();
+
+  if (!raw.resumeBase64?.trim()) return null;
+
+  const fileName =
+    raw.resumeFileName?.trim() ||
+    `${(raw.name || "candidate").replace(/\s+/g, "_")}_resume.pdf`;
+
+  return uploadResumeBase64(
+    raw.resumeBase64,
+    fileName,
+    raw.resumeMimeType || guessResumeMimeType(fileName),
+  );
+}
+
+async function attachResumeToCandidate(
+  userId: string,
+  applicationId: string,
+  resumeUrl: string,
+  candidateName: string,
+  mimeType: string,
+): Promise<void> {
+  await prisma.candidateProfile.update({
+    where: { userId },
+    data: { resumeUrl },
+  });
+
+  const existingDoc = await prisma.document.findFirst({
+    where: { applicationId, type: "resume" },
+    select: { id: true },
+  });
+
+  if (!existingDoc) {
+    await prisma.document.create({
+      data: {
+        applicationId,
+        name: `CV - ${candidateName}`,
+        type: "resume",
+        fileUrl: resumeUrl,
+        mimeType,
+      },
+    });
+  } else {
+    await prisma.document.update({
+      where: { id: existingDoc.id },
+      data: { fileUrl: resumeUrl, mimeType },
+    });
+  }
+}
+
 /** Stable id from phone when SEEK list has no email — not a random throwaway per import. */
 function resolveImportEmail(raw: SeekCandidateInput, phone: string | null): string | null {
   const explicit = raw.email?.trim().toLowerCase();
@@ -283,8 +342,13 @@ function resolveImportEmail(raw: SeekCandidateInput, phone: string | null): stri
 async function importOneCandidate(
   raw: SeekCandidateInput,
 ): Promise<
-  | { status: "imported"; vacancyCreated: boolean; vacancyTitle: string }
-  | { status: "skipped" }
+  | {
+      status: "imported";
+      vacancyCreated: boolean;
+      vacancyTitle: string;
+      resumeAttached: boolean;
+    }
+  | { status: "skipped"; resumeAttached: boolean }
 > {
   const name = raw.name?.trim() || "Unknown";
   const phone = normalizePhone(raw.phone);
@@ -314,6 +378,11 @@ async function importOneCandidate(
 
   const { vacancyId, created: vacancyCreated, title: vacancyTitle } = ensured;
 
+  const resumeUrl = await resolveSeekResumeUrl(raw);
+  const resumeMimeType = guessResumeMimeType(
+    raw.resumeFileName || `${name}_resume.pdf`,
+  );
+
   const existingUser = await findExistingUser(
     raw.email?.trim() && !raw.email.includes("@noemail") ? email : null,
     phone,
@@ -325,7 +394,24 @@ async function importOneCandidate(
       select: { id: true },
     });
     if (existingApp) {
-      return { status: "skipped" };
+      let resumeAttached = false;
+      if (resumeUrl) {
+        const profile = await prisma.candidateProfile.findUnique({
+          where: { userId: existingUser.id },
+          select: { resumeUrl: true },
+        });
+        if (!profile?.resumeUrl) {
+          await attachResumeToCandidate(
+            existingUser.id,
+            existingApp.id,
+            resumeUrl,
+            name,
+            resumeMimeType,
+          );
+          resumeAttached = true;
+        }
+      }
+      return { status: "skipped", resumeAttached };
     }
   }
 
@@ -350,7 +436,7 @@ async function importOneCandidate(
     where: { userId: user.id },
     update: {
       ...(raw.location ? { location: raw.location.trim() } : {}),
-      ...(raw.resumeUrl ? { resumeUrl: raw.resumeUrl } : {}),
+      ...(resumeUrl ? { resumeUrl } : {}),
       ...(currentEmployment ? { currentTitle: currentEmployment } : {}),
       ...(seekAppliedRole ? { referPosition: seekAppliedRole } : {}),
       ...(raw.mostRecentRole ? { currentCompany: raw.mostRecentRole.trim() } : {}),
@@ -362,7 +448,7 @@ async function importOneCandidate(
     create: {
       userId: user.id,
       location: raw.location?.trim() || "Bali, Indonesia",
-      ...(raw.resumeUrl ? { resumeUrl: raw.resumeUrl } : {}),
+      ...(resumeUrl ? { resumeUrl } : {}),
       ...(currentEmployment ? { currentTitle: currentEmployment } : {}),
       ...(seekAppliedRole ? { referPosition: seekAppliedRole } : {}),
       ...(raw.mostRecentRole ? { currentCompany: raw.mostRecentRole.trim() } : {}),
@@ -394,19 +480,24 @@ async function importOneCandidate(
     });
   }
 
-  if (raw.resumeUrl) {
+  if (resumeUrl) {
     await prisma.document.create({
       data: {
         applicationId: application.id,
         name: `CV - ${name}`,
         type: "resume",
-        fileUrl: raw.resumeUrl,
-        mimeType: "application/pdf",
+        fileUrl: resumeUrl,
+        mimeType: resumeMimeType,
       },
     });
   }
 
-  return { status: "imported", vacancyCreated, vacancyTitle };
+  return {
+    status: "imported",
+    vacancyCreated,
+    vacancyTitle,
+    resumeAttached: Boolean(resumeUrl),
+  };
 }
 
 export async function GET(request: NextRequest) {
@@ -450,14 +541,20 @@ export async function POST(request: NextRequest) {
       const outcome = await importOneCandidate(candidate);
       if (outcome.status === "skipped") {
         results.skipped++;
-        results.details.push(`SKIP: ${label} (already exists)`);
+        const cvNote = outcome.resumeAttached ? ", CV attached" : "";
+        results.details.push(`SKIP: ${label} (already exists${cvNote})`);
       } else {
         results.imported++;
         const stage = mapSeekStatus(candidate.seekStatus);
         const vacancyNote = outcome.vacancyCreated
           ? `, auto-created job: ${outcome.vacancyTitle}`
           : `, job: ${outcome.vacancyTitle}`;
-        results.details.push(`OK: ${label} → stage: ${stage}${vacancyNote}`);
+        const cvNote = outcome.resumeAttached
+          ? ", CV uploaded"
+          : candidate.resumeBase64
+            ? ", CV missing (configure Supabase on Vercel)"
+            : "";
+        results.details.push(`OK: ${label} → stage: ${stage}${vacancyNote}${cvNote}`);
       }
     } catch (err: unknown) {
       results.errors++;
