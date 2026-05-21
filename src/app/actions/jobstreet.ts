@@ -8,7 +8,7 @@ export async function markJobAsPostedToJobStreet(
   jobStreetUrl?: string,
 ) {
   const existing = await prisma.jobPosting.findFirst({
-    where: { vacancyId: jobId, channel: "jobstreet" },
+    where: { vacancyId: jobId, channel: { in: ["seek", "jobstreet"] } },
   });
 
   if (existing) {
@@ -24,7 +24,7 @@ export async function markJobAsPostedToJobStreet(
     await prisma.jobPosting.create({
       data: {
         vacancyId: jobId,
-        channel: "jobstreet",
+        channel: "seek",
         status: "active",
         externalUrl: jobStreetUrl || null,
         publishedAt: new Date(),
@@ -38,7 +38,7 @@ export async function markJobAsPostedToJobStreet(
 
 export async function getJobStreetPostingStatus(jobId: string) {
   const posting = await prisma.jobPosting.findFirst({
-    where: { vacancyId: jobId, channel: "jobstreet" },
+    where: { vacancyId: jobId, channel: { in: ["seek", "jobstreet"] } },
   });
   return posting;
 }

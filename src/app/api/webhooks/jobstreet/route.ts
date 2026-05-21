@@ -37,7 +37,7 @@ export async function POST(request: Request) {
       data: {
         vacancyId: payload.jobReferenceId,
         candidateId: user.id,
-        source: "JobStreet",
+        source: "seek",
         status: "applied",
         currentStage: "applied",
       },

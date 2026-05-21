@@ -30,7 +30,7 @@ export async function GET(request: Request) {
 
   // Fallback hardcoded costs (IDR) if not in DB
   const FALLBACK: Record<string, number> = {
-    linkedin: 5_000_000, jobstreet: 3_000_000,
+    linkedin: 5_000_000, seek: 3_000_000,
     loker_bali: 1_000_000, other: 500_000,
     referral: 0, direct: 0, internal: 0,
   };

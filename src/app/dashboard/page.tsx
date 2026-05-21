@@ -3,6 +3,12 @@ import DashboardClient, { DashboardMetrics } from "./DashboardClient";
 import { formatDate } from "@/lib/utils";
 import { checkRole } from "@/lib/rbac";
 import { unstable_cache } from "next/cache";
+import {
+  CHANNEL_COST_IDR,
+  formatSourceLabel,
+  getChannelCost,
+  normalizeSourceKey,
+} from "@/lib/recruitment-sources";
 
 const getDashboardMetrics = unstable_cache(
   async (): Promise<DashboardMetrics> => {
@@ -37,7 +43,6 @@ const getDashboardMetrics = unstable_cache(
       newOffers30d,
       interviewedGroups,
       hiredBySource,
-      candidateProfiles,
     ] = await Promise.all([
       prisma.vacancy.count({ where: { status: "published" } }),
       prisma.vacancy.count(),
@@ -106,11 +111,24 @@ const getDashboardMetrics = unstable_cache(
         where: { currentStage: "hired" },
         _count: true,
       }),
-      // M9: Diversity — location, gender, date of birth
-      prisma.candidateProfile.findMany({
-        select: { location: true, gender: true, dateOfBirth: true },
-      }),
     ]);
+
+    const activeCandidateIds = await prisma.application.findMany({
+      where: { deletedAt: null },
+      select: { candidateId: true },
+      distinct: ["candidateId"],
+    });
+    const candidateProfiles =
+      activeCandidateIds.length > 0
+        ? await prisma.candidateProfile.findMany({
+            where: {
+              userId: {
+                in: activeCandidateIds.map((a) => a.candidateId),
+              },
+            },
+            select: { location: true, gender: true, dateOfBirth: true },
+          })
+        : [];
 
     // ── Secondary query (depends on activities result) ──────────────────────
     const resourceIds = activities
@@ -164,12 +182,22 @@ const getDashboardMetrics = unstable_cache(
       (acc, curr) => acc + curr._count,
       0,
     );
-    const candidateSourceBreakdown = sourceGroups
-      .map((s) => ({
-        source: s.source.charAt(0).toUpperCase() + s.source.slice(1),
-        count: s._count,
+    const mergedSources = new Map<string, number>();
+    for (const s of sourceGroups) {
+      const key = normalizeSourceKey(s.source);
+      if (!key) continue;
+      mergedSources.set(key, (mergedSources.get(key) ?? 0) + s._count);
+    }
+    const mergedTotal = Array.from(mergedSources.values()).reduce(
+      (a, b) => a + b,
+      0,
+    );
+    const candidateSourceBreakdown = Array.from(mergedSources.entries())
+      .map(([key, count]) => ({
+        source: formatSourceLabel(key),
+        count,
         percentage:
-          totalSources > 0 ? Math.round((s._count / totalSources) * 100) : 0,
+          mergedTotal > 0 ? Math.round((count / mergedTotal) * 100) : 0,
       }))
       .sort((a, b) => b.count - a.count);
 
@@ -238,8 +266,8 @@ const getDashboardMetrics = unstable_cache(
     const linkedinHires = hiredApplications.filter(
       (a) => a.source?.toLowerCase() === "linkedin",
     ).length;
-    const jobstreetHires = hiredApplications.filter(
-      (a) => a.source?.toLowerCase() === "jobstreet",
+    const seekHires = hiredApplications.filter(
+      (a) => normalizeSourceKey(a.source) === "seek",
     ).length;
     const referralRate =
       totalHiresCount > 0
@@ -249,30 +277,24 @@ const getDashboardMetrics = unstable_cache(
       totalHiresCount > 0
         ? Math.round((linkedinHires / totalHiresCount) * 100)
         : 0;
-    const jobstreetRate =
+    const seekRate =
       totalHiresCount > 0
-        ? Math.round((jobstreetHires / totalHiresCount) * 100)
+        ? Math.round((seekHires / totalHiresCount) * 100)
         : 0;
 
     // M5: Channel Effectiveness — hires per channel with estimated cost
-    const CHANNEL_COST_IDR: Record<string, number> = {
-      referral: 0,
-      direct: 0,
-      internal: 0,
-      linkedin: 5_000_000,
-      jobstreet: 3_000_000,
-      loker_bali: 1_000_000,
-      other: 500_000,
-    };
-    const channelEffectiveness = hiredBySource
-      .map((row) => {
-        const src = (row.source || "direct").toLowerCase();
-        const count = row._count;
-        const costPerHire = CHANNEL_COST_IDR[src] ?? CHANNEL_COST_IDR.other;
+    const mergedHiredBySource = new Map<string, number>();
+    for (const row of hiredBySource) {
+      const key = normalizeSourceKey(row.source);
+      if (!key) continue;
+      mergedHiredBySource.set(key, (mergedHiredBySource.get(key) ?? 0) + row._count);
+    }
+    const channelEffectiveness = Array.from(mergedHiredBySource.entries())
+      .map(([src, count]) => {
+        const costPerHire = getChannelCost(src);
         const totalCost = count * costPerHire;
         return {
-          channel:
-            src.charAt(0).toUpperCase() + src.slice(1).replace(/_/g, " "),
+          channel: formatSourceLabel(src),
           hires: count,
           costPerHire,
           totalCost,
@@ -355,10 +377,10 @@ const getDashboardMetrics = unstable_cache(
                   100,
               )
             : 0,
-        jobstreet:
+        seek:
           qTotal > 0
             ? Math.round(
-                (qHires.filter((a) => a.source?.toLowerCase() === "jobstreet")
+                (qHires.filter((a) => normalizeSourceKey(a.source) === "seek")
                   .length /
                   qTotal) *
                   100,
@@ -539,7 +561,7 @@ const getDashboardMetrics = unstable_cache(
       changes,
       referralRate,
       linkedinRate,
-      jobstreetRate,
+      seekRate,
       quarterlyRates,
       channelEffectiveness,
       yieldRatio,
@@ -552,7 +574,7 @@ const getDashboardMetrics = unstable_cache(
     };
   },
   ["dashboard-metrics"],
-  { revalidate: 30, tags: ["dashboard", "interviews"] },
+  { revalidate: 15, tags: ["dashboard", "interviews", "applications", "offers"] },
 );
 
 export default async function DashboardPage() {

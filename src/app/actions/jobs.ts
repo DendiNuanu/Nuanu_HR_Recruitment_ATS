@@ -166,7 +166,7 @@ export async function createVacancy(formData: FormData) {
   if (publishToJobStreet) {
     postings.push({
       vacancyId: newVacancy.id,
-      channel: "jobstreet",
+      channel: "seek",
       status: "active",
       publishedAt: new Date(),
     });

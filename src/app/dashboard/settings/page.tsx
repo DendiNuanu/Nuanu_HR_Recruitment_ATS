@@ -1047,7 +1047,7 @@ export default function SettingsPage() {
                       API Integrations
                     </h2>
                     <p className="text-sm text-nuanu-gray-500">
-                      Configure Webhooks for LinkedIn, JobStreet, and Google
+                      Configure Webhooks for LinkedIn, SEEK, and Google
                       Sheets
                     </p>
                   </div>
@@ -1131,7 +1131,7 @@ export default function SettingsPage() {
                           </div>
                           <div>
                             <h3 className="font-bold text-nuanu-navy text-sm">
-                              JobStreet / SEEK
+                              SEEK
                             </h3>
                             <p className="text-[10px] text-nuanu-gray-400 uppercase font-black">
                               Smart Post Integration
@@ -1149,7 +1149,7 @@ export default function SettingsPage() {
                           </p>
                           <p className="text-[10px] text-emerald-600 mt-1">
                             Use our guided Smart Post feature from any job card
-                            to post directly to JobStreet.
+                            to post directly to SEEK.
                           </p>
                         </div>
 

@@ -445,8 +445,8 @@ export default function CandidatesTable({
 
   const SOURCE_ALIASES: Record<string, string> = {
     seek: "seek",
+    jobstreet: "seek",
     "hr upload": "other",
-    jobstreet: "jobstreet",
     "careers page": "career_page",
     "career page": "career_page",
     "nuanu career page": "career_page",

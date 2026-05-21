@@ -256,8 +256,8 @@ export default function JobStreetPoster({
       await markJobAsPostedToJobStreet(job.id, jobStreetUrl || undefined);
       setMarkedSuccess(true);
       onMarkPosted(job.id);
-      toast.success("🎉 Job marked as posted on JobStreet!", {
-        description: "This vacancy is now tracked as live on JobStreet.",
+      toast.success("🎉 Job marked as posted on SEEK!", {
+        description: "This vacancy is now tracked as live on SEEK.",
         duration: 5000,
       });
     } catch {
@@ -312,7 +312,7 @@ export default function JobStreetPoster({
 
                     <div>
                       <h2 className="text-xl font-black text-white leading-none">
-                        Post to JobStreet
+                        Post to SEEK
                       </h2>
                       <p className="text-[#E60278]/80 text-xs font-semibold mt-1">
                         SEEK Partner Smart-Post Integration
@@ -330,7 +330,7 @@ export default function JobStreetPoster({
                       {[
                         "Review & Format",
                         "Copy Details",
-                        "Paste on JobStreet",
+                        "Paste on SEEK",
                       ].map((step, i) => (
                         <div key={step} className="flex items-center gap-2">
                           <div className="flex items-center gap-1.5">
@@ -555,7 +555,7 @@ export default function JobStreetPoster({
                         </div>
                         <div>
                           <p className="text-sm font-bold text-nuanu-navy">
-                            Open JobStreet Employer
+                            Open SEEK Employer
                           </p>
                           <p className="text-[10px] text-nuanu-gray-400">
                             Open your employer dashboard to post a new job
@@ -570,7 +570,7 @@ export default function JobStreetPoster({
                           className="flex items-center justify-center gap-2.5 w-full py-3 rounded-xl font-bold text-sm text-white bg-gradient-to-r from-[#E60278] to-[#cc026b] hover:from-[#cc026b] hover:to-[#b50260] shadow-lg shadow-[#E60278]/25 transition-all hover:-translate-y-0.5 active:translate-y-0"
                         >
                           <ExternalLink className="w-4 h-4" />
-                          Open JobStreet Dashboard
+                          Open SEEK Dashboard
                         </a>
                         <p className="text-[10px] text-nuanu-gray-400 text-center leading-relaxed">
                           Need an account?{" "}
@@ -639,14 +639,14 @@ export default function JobStreetPoster({
 
                       <div className="p-5 space-y-4">
                         <p className="text-xs text-nuanu-gray-500 leading-relaxed">
-                          After posting on JobStreet, click below to mark this
+                          After posting on SEEK, click below to mark this
                           job as posted so your team knows it's live.
                         </p>
 
                         {/* URL input */}
                         <div>
                           <label className="block text-[10px] font-black uppercase tracking-widest text-nuanu-gray-400 mb-1.5">
-                            JobStreet Job URL{" "}
+                            SEEK Job URL{" "}
                             <span className="normal-case font-normal text-nuanu-gray-300">
                               (optional)
                             </span>
@@ -672,7 +672,7 @@ export default function JobStreetPoster({
                             </div>
                             <div className="text-left">
                               <p className="text-sm font-bold text-emerald-700">
-                                Posted on JobStreet ✓
+                                Posted on SEEK ✓
                               </p>
                               <p className="text-[10px] text-emerald-600">
                                 Tracked successfully in your ATS
@@ -693,7 +693,7 @@ export default function JobStreetPoster({
                             ) : (
                               <>
                                 <Check className="w-4 h-4" />
-                                Mark as Posted on JobStreet
+                                Mark as Posted on SEEK
                               </>
                             )}
                           </button>

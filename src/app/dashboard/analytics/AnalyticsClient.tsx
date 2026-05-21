@@ -64,13 +64,13 @@ export type AnalyticsData = {
   }[];
   referralRate: number;
   linkedinRate: number;
-  jobstreetRate: number;
+  seekRate: number;
   totalHires: number;
   quarterlyRates: {
     quarter: string;
     referral: number;
     linkedin: number;
-    jobstreet: number;
+    seek: number;
     totalHires: number;
   }[];
   channelEffectiveness: {
@@ -709,24 +709,24 @@ export default function AnalyticsClient({
               </div>
             </div>
 
-            {/* Jobstreet Rate */}
+            {/* SEEK Rate */}
             <div className="card p-4">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <Globe className="w-4 h-4 text-purple-500" />
                   <span className="text-sm font-semibold text-nuanu-navy">
-                    Jobstreet Rate
+                    SEEK Rate
                   </span>
                   <span className="badge bg-purple-50 text-purple-600 text-[10px]">
                     M4
                   </span>
                 </div>
                 <span className="text-2xl font-bold text-purple-600">
-                  {d.jobstreetRate.toFixed(1)}%
+                  {d.seekRate.toFixed(1)}%
                 </span>
               </div>
               <p className="text-xs text-nuanu-gray-400 mb-3">
-                Hires sourced from Jobstreet
+                Hires sourced from SEEK
               </p>
               <div className="space-y-1.5">
                 {d.quarterlyRates.map((q) => (
@@ -738,11 +738,11 @@ export default function AnalyticsClient({
                     <div className="flex-1 h-2 bg-nuanu-gray-100 rounded-full overflow-hidden">
                       <div
                         className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full"
-                        style={{ width: `${Math.min(100, q.jobstreet)}%` }}
+                        style={{ width: `${Math.min(100, q.seek)}%` }}
                       />
                     </div>
                     <span className="w-8 text-right font-semibold text-nuanu-navy">
-                      {q.jobstreet.toFixed(0)}%
+                      {q.seek.toFixed(0)}%
                     </span>
                   </div>
                 ))}

@@ -83,7 +83,7 @@ export type DashboardMetrics = {
   };
   referralRate: number;
   linkedinRate: number;
-  jobstreetRate: number;
+  seekRate: number;
   channelEffectiveness: {
     channel: string;
     hires: number;
@@ -99,7 +99,7 @@ export type DashboardMetrics = {
     totalHires: number;
     referral: number;
     linkedin: number;
-    jobstreet: number;
+    seek: number;
   }[];
   domicileBreakdown: { location: string; count: number; percentage: number }[];
   genderBreakdown: { gender: string; count: number; percentage: number }[];
@@ -349,11 +349,11 @@ export default function DashboardClient({
                 qKey: "linkedin" as const,
               },
               {
-                label: "Jobstreet Rate",
-                annual: metrics.jobstreetRate,
+                label: "SEEK Rate",
+                annual: metrics.seekRate,
                 color: "#8B5CF6",
                 badge: "M4",
-                qKey: "jobstreet" as const,
+                qKey: "seek" as const,
               },
             ].map((ch) => (
               <div key={ch.label}>

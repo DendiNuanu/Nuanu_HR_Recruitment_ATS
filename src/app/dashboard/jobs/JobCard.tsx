@@ -35,7 +35,8 @@ export default function JobCard({ job }: { job: any }) {
     () =>
       job.jobPostings?.some(
         (p: { channel: string; status: string }) =>
-          p.channel === "jobstreet" && p.status === "active",
+          (p.channel === "seek" || p.channel === "jobstreet") &&
+            p.status === "active",
       ) ?? false,
   );
 
@@ -271,10 +272,10 @@ export default function JobCard({ job }: { job: any }) {
             </span>
             {isPostedToJobStreet ? (
               <>
-                <CheckCircle2 className="w-3.5 h-3.5" /> Posted on JobStreet
+                <CheckCircle2 className="w-3.5 h-3.5" /> Posted on SEEK
               </>
             ) : (
-              "Post to JobStreet"
+              "Post to SEEK"
             )}
           </button>
         </div>

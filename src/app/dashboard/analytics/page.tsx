@@ -1,5 +1,10 @@
 import { prisma } from "@/lib/prisma";
 import AnalyticsClient, { AnalyticsData } from "./AnalyticsClient";
+import {
+  formatSourceLabel,
+  getChannelCost,
+  normalizeSourceKey,
+} from "@/lib/recruitment-sources";
 
 // ─────────────────────────────────────────────
 // Constants
@@ -19,21 +24,6 @@ const MONTHS = [
   "Nov",
   "Dec",
 ];
-
-/** Estimated cost per channel in IDR */
-const CHANNEL_COST_IDR: Record<string, number> = {
-  referral: 0,
-  direct: 0,
-  internal: 0,
-  linkedin: 5_000_000,
-  jobstreet: 3_000_000,
-  loker_bali: 1_000_000,
-  other: 500_000,
-};
-
-function getChannelCost(channel: string): number {
-  return CHANNEL_COST_IDR[channel.toLowerCase()] ?? CHANNEL_COST_IDR.other;
-}
 
 // ─────────────────────────────────────────────
 // Helpers
@@ -62,11 +52,11 @@ export default async function AnalyticsPage() {
     allInterviews,
     allVacancies,
     allRequisitions,
-    allCandidateProfiles,
   ] = await Promise.all([
     prisma.application.findMany({
       select: {
         id: true,
+        candidateId: true,
         source: true,
         status: true,
         currentStage: true,
@@ -143,10 +133,18 @@ export default async function AnalyticsPage() {
       },
     }),
 
-    prisma.candidateProfile.findMany({
-      select: { location: true, gender: true, dateOfBirth: true },
-    }),
   ]);
+
+  const activeCandidateIds = [
+    ...new Set(allApplications.map((a) => a.candidateId)),
+  ];
+  const allCandidateProfiles =
+    activeCandidateIds.length > 0
+      ? await prisma.candidateProfile.findMany({
+          where: { userId: { in: activeCandidateIds } },
+          select: { location: true, gender: true, dateOfBirth: true },
+        })
+      : [];
 
   const now = new Date();
   const currentYear = now.getFullYear();
@@ -160,7 +158,8 @@ export default async function AnalyticsPage() {
   // ─── 1. SOURCING ANALYTICS ─────────────────────
   const sourceMap = new Map<string, { count: number; hires: number }>();
   for (const app of allApplications) {
-    const src = (app.source || "direct").toLowerCase();
+    const src = normalizeSourceKey(app.source);
+    if (!src) continue;
     const existing = sourceMap.get(src) ?? { count: 0, hires: 0 };
     existing.count++;
     if (app.currentStage === "hired" || app.status === "hired") {
@@ -172,8 +171,7 @@ export default async function AnalyticsPage() {
   const totalApps = allApplications.length;
   const sourceBreakdown = Array.from(sourceMap.entries())
     .map(([source, data]) => ({
-      source:
-        source.charAt(0).toUpperCase() + source.slice(1).replace(/_/g, " "),
+      source: formatSourceLabel(source),
       count: data.count,
       hires: data.hires,
       percentage:
@@ -191,14 +189,13 @@ export default async function AnalyticsPage() {
   const linkedinHires = hiredApps.filter(
     (a) => a.source?.toLowerCase() === "linkedin",
   ).length;
-  const jobstreetHires = hiredApps.filter(
-    (a) => a.source?.toLowerCase() === "jobstreet",
+  const seekHires = hiredApps.filter(
+    (a) => normalizeSourceKey(a.source) === "seek",
   ).length;
 
   const referralRate = totalHires > 0 ? (referralHires / totalHires) * 100 : 0;
   const linkedinRate = totalHires > 0 ? (linkedinHires / totalHires) * 100 : 0;
-  const jobstreetRate =
-    totalHires > 0 ? (jobstreetHires / totalHires) * 100 : 0;
+  const seekRate = totalHires > 0 ? (seekHires / totalHires) * 100 : 0;
 
   // Quarterly rates for current year
   const quarterlyRates = [1, 2, 3, 4].map((q) => {
@@ -228,10 +225,10 @@ export default async function AnalyticsPage() {
                 100,
             )
           : 0,
-      jobstreet:
+      seek:
         qTotal > 0
           ? Math.round(
-              (qHires.filter((a) => a.source?.toLowerCase() === "jobstreet")
+              (qHires.filter((a) => normalizeSourceKey(a.source) === "seek")
                 .length /
                 qTotal) *
                 100,
@@ -241,26 +238,17 @@ export default async function AnalyticsPage() {
   });
 
   // ─── 5. CHANNEL EFFECTIVENESS ─────────────────
-  const allChannels = Array.from(
-    new Set([
-      ...Array.from(sourceMap.keys()),
-      ...Object.keys(CHANNEL_COST_IDR),
-    ]),
-  );
-
-  const channelEffectiveness = allChannels
-    .map((channel) => {
-      const src = sourceMap.get(channel) ?? { count: 0, hires: 0 };
+  const channelEffectiveness = Array.from(sourceMap.entries())
+    .map(([channel, src]) => {
       const estimatedCost = src.hires * getChannelCost(channel);
       return {
-        channel:
-          channel.charAt(0).toUpperCase() + channel.slice(1).replace(/_/g, " "),
+        channel: formatSourceLabel(channel),
         hires: src.hires,
         estimatedCost,
         costPerHire: src.hires > 0 ? Math.round(estimatedCost / src.hires) : 0,
       };
     })
-    .filter((c) => c.hires > 0 || c.estimatedCost > 0);
+    .filter((c) => c.hires > 0);
 
   // ─── 6. RECRUITMENT YIELD RATIO ───────────────
   // Count applications that had at least 1 non-cancelled interview
@@ -650,7 +638,7 @@ export default async function AnalyticsPage() {
     sourceBreakdown,
     referralRate,
     linkedinRate,
-    jobstreetRate,
+    seekRate,
     totalHires,
     quarterlyRates,
     channelEffectiveness,

@@ -115,8 +115,8 @@ export default async function CreateVacancyPage() {
               <label className="flex items-start gap-3 p-3 bg-nuanu-gray-50 rounded-lg border border-nuanu-gray-200 cursor-pointer hover:bg-indigo-50 hover:border-indigo-200 transition-colors">
                 <input type="checkbox" name="publishJobStreet" className="mt-1 w-4 h-4 text-indigo-600 rounded border-gray-300" />
                 <div>
-                  <p className="text-sm font-bold text-nuanu-navy flex items-center gap-2"><Webhook className="w-4 h-4 text-indigo-500" /> JobStreet / SEEK</p>
-                  <p className="text-xs text-nuanu-gray-500 mt-1">Push to JobStreet job board via API.</p>
+                  <p className="text-sm font-bold text-nuanu-navy flex items-center gap-2"><Webhook className="w-4 h-4 text-indigo-500" /> SEEK</p>
+                  <p className="text-xs text-nuanu-gray-500 mt-1">Push to SEEK job board via API.</p>
                 </div>
               </label>
             </div>
