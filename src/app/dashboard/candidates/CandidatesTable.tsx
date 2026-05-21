@@ -46,6 +46,7 @@ import { PIPELINE_STAGES } from "@/lib/utils";
 import { toast } from "sonner";
 import CandidateProfile360 from "./CandidateProfile360";
 import Portal from "@/components/ui/Portal";
+import DatePickerField from "@/components/ui/DatePickerField";
 
 function normalizeRecommendations(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
@@ -857,19 +858,33 @@ export default function CandidatesTable({
                       <p className="text-[11px] font-bold text-nuanu-gray-400 uppercase tracking-[0.1em] mb-2">
                         Applied Date
                       </p>
-                      <input
-                        type="date"
-                        className="input-field text-lg font-bold text-nuanu-navy py-1 px-2 -ml-2 w-full"
-                        defaultValue={new Date(selectedProfile.appliedAt).toISOString().split('T')[0]}
-                        onChange={async (e) => {
-                          const val = e.target.value;
-                          if (val) {
-                            setSelectedProfile({ ...selectedProfile, appliedAt: new Date(val).toISOString() });
-                            const res = await updateCandidateOverviewDetails(selectedProfile.id, selectedProfile.userId, { appliedAt: new Date(val).toISOString() });
-                            if (res.success) toast.success("Applied Date updated");
-                            else toast.error(res.error || "Failed to update Applied Date");
-                          }
+                      <DatePickerField
+                        value={
+                          selectedProfile.appliedAt
+                            ? new Date(selectedProfile.appliedAt)
+                                .toISOString()
+                                .split("T")[0]
+                            : ""
+                        }
+                        onChange={async (val) => {
+                          if (!val) return;
+                          const appliedIso = new Date(val).toISOString();
+                          setSelectedProfile({
+                            ...selectedProfile,
+                            appliedAt: appliedIso,
+                          });
+                          const res = await updateCandidateOverviewDetails(
+                            selectedProfile.id,
+                            selectedProfile.userId,
+                            { appliedAt: appliedIso },
+                          );
+                          if (res.success) toast.success("Applied date updated");
+                          else
+                            toast.error(
+                              res.error || "Failed to update applied date",
+                            );
                         }}
+                        placeholder="dd/mm/yyyy"
                       />
                     </div>
                     <div>

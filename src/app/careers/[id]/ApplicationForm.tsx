@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { UploadCloud, CheckCircle2 } from "lucide-react";
+import DatePickerField from "@/components/ui/DatePickerField";
 
 export default function ApplicationForm({ jobId }: { jobId: string }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -173,14 +174,13 @@ export default function ApplicationForm({ jobId }: { jobId: string }) {
           <label className="block text-xs font-semibold text-nuanu-gray-600 mb-1">
             Date of Birth
           </label>
-          <input
-            type="date"
-            className="input-field py-2.5 text-sm"
-            max={new Date().toISOString().split("T")[0]}
+          <DatePickerField
             value={formData.dateOfBirth}
-            onChange={(e) =>
-              setFormData({ ...formData, dateOfBirth: e.target.value })
+            onChange={(dateOfBirth) =>
+              setFormData({ ...formData, dateOfBirth })
             }
+            placeholder="dd/mm/yyyy"
+            maxDate={new Date().toISOString().split("T")[0]}
           />
         </div>
       </div>
