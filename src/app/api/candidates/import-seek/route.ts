@@ -74,6 +74,12 @@ function applicationStatusForStage(stage: string): string {
   return "active";
 }
 
+const SEEK_ROLE_VACANCY_ENV: Record<string, string | undefined> = {
+  "site manager": process.env.SEEK_VACANCY_SITE_MANAGER,
+  "accounting officer": process.env.SEEK_VACANCY_ACCOUNTING_OFFICER,
+  "safety officer": process.env.SEEK_VACANCY_SAFETY_OFFICER,
+};
+
 async function resolveVacancyId(
   vacancyId: string | undefined,
   appliedRole: string | undefined,
@@ -86,16 +92,34 @@ async function resolveVacancyId(
     if (byId) return byId.id;
   }
 
-  if (appliedRole?.trim()) {
-    const byTitle = await prisma.vacancy.findFirst({
+  const role = appliedRole?.trim();
+  if (role) {
+    const envId = SEEK_ROLE_VACANCY_ENV[role.toLowerCase()];
+    if (envId) {
+      const mapped = await prisma.vacancy.findFirst({
+        where: { id: envId, deletedAt: null },
+        select: { id: true },
+      });
+      if (mapped) return mapped.id;
+    }
+
+    const exact = await prisma.vacancy.findFirst({
+      where: { deletedAt: null, title: { equals: role, mode: "insensitive" } },
+      select: { id: true },
+    });
+    if (exact) return exact.id;
+
+    const contains = await prisma.vacancy.findFirst({
       where: {
         deletedAt: null,
-        title: { contains: appliedRole.trim(), mode: "insensitive" },
+        title: { contains: role, mode: "insensitive" },
       },
       orderBy: { createdAt: "desc" },
       select: { id: true },
     });
-    if (byTitle) return byTitle.id;
+    if (contains) return contains.id;
+
+    return null;
   }
 
   const fallback = await prisma.vacancy.findFirst({
@@ -155,14 +179,19 @@ async function importOneCandidate(
   }
   const stage = mapSeekStatus(raw.seekStatus);
   const appliedAt = raw.appliedAt ? new Date(raw.appliedAt) : new Date();
-  const roleTitle = raw.appliedRole?.trim() || raw.mostRecentRole?.trim() || null;
+  const seekAppliedRole = raw.appliedRole?.trim() || null;
+  const currentEmployment = raw.mostRecentRole?.trim() || null;
   const experienceYears = parseExperienceYears(raw.experience);
 
   const vacancyId =
-    (await resolveVacancyId(raw.vacancyId, raw.appliedRole)) ?? defaultVacancyId;
+    (await resolveVacancyId(raw.vacancyId, seekAppliedRole ?? undefined)) ??
+    (seekAppliedRole ? null : defaultVacancyId);
 
   if (!vacancyId) {
-    throw new Error("No vacancy found (provide vacancyId or publish a vacancy)");
+    const hint = seekAppliedRole
+      ? `No ATS job matches SEEK role "${seekAppliedRole}". Create a vacancy with that title or set SEEK_VACANCY_SITE_MANAGER / SEEK_VACANCY_ACCOUNTING_OFFICER in Vercel env.`
+      : "No vacancy found (publish a vacancy or set appliedRole from SEEK)";
+    throw new Error(hint);
   }
 
   const existingUser = await findExistingUser(
@@ -202,7 +231,8 @@ async function importOneCandidate(
     update: {
       ...(raw.location ? { location: raw.location.trim() } : {}),
       ...(raw.resumeUrl ? { resumeUrl: raw.resumeUrl } : {}),
-      ...(roleTitle ? { currentTitle: roleTitle, referPosition: roleTitle } : {}),
+      ...(currentEmployment ? { currentTitle: currentEmployment } : {}),
+      ...(seekAppliedRole ? { referPosition: seekAppliedRole } : {}),
       ...(raw.mostRecentRole ? { currentCompany: raw.mostRecentRole.trim() } : {}),
       ...(experienceYears != null ? { experienceYears } : {}),
       ...(typeof raw.experience === "string" && raw.experience.trim()
@@ -213,7 +243,8 @@ async function importOneCandidate(
       userId: user.id,
       location: raw.location?.trim() || "Bali, Indonesia",
       ...(raw.resumeUrl ? { resumeUrl: raw.resumeUrl } : {}),
-      ...(roleTitle ? { currentTitle: roleTitle, referPosition: roleTitle } : {}),
+      ...(currentEmployment ? { currentTitle: currentEmployment } : {}),
+      ...(seekAppliedRole ? { referPosition: seekAppliedRole } : {}),
       ...(raw.mostRecentRole ? { currentCompany: raw.mostRecentRole.trim() } : {}),
       ...(experienceYears != null ? { experienceYears } : {}),
       ...(typeof raw.experience === "string" && raw.experience.trim()

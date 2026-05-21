@@ -60,7 +60,7 @@ const getCachedCandidatesData = unstable_cache(
         userId: app.candidateId,
         name: app.candidate.name,
         email: app.candidate.email,
-        vacancyTitle: app.vacancy.title,
+        vacancyTitle: profile?.referPosition ?? app.vacancy.title,
         stage: app.currentStage,
         score: app.candidateScore?.overallScore ?? 0,
         experienceYears: profile?.experienceYears ?? 0,
