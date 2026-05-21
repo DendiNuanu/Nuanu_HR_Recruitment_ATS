@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo, useEffect, useDeferredValue } from "react";
+import dynamic from "next/dynamic";
 import {
   Search,
   Filter,
@@ -37,6 +38,8 @@ import {
   deleteInterviewComment,
   uploadCandidateResume,
   updateCandidateOverviewDetails,
+  getNotes,
+  getInterviewComments,
 } from "./actions";
 import {
   formatDate,
@@ -44,9 +47,15 @@ import {
   SOURCE_PRESET_OPTIONS,
 } from "@/lib/utils";
 import { toast } from "sonner";
-import CandidateProfile360 from "./CandidateProfile360";
 import Portal from "@/components/ui/Portal";
+
 import DatePickerField from "@/components/ui/DatePickerField";
+
+const PAGE_SIZE = 50;
+
+const CandidateProfile360 = dynamic(() => import("./CandidateProfile360"), {
+  loading: () => null,
+});
 
 function normalizeRecommendations(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
@@ -104,15 +113,41 @@ export type Candidate = {
   }[];
 };
 
+type StageNotice = {
+  type: "success" | "error";
+  title: string;
+  message: string;
+};
+
+function stageLabel(stageId: string) {
+  return (
+    PIPELINE_STAGES.find((s) => s.id === stageId)?.label ??
+    stageId.replace(/_/g, " ")
+  );
+}
+
 export default function CandidatesTable({
   candidates,
 }: {
   candidates: Candidate[];
 }) {
+  const [localCandidates, setLocalCandidates] = useState(candidates);
   const [search, setSearch] = useState("");
+  const deferredSearch = useDeferredValue(search);
   const [stageFilter, setStageFilter] = useState("all");
+  const [page, setPage] = useState(1);
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
   const [loadingActionId, setLoadingActionId] = useState<string | null>(null);
+  const [stageNotice, setStageNotice] = useState<StageNotice | null>(null);
+  const [loadingProfileDetails, setLoadingProfileDetails] = useState(false);
+
+  useEffect(() => {
+    setLocalCandidates(candidates);
+  }, [candidates]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [deferredSearch, stageFilter]);
 
   // Profile tab
   const [profileTab, setProfileTab] = useState<
@@ -177,38 +212,134 @@ export default function CandidatesTable({
     Candidate["interviewComments"]
   >([]);
 
-  const filteredCandidates = candidates.filter((c) => {
-    const matchSearch =
-      c.name.toLowerCase().includes(search.toLowerCase()) ||
-      c.email.toLowerCase().includes(search.toLowerCase()) ||
-      c.vacancyTitle.toLowerCase().includes(search.toLowerCase());
-    const matchStage =
-      stageFilter === "all" ||
-      c.stage.toLowerCase() === stageFilter.toLowerCase();
-    return matchSearch && matchStage;
-  });
+  const filteredCandidates = useMemo(() => {
+    const q = deferredSearch.trim().toLowerCase();
+    return localCandidates.filter((c) => {
+      const matchSearch =
+        !q ||
+        c.name.toLowerCase().includes(q) ||
+        c.email.toLowerCase().includes(q) ||
+        c.vacancyTitle.toLowerCase().includes(q);
+      const matchStage =
+        stageFilter === "all" ||
+        c.stage.toLowerCase() === stageFilter.toLowerCase();
+      return matchSearch && matchStage;
+    });
+  }, [localCandidates, deferredSearch, stageFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredCandidates.length / PAGE_SIZE));
+  const paginatedCandidates = useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE;
+    return filteredCandidates.slice(start, start + PAGE_SIZE);
+  }, [filteredCandidates, page]);
+
+  const showStageNotice = (notice: StageNotice) => {
+    setStageNotice(notice);
+    if (notice.type === "success") {
+      window.setTimeout(() => setStageNotice(null), 2800);
+    }
+  };
+
+  const applyStageUpdateResult = (
+    applicationId: string,
+    result: Awaited<ReturnType<typeof updateCandidateStage>>,
+    candidateName: string,
+    targetStageId: string,
+    previousStage: string,
+  ) => {
+    if (result.success && result.newStage) {
+      setLocalCandidates((prev) =>
+        prev.map((c) =>
+          c.id === applicationId ? { ...c, stage: result.newStage! } : c,
+        ),
+      );
+      showStageNotice({
+        type: "success",
+        title: "Stage updated",
+        message: `${candidateName} moved to ${stageLabel(result.newStage)}.`,
+      });
+      return;
+    }
+
+    setLocalCandidates((prev) =>
+      prev.map((c) =>
+        c.id === applicationId ? { ...c, stage: previousStage } : c,
+      ),
+    );
+    showStageNotice({
+      type: "error",
+      title: "Stage update failed",
+      message:
+        result.error ??
+        `Could not move ${candidateName} to ${stageLabel(targetStageId)}.`,
+    });
+  };
 
   const handleStageAction = async (id: string, action: "next" | "reject") => {
+    const candidate = localCandidates.find((c) => c.id === id);
+    if (!candidate) return;
+    const previousStage = candidate.stage;
+    const targetStage = action === "reject" ? "rejected" : "assessment";
+
     setLoadingActionId(id);
     setActiveMenuId(null);
+    setLocalCandidates((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, stage: targetStage } : c)),
+    );
     try {
-      await updateCandidateStage(id, action);
+      const result = await updateCandidateStage(id, action);
+      applyStageUpdateResult(id, result, candidate.name, targetStage, previousStage);
     } catch (error) {
       console.error(error);
+      setLocalCandidates((prev) =>
+        prev.map((c) => (c.id === id ? { ...c, stage: previousStage } : c)),
+      );
+      showStageNotice({
+        type: "error",
+        title: "Stage update failed",
+        message: `Could not update stage for ${candidate.name}. Please try again.`,
+      });
     } finally {
       setLoadingActionId(null);
     }
   };
 
-  // Change 2: move to specific stage
-  const handleStageSelect = async (applicationId: string, stageId: string) => {
+  const handleStageSelect = async (
+    applicationId: string,
+    stageId: string,
+    previousStage: string,
+  ) => {
+    const candidate = localCandidates.find((c) => c.id === applicationId);
+    if (!candidate || stageId === previousStage) return;
+
     setStageSelectorId(null);
     setLoadingActionId(applicationId);
+    setLocalCandidates((prev) =>
+      prev.map((c) =>
+        c.id === applicationId ? { ...c, stage: stageId } : c,
+      ),
+    );
     try {
-      // Call updateCandidateStage with the target stage ID
-      await updateCandidateStage(applicationId, stageId);
+      const result = await updateCandidateStage(applicationId, stageId);
+      applyStageUpdateResult(
+        applicationId,
+        result,
+        candidate.name,
+        stageId,
+        previousStage,
+      );
     } catch (error) {
       console.error(error);
+      setLocalCandidates((prev) =>
+        prev.map((c) =>
+          c.id === applicationId ? { ...c, stage: previousStage } : c,
+        ),
+      );
+      showStageNotice({
+        type: "error",
+        title: "Stage update failed",
+        message: `Could not move ${candidate.name} to ${stageLabel(stageId)}.`,
+      });
     } finally {
       setLoadingActionId(null);
     }
@@ -330,12 +461,12 @@ export default function CandidatesTable({
     setSourcePreset(normalizeSourcePreset(source));
   };
 
-  const openProfile = (c: Candidate) => {
+  const openProfile = async (c: Candidate) => {
     const normalized = normalizeCandidate(c);
     setSelectedProfile(normalized);
     setProfileTab("overview");
-    setLocalNotes(normalized.notes);
-    setLocalInterviewComments(normalized.interviewComments);
+    setLocalNotes([]);
+    setLocalInterviewComments([]);
     setNoteText("");
     setInterviewCommentText("");
     resetSourceFields(normalized.source);
@@ -343,6 +474,45 @@ export default function CandidatesTable({
     setDomicileDraft(normalized.domicile || "");
     setCvFile(null);
     setShow360(false);
+    setLoadingProfileDetails(true);
+    try {
+      const [notes, comments] = await Promise.all([
+        getNotes(c.id),
+        getInterviewComments(c.id),
+      ]);
+      const mappedNotes = notes.map((n) => ({
+        id: n.id,
+        content: n.content,
+        authorName: n.author.name,
+        authorId: n.authorId,
+        createdAt: n.createdAt.toISOString(),
+        updatedAt: n.updatedAt.toISOString(),
+      }));
+      const mappedComments = comments.map((comment) => ({
+        id: comment.id,
+        content: comment.content,
+        authorName: comment.author.name,
+        authorId: comment.authorId,
+        createdAt: comment.createdAt.toISOString(),
+        updatedAt: comment.updatedAt.toISOString(),
+      }));
+      setLocalNotes(mappedNotes);
+      setLocalInterviewComments(mappedComments);
+      setSelectedProfile((prev) =>
+        prev?.id === c.id
+          ? {
+              ...prev,
+              notes: mappedNotes,
+              interviewComments: mappedComments,
+            }
+          : prev,
+      );
+    } catch (error) {
+      console.error("Failed to load profile details:", error);
+      toast.error("Could not load notes and interview comments");
+    } finally {
+      setLoadingProfileDetails(false);
+    }
   };
 
   const handleSaveReferAs = async () => {
@@ -594,13 +764,8 @@ export default function CandidatesTable({
             </tr>
           </thead>
           <tbody>
-            {filteredCandidates.map((candidate, i) => (
-              <motion.tr
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.05 }}
-                key={candidate.id}
-              >
+            {paginatedCandidates.map((candidate) => (
+              <tr key={candidate.id}>
                 <td className="pl-6">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-100 to-teal-100 text-emerald-700 flex items-center justify-center font-bold text-sm shadow-sm border border-emerald-200">
@@ -740,7 +905,13 @@ export default function CandidatesTable({
                         <select
                           className="py-2 px-3 text-xs font-semibold bg-nuanu-gray-50 hover:bg-nuanu-gray-100 border border-nuanu-gray-200 text-nuanu-navy rounded-lg cursor-pointer outline-none transition-colors"
                           value={candidate.stage}
-                          onChange={(e) => handleStageSelect(candidate.id, e.target.value)}
+                          onChange={(e) =>
+                            handleStageSelect(
+                              candidate.id,
+                              e.target.value,
+                              candidate.stage,
+                            )
+                          }
                           title="Change Stage"
                         >
                           {PIPELINE_STAGES.map((s) => (
@@ -753,10 +924,41 @@ export default function CandidatesTable({
                     </div>
                   </div>
                 </td>
-              </motion.tr>
+              </tr>
             ))}
           </tbody>
         </table>
+
+        {filteredCandidates.length > PAGE_SIZE && (
+          <div className="flex items-center justify-between px-6 py-4 border-t border-nuanu-gray-100">
+            <p className="text-sm text-nuanu-gray-500">
+              Showing {(page - 1) * PAGE_SIZE + 1}–
+              {Math.min(page * PAGE_SIZE, filteredCandidates.length)} of{" "}
+              {filteredCandidates.length}
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={page <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                className="px-3 py-1.5 text-sm font-medium rounded-lg border border-nuanu-gray-200 disabled:opacity-40 hover:bg-nuanu-gray-50"
+              >
+                Previous
+              </button>
+              <span className="text-sm text-nuanu-gray-600">
+                Page {page} of {totalPages}
+              </span>
+              <button
+                type="button"
+                disabled={page >= totalPages}
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                className="px-3 py-1.5 text-sm font-medium rounded-lg border border-nuanu-gray-200 disabled:opacity-40 hover:bg-nuanu-gray-50"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
 
         {filteredCandidates.length === 0 && (
           <div className="text-center py-12">
@@ -771,6 +973,69 @@ export default function CandidatesTable({
           </div>
         )}
       </div>
+
+      {/* Centered stage update notification */}
+      <Portal>
+        <AnimatePresence>
+          {stageNotice && (
+            <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 bg-black/45 backdrop-blur-sm"
+                onClick={() => setStageNotice(null)}
+              />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.92, y: 12 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.92, y: 12 }}
+                role="alertdialog"
+                aria-labelledby="stage-notice-title"
+                aria-describedby="stage-notice-message"
+                className="relative z-10 w-full max-w-md rounded-3xl bg-white p-8 text-center shadow-2xl"
+              >
+                <div
+                  className={`mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full ${
+                    stageNotice.type === "success"
+                      ? "bg-emerald-100 text-emerald-600"
+                      : "bg-red-100 text-red-600"
+                  }`}
+                >
+                  {stageNotice.type === "success" ? (
+                    <CheckCircle2 className="h-8 w-8" />
+                  ) : (
+                    <AlertCircle className="h-8 w-8" />
+                  )}
+                </div>
+                <h3
+                  id="stage-notice-title"
+                  className="text-xl font-bold text-nuanu-navy"
+                >
+                  {stageNotice.title}
+                </h3>
+                <p
+                  id="stage-notice-message"
+                  className="mt-2 text-sm text-nuanu-gray-500"
+                >
+                  {stageNotice.message}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setStageNotice(null)}
+                  className={`mt-6 w-full rounded-xl px-6 py-3 text-sm font-semibold transition-colors ${
+                    stageNotice.type === "success"
+                      ? "bg-emerald-600 text-white hover:bg-emerald-700"
+                      : "bg-nuanu-navy text-white hover:bg-nuanu-navy/90"
+                  }`}
+                >
+                  OK
+                </button>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+      </Portal>
 
       {/* Profile Modal — portaled above sidebar (z-50) */}
       <Portal>
@@ -1309,6 +1574,12 @@ export default function CandidatesTable({
               {/* ── Tab: Interview Results ──────────────────────────────── */}
               {profileTab === "interview_results" && (
                 <div className="flex-1 flex flex-col overflow-hidden">
+                  {loadingProfileDetails && (
+                    <div className="flex items-center justify-center gap-2 border-b border-gray-100 bg-white px-6 py-3 text-sm text-nuanu-gray-500">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Loading interview comments...
+                    </div>
+                  )}
                   <div className="p-6 border-b border-gray-100 bg-white">
                     <div className="flex gap-3">
                       <input
@@ -1399,6 +1670,12 @@ export default function CandidatesTable({
               {/* ── Tab: Notes ──────────────────────────────────────────── */}
               {profileTab === "notes" && (
                 <div className="flex-1 flex flex-col overflow-hidden">
+                  {loadingProfileDetails && (
+                    <div className="flex items-center justify-center gap-2 border-b border-gray-100 bg-white px-6 py-3 text-sm text-nuanu-gray-500">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Loading notes...
+                    </div>
+                  )}
                   <div className="p-6 border-b border-gray-100 bg-white">
                     <div className="flex gap-3">
                       <input

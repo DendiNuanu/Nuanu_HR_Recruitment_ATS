@@ -2,8 +2,6 @@ import { Suspense } from "react";
 import Sidebar from "@/components/layout/Sidebar";
 import Header from "@/components/layout/Header";
 
-export const dynamic = "force-dynamic";
-
 function DashboardSkeleton() {
   return (
     <div className="space-y-6 animate-pulse">

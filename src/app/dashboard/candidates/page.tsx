@@ -36,42 +36,25 @@ const getCachedCandidatesData = unstable_cache(
     });
 
     // Map DB records to a flat shape for the client component
-    const applicationIds = applications.map((a) => a.id);
     const candidateIds = applications.map((a) => a.candidateId);
     const profiles =
       candidateIds.length > 0
         ? await prisma.candidateProfile.findMany({
             where: { userId: { in: candidateIds } },
+            select: {
+              userId: true,
+              experienceYears: true,
+              skills: true,
+              resumeUrl: true,
+              domicile: true,
+              referPosition: true,
+            },
           })
         : [];
-
-    // Fetch notes and interview comments for all applications
-    let notesAll: any[] = [];
-    let interviewCommentsAll: any[] = [];
-    try {
-      if (applicationIds.length > 0) {
-        const [notes, interviewComments] = await Promise.all([
-          prisma.candidateNote.findMany({
-            where: { applicationId: { in: applicationIds } },
-            include: { author: { select: { id: true, name: true } } },
-            orderBy: { createdAt: "desc" },
-          }),
-          prisma.interviewComment.findMany({
-            where: { applicationId: { in: applicationIds } },
-            include: { author: { select: { id: true, name: true } } },
-            orderBy: { createdAt: "desc" },
-          }),
-        ]);
-        notesAll = notes;
-        interviewCommentsAll = interviewComments;
-      }
-    } catch (error) {
-      // Tables don't exist yet - that's okay, we'll show empty state
-      console.warn("Notes or interview comments tables not found:", error);
-    }
+    const profileByUserId = new Map(profiles.map((p) => [p.userId, p]));
 
     const candidates = applications.map((app) => {
-      const profile = profiles.find((p) => p.userId === app.candidateId);
+      const profile = profileByUserId.get(app.candidateId);
       return {
         id: app.id,
         userId: app.candidateId,
@@ -87,7 +70,6 @@ const getCachedCandidatesData = unstable_cache(
         skills: profile?.skills ?? ["Communication", "Problem Solving"],
         coverLetter: app.coverLetter ?? undefined,
         resumeUrl: profile?.resumeUrl ?? undefined,
-        resumeText: profile?.resumeText ?? undefined,
         source: app.source ?? "direct",
         domicile: profile?.domicile ?? undefined,
         referPosition: profile?.referPosition ?? undefined,
@@ -96,26 +78,8 @@ const getCachedCandidatesData = unstable_cache(
         recommendations: Array.isArray(app.candidateScore?.recommendations)
           ? app.candidateScore.recommendations
           : [],
-        notes: notesAll
-          .filter((n) => n.applicationId === app.id)
-          .map((n) => ({
-            id: n.id,
-            content: n.content,
-            authorName: n.author.name,
-            authorId: n.authorId,
-            createdAt: n.createdAt.toISOString(),
-            updatedAt: n.updatedAt.toISOString(),
-          })),
-        interviewComments: interviewCommentsAll
-          .filter((c) => c.applicationId === app.id)
-          .map((c) => ({
-            id: c.id,
-            content: c.content,
-            authorName: c.author.name,
-            authorId: c.authorId,
-            createdAt: c.createdAt.toISOString(),
-            updatedAt: c.updatedAt.toISOString(),
-          })),
+        notes: [],
+        interviewComments: [],
       };
     });
 

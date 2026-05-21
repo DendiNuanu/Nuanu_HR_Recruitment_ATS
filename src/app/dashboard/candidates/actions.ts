@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { createNotification } from "@/lib/notifications";
 import { sendEmail } from "@/lib/email";
 import { delCache } from "@/lib/cache";
@@ -70,7 +70,7 @@ export async function updateCandidateStage(
   try {
     const application = await prisma.application.findUnique({
       where: { id: applicationId },
-      select: { currentStage: true, candidateId: true },
+      select: { currentStage: true, candidateId: true, vacancyId: true },
     });
 
     if (!application) {
@@ -104,30 +104,18 @@ export async function updateCandidateStage(
       });
 
       // Synchronize Vacancy filledCount
-      if (newStage === "hired" && application.currentStage !== "hired") {
-        await tx.vacancy.update({
-          where: {
-            id: (
-              await tx.application.findUnique({
-                where: { id: applicationId },
-                select: { vacancyId: true },
-              })
-            )?.vacancyId,
-          },
-          data: { filledCount: { increment: 1 } },
-        });
-      } else if (application.currentStage === "hired" && newStage !== "hired") {
-        await tx.vacancy.update({
-          where: {
-            id: (
-              await tx.application.findUnique({
-                where: { id: applicationId },
-                select: { vacancyId: true },
-              })
-            )?.vacancyId,
-          },
-          data: { filledCount: { decrement: 1 } },
-        });
+      if (application.vacancyId) {
+        if (newStage === "hired" && application.currentStage !== "hired") {
+          await tx.vacancy.update({
+            where: { id: application.vacancyId },
+            data: { filledCount: { increment: 1 } },
+          });
+        } else if (application.currentStage === "hired" && newStage !== "hired") {
+          await tx.vacancy.update({
+            where: { id: application.vacancyId },
+            data: { filledCount: { decrement: 1 } },
+          });
+        }
       }
     });
 
@@ -249,8 +237,11 @@ export async function updateCandidateStage(
     }
 
     await delCache("dashboard_metrics");
+    updateTag("applications");
+    updateTag("candidates");
     revalidatePath("/dashboard/candidates");
     revalidatePath("/dashboard");
+    revalidatePath("/dashboard/pipeline");
     return { success: true, newStage };
   } catch (error) {
     console.error("Failed to update candidate stage:", error);
