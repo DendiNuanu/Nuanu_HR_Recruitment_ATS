@@ -371,17 +371,21 @@ export default function DatePickerField({
             )}
           </div>
 
-          <div className="flex items-center justify-between px-4 py-3">
+          <div className="flex items-center justify-between px-4 py-3 gap-2">
             <button
               type="button"
-              onClick={
-                pickerView === "day"
-                  ? prevMonth
-                  : () => setPickerView("day")
-              }
-              className="p-2 rounded-xl hover:bg-emerald-50 text-gray-600 transition-colors"
+              onClick={() => {
+                if (pickerView === "day") prevMonth();
+                else if (pickerView === "month") setPickerView("year");
+                else setPickerView("day");
+              }}
+              className="p-2 rounded-xl hover:bg-emerald-50 text-gray-600 transition-colors shrink-0"
               aria-label={
-                pickerView === "day" ? "Previous month" : "Back to days"
+                pickerView === "day"
+                  ? "Previous month"
+                  : pickerView === "month"
+                    ? "Back to years"
+                    : "Back to calendar"
               }
             >
               <ChevronLeft className="w-4 h-4" />
@@ -390,32 +394,31 @@ export default function DatePickerField({
               <button
                 type="button"
                 onClick={onHeaderClick}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-black text-nuanu-navy tracking-tight border border-emerald-200/80 bg-emerald-50/60 hover:bg-emerald-100 hover:border-emerald-400 transition-all shadow-sm"
+                disabled={pickerView !== "day"}
+                className="flex-1 flex items-center justify-center gap-1.5 min-w-0 px-3 py-1.5 rounded-xl text-sm font-black text-nuanu-navy tracking-tight border border-emerald-200/80 bg-emerald-50/60 hover:bg-emerald-100 hover:border-emerald-400 transition-all shadow-sm disabled:opacity-100 disabled:cursor-default"
               >
-                {headerLabel()}
-                <ChevronDown
-                  className={`w-4 h-4 text-emerald-600 transition-transform ${
-                    pickerView !== "day" ? "rotate-180" : ""
-                  }`}
-                />
+                <span className="truncate">{headerLabel()}</span>
+                {pickerView === "day" && (
+                  <ChevronDown className="w-4 h-4 text-emerald-600 shrink-0" />
+                )}
               </button>
             ) : (
               <span className="text-sm font-black text-nuanu-navy tracking-tight">
-                {headerLabel()}
+                {MONTHS[viewMonth]} {viewYear}
               </span>
             )}
-            <button
-              type="button"
-              onClick={
-                pickerView === "day"
-                  ? nextMonth
-                  : () => setPickerView("day")
-              }
-              className="p-2 rounded-xl hover:bg-emerald-50 text-gray-600 transition-colors"
-              aria-label={pickerView === "day" ? "Next month" : "Back to days"}
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
+            {pickerView === "day" ? (
+              <button
+                type="button"
+                onClick={nextMonth}
+                className="p-2 rounded-xl hover:bg-emerald-50 text-gray-600 transition-colors shrink-0"
+                aria-label="Next month"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            ) : (
+              <div className="w-9 shrink-0" aria-hidden />
+            )}
           </div>
 
           {isDob && pickerView === "year" && (
