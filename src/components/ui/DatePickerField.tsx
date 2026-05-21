@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useLayoutEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Calendar, ChevronLeft, ChevronRight, Check, X } from "lucide-react";
@@ -93,7 +93,10 @@ export default function DatePickerField({
   const [pendingDate, setPendingDate] = useState(value ?? "");
   const [popupPos, setPopupPos] = useState({ top: 0, left: 0, width: 288 });
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const popupRef = useRef<HTMLDivElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
+
+  const POPUP_ESTIMATE_HEIGHT = 420;
 
   useEffect(() => {
     setPendingDate(value ?? "");
@@ -108,13 +111,29 @@ export default function DatePickerField({
     if (!triggerRef.current) return;
     const rect = triggerRef.current.getBoundingClientRect();
     const width = 300;
+    const gap = 8;
+    const margin = 12;
     let left = rect.left;
-    const top = rect.bottom + 8;
 
-    if (left + width > window.innerWidth - 12) {
-      left = window.innerWidth - width - 12;
+    const popupHeight =
+      popupRef.current?.offsetHeight ?? POPUP_ESTIMATE_HEIGHT;
+    const spaceBelow = window.innerHeight - rect.bottom - gap;
+    const spaceAbove = rect.top - gap;
+
+    let top =
+      spaceBelow >= popupHeight || spaceBelow >= spaceAbove
+        ? rect.bottom + gap
+        : rect.top - popupHeight - gap;
+
+    top = Math.max(
+      margin,
+      Math.min(top, window.innerHeight - popupHeight - margin),
+    );
+
+    if (left + width > window.innerWidth - margin) {
+      left = window.innerWidth - width - margin;
     }
-    if (left < 12) left = 12;
+    if (left < margin) left = margin;
 
     setPopupPos({ top, left, width });
   }, []);
@@ -143,6 +162,13 @@ export default function DatePickerField({
       document.removeEventListener("mousedown", handler);
     };
   }, [isOpen, value, updatePopupPosition]);
+
+  useLayoutEffect(() => {
+    if (!isOpen) return;
+    updatePopupPosition();
+    const raf = requestAnimationFrame(updatePopupPosition);
+    return () => cancelAnimationFrame(raf);
+  }, [isOpen, viewMonth, viewYear, pendingDate, updatePopupPosition]);
 
   const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
   const firstDayOfWeek = mondayBasedOffset(viewYear, viewMonth);
@@ -202,6 +228,7 @@ export default function DatePickerField({
     <AnimatePresence>
       {isOpen && (
         <motion.div
+          ref={popupRef}
           id="nuanu-date-picker-popup"
           initial={{ opacity: 0, y: 8, scale: 0.96 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}

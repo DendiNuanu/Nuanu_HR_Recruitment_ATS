@@ -4,6 +4,33 @@ import { useState } from "react";
 import { UploadCloud, CheckCircle2 } from "lucide-react";
 import DatePickerField from "@/components/ui/DatePickerField";
 
+const MAX_RESUME_SIZE = 5 * 1024 * 1024;
+
+function validateResumeFile(file: File): string | null {
+  const name = file.name.toLowerCase();
+  const allowed =
+    file.type === "application/pdf" ||
+    file.type === "application/msword" ||
+    file.type ===
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+    file.type === "image/jpeg" ||
+    file.type === "image/png" ||
+    name.endsWith(".pdf") ||
+    name.endsWith(".doc") ||
+    name.endsWith(".docx") ||
+    name.endsWith(".jpg") ||
+    name.endsWith(".jpeg") ||
+    name.endsWith(".png");
+
+  if (!allowed) {
+    return "Please upload a PDF, DOCX, JPG, or PNG file";
+  }
+  if (file.size > MAX_RESUME_SIZE) {
+    return "File size must be 5MB or less";
+  }
+  return null;
+}
+
 export default function ApplicationForm({ jobId }: { jobId: string }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -20,15 +47,29 @@ export default function ApplicationForm({ jobId }: { jobId: string }) {
   });
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      setFile(e.target.files[0]);
+    const selected = e.target.files?.[0];
+    if (!selected) return;
+    const validationError = validateResumeFile(selected);
+    if (validationError) {
+      setError(validationError);
+      setFile(null);
+      e.target.value = "";
+      return;
     }
+    setError("");
+    setFile(selected);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!file) {
       setError("Please upload your Resume / CV");
+      return;
+    }
+
+    const validationError = validateResumeFile(file);
+    if (validationError) {
+      setError(validationError);
       return;
     }
 
@@ -84,7 +125,7 @@ export default function ApplicationForm({ jobId }: { jobId: string }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4 pb-2">
       {error && (
         <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100">
           {error}
@@ -189,10 +230,10 @@ export default function ApplicationForm({ jobId }: { jobId: string }) {
         <label className="block text-xs font-semibold text-nuanu-gray-600 mb-1">
           Resume / CV *
         </label>
-        <label className="block border-2 border-dashed border-emerald-500/30 bg-emerald-50/30 rounded-xl p-4 text-center hover:bg-emerald-50/60 transition-colors cursor-pointer relative overflow-hidden">
+        <label className="block border-2 border-dashed border-emerald-500/30 bg-emerald-50/30 rounded-xl p-4 text-center hover:bg-emerald-50/60 transition-colors cursor-pointer relative">
           <input
             type="file"
-            accept=".pdf,.doc,.docx"
+            accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/jpeg,image/png"
             className="absolute inset-0 opacity-0 cursor-pointer"
             onChange={handleFileChange}
           />
@@ -210,7 +251,7 @@ export default function ApplicationForm({ jobId }: { jobId: string }) {
             <>
               <UploadCloud className="w-6 h-6 text-emerald-500 mx-auto mb-2" />
               <p className="text-xs text-emerald-700 font-bold">
-                Click to upload PDF or DOCX
+                Click to upload PDF, DOCX, JPG, or PNG
               </p>
               <p className="text-[10px] text-emerald-600/70 mt-1">Max 5MB</p>
             </>
@@ -221,7 +262,7 @@ export default function ApplicationForm({ jobId }: { jobId: string }) {
       <button
         disabled={isSubmitting}
         type="submit"
-        className="w-full btn-primary mt-2 flex items-center justify-center gap-2"
+        className="w-full btn-primary mt-2 flex items-center justify-center gap-2 whitespace-nowrap"
       >
         {isSubmitting ? (
           <>

@@ -121,7 +121,11 @@ export default async function JobDetailPage({
 
       {/* Content & Form — responsive stacking */}
       <main
-        style={{ maxWidth: "900px", margin: "0 auto", padding: "32px 20px 0" }}
+        style={{
+          maxWidth: "900px",
+          margin: "0 auto",
+          padding: "32px 20px 48px",
+        }}
       >
         {/* Description sections */}
         <div
@@ -202,9 +206,12 @@ export default async function JobDetailPage({
           style={{
             background: "#FFFFFF",
             padding: "clamp(20px, 4vw, 32px)",
+            paddingBottom: "clamp(28px, 5vw, 40px)",
+            minHeight: "min(100%, 520px)",
             borderRadius: "16px",
             border: "1px solid #E2E8F0",
             boxShadow: "0 4px 16px rgba(0,0,0,0.08)",
+            overflow: "visible",
           }}
         >
           <h3

@@ -2,6 +2,29 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 
+const MAX_RESUME_SIZE = 5 * 1024 * 1024;
+
+function isAllowedResumeFile(file: File): boolean {
+  const name = file.name.toLowerCase();
+  const type = file.type.toLowerCase();
+  const allowedTypes = new Set([
+    "application/pdf",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "image/jpeg",
+    "image/png",
+  ]);
+  if (type && allowedTypes.has(type)) return true;
+  return (
+    name.endsWith(".pdf") ||
+    name.endsWith(".doc") ||
+    name.endsWith(".docx") ||
+    name.endsWith(".jpg") ||
+    name.endsWith(".jpeg") ||
+    name.endsWith(".png")
+  );
+}
+
 export async function POST(request: Request) {
   try {
     const formData = await request.formData();
@@ -17,6 +40,20 @@ export async function POST(request: Request) {
     if (!jobId || !firstName || !lastName || !email || !resumeFile) {
       return NextResponse.json(
         { error: "Missing required fields" },
+        { status: 400 },
+      );
+    }
+
+    if (!isAllowedResumeFile(resumeFile)) {
+      return NextResponse.json(
+        { error: "Resume must be PDF, DOCX, JPG, or PNG" },
+        { status: 400 },
+      );
+    }
+
+    if (resumeFile.size > MAX_RESUME_SIZE) {
+      return NextResponse.json(
+        { error: "Resume file must be 5MB or less" },
         { status: 400 },
       );
     }
