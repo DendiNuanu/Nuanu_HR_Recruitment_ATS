@@ -216,6 +216,7 @@ export default function ApplicationForm({ jobId }: { jobId: string }) {
             Date of Birth
           </label>
           <DatePickerField
+            variant="dob"
             value={formData.dateOfBirth}
             onChange={(dateOfBirth) =>
               setFormData({ ...formData, dateOfBirth })
