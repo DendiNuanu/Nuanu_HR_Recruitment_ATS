@@ -22,6 +22,8 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/api/telegram") ||
     pathname.startsWith("/api/apply") ||
     pathname.startsWith("/api/assessment") ||
+    pathname === "/api/candidates/import-seek" ||
+    pathname.startsWith("/api/webhooks") ||
     pathname === "/"
   ) {
     return NextResponse.next();
