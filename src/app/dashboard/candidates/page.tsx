@@ -36,29 +36,34 @@ const getCachedCandidatesData = unstable_cache(
     });
 
     // Map DB records to a flat shape for the client component
+    const applicationIds = applications.map((a) => a.id);
     const candidateIds = applications.map((a) => a.candidateId);
-    const profiles = await prisma.candidateProfile.findMany({
-      where: { userId: { in: candidateIds } },
-    });
+    const profiles =
+      candidateIds.length > 0
+        ? await prisma.candidateProfile.findMany({
+            where: { userId: { in: candidateIds } },
+          })
+        : [];
 
     // Fetch notes and custom fields for all applications
-    // Handle case where tables don't exist yet
     let notesAll: any[] = [];
     let customFieldsAll: any[] = [];
     try {
-      const [notes, fields] = await Promise.all([
-        prisma.candidateNote.findMany({
-          where: { applicationId: { in: applications.map((a) => a.id) } },
-          include: { author: { select: { id: true, name: true } } },
-          orderBy: { createdAt: "desc" },
-        }),
-        prisma.applicationCustomField.findMany({
-          where: { applicationId: { in: applications.map((a) => a.id) } },
-          orderBy: { createdAt: "asc" },
-        }),
-      ]);
-      notesAll = notes;
-      customFieldsAll = fields;
+      if (applicationIds.length > 0) {
+        const [notes, fields] = await Promise.all([
+          prisma.candidateNote.findMany({
+            where: { applicationId: { in: applicationIds } },
+            include: { author: { select: { id: true, name: true } } },
+            orderBy: { createdAt: "desc" },
+          }),
+          prisma.applicationCustomField.findMany({
+            where: { applicationId: { in: applicationIds } },
+            orderBy: { createdAt: "asc" },
+          }),
+        ]);
+        notesAll = notes;
+        customFieldsAll = fields;
+      }
     } catch (error) {
       // Tables don't exist yet - that's okay, we'll show empty state
       console.warn("Notes or custom fields tables not found:", error);
@@ -86,7 +91,8 @@ const getCachedCandidatesData = unstable_cache(
         domicile: profile?.domicile ?? undefined,
         referPosition: profile?.referPosition ?? undefined,
         emailSentAt: (app as any).emailSentAt ? new Date((app as any).emailSentAt).toISOString() : undefined,
-        emailSentSubject: (app as any).emailSentSubject ?? undefined,        recommendations: Array.isArray(app.candidateScore?.recommendations)
+        emailSentSubject: (app as any).emailSentSubject ?? undefined,
+        recommendations: Array.isArray(app.candidateScore?.recommendations)
           ? app.candidateScore.recommendations
           : [],
         notes: notesAll

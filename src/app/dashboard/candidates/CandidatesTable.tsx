@@ -26,6 +26,7 @@ import {
   CheckCircle2,
   Edit,
   LayoutGrid,
+  MessageSquare,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
