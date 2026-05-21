@@ -34,6 +34,7 @@ type ImportResults = {
 
 const SEEK_STAGE_MAP: Record<string, string> = {
   New: "applied",
+  Inbox: "applied",
   Suitable: "screening",
   "Not Suitable": "rejected",
   "Not suitable": "rejected",
@@ -128,15 +129,30 @@ async function findExistingUser(
   return null;
 }
 
+/** Stable id from phone when SEEK list has no email — not a random throwaway per import. */
+function resolveImportEmail(raw: SeekCandidateInput, phone: string | null): string | null {
+  const explicit = raw.email?.trim().toLowerCase();
+  if (explicit && !explicit.includes("@noemail") && !explicit.includes("@import.")) {
+    return explicit;
+  }
+  if (phone) {
+    const digits = phone.replace(/\D/g, "");
+    if (digits.length >= 10) return `seek+${digits}@import.nuanu.local`;
+  }
+  return null;
+}
+
 async function importOneCandidate(
   raw: SeekCandidateInput,
   defaultVacancyId: string | null,
 ): Promise<"imported" | "skipped" | "error"> {
   const name = raw.name?.trim() || "Unknown";
-  const email =
-    raw.email?.trim().toLowerCase() ||
-    `seek-${Date.now()}-${Math.random().toString(36).slice(2)}@noemail.seek`;
   const phone = normalizePhone(raw.phone);
+  const email = resolveImportEmail(raw, phone);
+
+  if (!email) {
+    throw new Error("Candidate needs a phone number (email not shown on SEEK list page)");
+  }
   const stage = mapSeekStatus(raw.seekStatus);
   const appliedAt = raw.appliedAt ? new Date(raw.appliedAt) : new Date();
   const roleTitle = raw.appliedRole?.trim() || raw.mostRecentRole?.trim() || null;
@@ -150,7 +166,7 @@ async function importOneCandidate(
   }
 
   const existingUser = await findExistingUser(
-    raw.email?.trim() ? email : null,
+    raw.email?.trim() && !raw.email.includes("@noemail") ? email : null,
     phone,
   );
 
