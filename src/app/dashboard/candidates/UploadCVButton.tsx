@@ -14,6 +14,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { PIPELINE_STAGES } from "@/lib/utils";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -44,16 +45,7 @@ interface ParsedData {
  */
 type UploadStep = "idle" | "uploading" | "auto" | "form" | "submitting" | "success";
 
-const STAGES = [
-  { value: "applied", label: "Applied" },
-  { value: "screening", label: "CV Screening" },
-  { value: "phone_screening", label: "Phone Screening" },
-  { value: "assessment", label: "Assessment" },
-  { value: "interview_1", label: "Interview 1" },
-  { value: "interview_2", label: "Interview 2" },
-  { value: "offering", label: "Offering" },
-  { value: "hired", label: "Hired" },
-];
+const STAGES = PIPELINE_STAGES.map((s) => ({ value: s.id, label: s.label }));
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
@@ -81,7 +73,7 @@ export default function UploadCVButton({ vacancies }: { vacancies: Vacancy[] }) 
     vacancyId: "",
     location: "",
     yearsOfExperience: "",
-    stage: "applied",
+    stage: "talent_bank",
   });
 
   // ── Reset & close ──────────────────────────────────────────────────────────
@@ -100,7 +92,7 @@ export default function UploadCVButton({ vacancies }: { vacancies: Vacancy[] }) 
       vacancyId: "",
       location: "",
       yearsOfExperience: "",
-      stage: "applied",
+      stage: "talent_bank",
     });
   }, []);
 
@@ -167,7 +159,7 @@ export default function UploadCVButton({ vacancies }: { vacancies: Vacancy[] }) 
           phone: parsed.phone || undefined,
           location: parsed.location || undefined,
           yearsOfExperience: parsed.yearsOfExperience ?? undefined,
-          stage: "applied",
+          stage: "talent_bank",
           cvUrl: uploadedCvUrl || undefined,
           aiMatch: 50,
         }),

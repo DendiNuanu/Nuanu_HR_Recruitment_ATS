@@ -41,15 +41,20 @@ type ImportResults = {
 };
 
 const SEEK_STAGE_MAP: Record<string, string> = {
-  New: "applied",
-  Inbox: "applied",
+  New: "talent_bank",
+  Inbox: "talent_bank",
+  Prescreen: "screening",
+  Shortlist: "screening",
   Suitable: "screening",
   "Not Suitable": "rejected",
   "Not suitable": "rejected",
-  Interviewed: "interview_1",
+  Interview: "hr_interview",
+  Interviewed: "hr_interview",
+  Offer: "offering",
   Offered: "offering",
+  Accept: "hired",
   Hired: "hired",
-  Withdrawn: "withdrawn",
+  Withdrawn: "rejected",
 };
 
 function isAuthorized(request: NextRequest): boolean {
@@ -58,9 +63,40 @@ function isAuthorized(request: NextRequest): boolean {
 }
 
 function mapSeekStatus(seekStatus: string | undefined): string {
-  if (!seekStatus) return "applied";
+  if (!seekStatus) return "talent_bank";
   const trimmed = seekStatus.trim();
-  return SEEK_STAGE_MAP[trimmed] ?? SEEK_STAGE_MAP[trimmed.replace(/\s+/g, " ")] ?? "applied";
+  return (
+    SEEK_STAGE_MAP[trimmed] ??
+    SEEK_STAGE_MAP[trimmed.replace(/\s+/g, " ")] ??
+    "talent_bank"
+  );
+}
+
+/** Parse SEEK relative applied strings when scraper sends "3 hours ago" */
+function parseSeekAppliedAt(raw: string | undefined): Date {
+  if (!raw?.trim()) return new Date();
+  const s = raw.trim().toLowerCase();
+  const now = new Date();
+  if (s === "today") return now;
+  if (s === "yesterday") {
+    const d = new Date(now);
+    d.setDate(d.getDate() - 1);
+    return d;
+  }
+  const m = s.match(/(\d+)\s*(minute|hour|day|week|month)s?\s*ago/i);
+  if (m) {
+    const n = parseInt(m[1], 10);
+    const unit = m[2];
+    const d = new Date(now);
+    if (unit.startsWith("minute")) d.setMinutes(d.getMinutes() - n);
+    else if (unit.startsWith("hour")) d.setHours(d.getHours() - n);
+    else if (unit.startsWith("day")) d.setDate(d.getDate() - n);
+    else if (unit.startsWith("week")) d.setDate(d.getDate() - n * 7);
+    else if (unit.startsWith("month")) d.setMonth(d.getMonth() - n);
+    return d;
+  }
+  const parsed = new Date(raw);
+  return Number.isNaN(parsed.getTime()) ? now : parsed;
 }
 
 function normalizePhone(phone: string | null | undefined): string | null {
@@ -358,7 +394,7 @@ async function importOneCandidate(
     throw new Error("Candidate needs a phone number (email not shown on SEEK list page)");
   }
   const stage = mapSeekStatus(raw.seekStatus);
-  const appliedAt = raw.appliedAt ? new Date(raw.appliedAt) : new Date();
+  const appliedAt = parseSeekAppliedAt(raw.appliedAt);
   const seekAppliedRole = raw.appliedRole?.trim() || null;
   const currentEmployment = raw.mostRecentRole?.trim() || null;
   const experienceYears = parseExperienceYears(raw.experience);
@@ -394,6 +430,15 @@ async function importOneCandidate(
       select: { id: true },
     });
     if (existingApp) {
+      await prisma.application.update({
+        where: { id: existingApp.id },
+        data: {
+          currentStage: stage,
+          status: applicationStatusForStage(stage),
+          appliedAt,
+          ...(stage === "rejected" ? { rejectedAt: new Date() } : {}),
+        },
+      });
       let resumeAttached = false;
       if (resumeUrl) {
         const profile = await prisma.candidateProfile.findUnique({

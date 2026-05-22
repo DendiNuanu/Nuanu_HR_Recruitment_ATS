@@ -1,13 +1,14 @@
 import { prisma } from "@/lib/prisma";
-import { unstable_cache } from "next/cache";
 import CandidatesTable from "./CandidatesTable";
 import ExportButton from "./ExportButton";
 import UploadCVButton from "./UploadCVButton";
-const getCachedCandidatesData = unstable_cache(
-  async () => {
-    // Pull real applications from the database
+
+export const dynamic = "force-dynamic";
+
+async function getCandidatesData() {
     const applications = await prisma.application.findMany({
-      take: 200,
+      where: { deletedAt: null },
+      take: 500,
       include: {
         candidate: {
           select: {
@@ -32,7 +33,7 @@ const getCachedCandidatesData = unstable_cache(
           },
         },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ appliedAt: "desc" }, { createdAt: "desc" }],
     });
 
     // Map DB records to a flat shape for the client component
@@ -84,14 +85,11 @@ const getCachedCandidatesData = unstable_cache(
     });
 
     return candidates;
-  },
-  ["candidates-page-data"],
-  { revalidate: 120, tags: ["applications", "candidates"] },
-);
+}
 
 export default async function CandidatesPage() {
   const [candidates, vacancies] = await Promise.all([
-    getCachedCandidatesData(),
+    getCandidatesData(),
     prisma.vacancy.findMany({
       where: { status: { in: ["published", "approved"] } },
       select: { id: true, title: true, status: true },

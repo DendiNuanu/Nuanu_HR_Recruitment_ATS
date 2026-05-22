@@ -45,6 +45,8 @@ import {
   formatDate,
   PIPELINE_STAGES,
   SOURCE_PRESET_OPTIONS,
+  normalizePipelineStage,
+  resolvePipelineColumn,
 } from "@/lib/utils";
 import { toast } from "sonner";
 import Portal from "@/components/ui/Portal";
@@ -120,10 +122,16 @@ type StageNotice = {
 };
 
 function stageLabel(stageId: string) {
+  const canonical = resolvePipelineColumn(stageId);
   return (
-    PIPELINE_STAGES.find((s) => s.id === stageId)?.label ??
-    stageId.replace(/_/g, " ")
+    PIPELINE_STAGES.find((s) => s.id === canonical)?.label ??
+    canonical.replace(/_/g, " ")
   );
+}
+
+function appliedAtMs(iso: string) {
+  const t = new Date(iso).getTime();
+  return Number.isNaN(t) ? 0 : t;
 }
 
 export default function CandidatesTable({
@@ -214,17 +222,19 @@ export default function CandidatesTable({
 
   const filteredCandidates = useMemo(() => {
     const q = deferredSearch.trim().toLowerCase();
-    return localCandidates.filter((c) => {
-      const matchSearch =
-        !q ||
-        c.name.toLowerCase().includes(q) ||
-        c.email.toLowerCase().includes(q) ||
-        c.vacancyTitle.toLowerCase().includes(q);
-      const matchStage =
-        stageFilter === "all" ||
-        c.stage.toLowerCase() === stageFilter.toLowerCase();
-      return matchSearch && matchStage;
-    });
+    return localCandidates
+      .filter((c) => {
+        const matchSearch =
+          !q ||
+          c.name.toLowerCase().includes(q) ||
+          c.email.toLowerCase().includes(q) ||
+          c.vacancyTitle.toLowerCase().includes(q);
+        const canonical = normalizePipelineStage(c.stage);
+        const matchStage =
+          stageFilter === "all" || canonical === stageFilter;
+        return matchSearch && matchStage;
+      })
+      .sort((a, b) => appliedAtMs(b.appliedAt) - appliedAtMs(a.appliedAt));
   }, [localCandidates, deferredSearch, stageFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filteredCandidates.length / PAGE_SIZE));
@@ -738,16 +748,11 @@ export default function CandidatesTable({
             className="input-field appearance-none"
           >
             <option value="all">All Stages</option>
-            <option value="applied">Applied</option>
-            <option value="screening">CV Screening</option>
-            <option value="phone_screening">Phone Screening</option>
-            <option value="assessment">Assessment</option>
-            <option value="interview_1">Interview 1</option>
-            <option value="interview_2">Interview 2</option>
-            <option value="offering">Offering</option>
-            <option value="hired">Hired</option>
-            <option value="rejected">Rejected</option>
-            <option value="withdrawn">Withdrawn</option>
+            {PIPELINE_STAGES.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.label}
+              </option>
+            ))}
           </select>
           <Filter className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-nuanu-gray-400 pointer-events-none" />
         </div>
@@ -805,14 +810,17 @@ export default function CandidatesTable({
                 <td>
                   <span
                     className={`badge ${
-                      candidate.stage.toLowerCase() === "hired"
+                      resolvePipelineColumn(candidate.stage) === "hired"
                         ? "bg-emerald-100 text-emerald-700 border-emerald-200"
-                        : candidate.stage.toLowerCase() === "rejected"
+                        : resolvePipelineColumn(candidate.stage) === "rejected"
                           ? "bg-red-100 text-red-700 border-red-200"
-                          : "bg-blue-50 text-blue-700 border-blue-100"
+                          : resolvePipelineColumn(candidate.stage) ===
+                              "talent_bank"
+                            ? "bg-slate-100 text-slate-700 border-slate-200"
+                            : "bg-blue-50 text-blue-700 border-blue-100"
                     } border uppercase tracking-wider text-[9px] font-bold px-2 py-1`}
                   >
-                    {candidate.stage.replace("_", " ")}
+                    {stageLabel(candidate.stage)}
                   </span>
                 </td>
                 <td>
@@ -912,12 +920,12 @@ export default function CandidatesTable({
                       ) : (
                         <select
                           className="py-2 px-3 text-xs font-semibold bg-nuanu-gray-50 hover:bg-nuanu-gray-100 border border-nuanu-gray-200 text-nuanu-navy rounded-lg cursor-pointer outline-none transition-colors"
-                          value={candidate.stage}
+                          value={resolvePipelineColumn(candidate.stage)}
                           onChange={(e) =>
                             handleStageSelect(
                               candidate.id,
                               e.target.value,
-                              candidate.stage,
+                              resolvePipelineColumn(candidate.stage),
                             )
                           }
                           title="Change Stage"
