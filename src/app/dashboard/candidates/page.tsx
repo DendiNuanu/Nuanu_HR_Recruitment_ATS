@@ -67,6 +67,8 @@ async function getCandidatesData() {
         experienceYears: profile?.experienceYears ?? 0,
         location: app.vacancy.location ?? "Remote",
         appliedAt: app.appliedAt.toISOString(),
+        createdAt: app.createdAt.toISOString(),
+        lastActivityAt: app.lastActivityAt.toISOString(),
         phone: app.candidate.phone ?? undefined,
         skills: profile?.skills ?? ["Communication", "Problem Solving"],
         coverLetter: app.coverLetter ?? undefined,

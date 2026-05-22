@@ -23,6 +23,39 @@ export function formatDateTime(date: string | Date): string {
   });
 }
 
+/** SEEK-style relative time, e.g. "28 minutes ago", "3 hours ago" */
+export function formatRelativeTime(date: string | Date): string {
+  const d = new Date(date);
+  const ts = d.getTime();
+  if (Number.isNaN(ts)) return "—";
+
+  const diffMs = Date.now() - ts;
+  if (diffMs < 0) return "just now";
+
+  const minutes = Math.floor(diffMs / 60_000);
+  if (minutes < 1) return "just now";
+  if (minutes < 60) {
+    return `${minutes} minute${minutes === 1 ? "" : "s"} ago`;
+  }
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) {
+    return `${hours} hour${hours === 1 ? "" : "s"} ago`;
+  }
+
+  const days = Math.floor(hours / 24);
+  if (days === 1) return "yesterday";
+  if (days < 7) return `${days} days ago`;
+
+  const weeks = Math.floor(days / 7);
+  if (weeks < 5) return `${weeks} week${weeks === 1 ? "" : "s"} ago`;
+
+  const months = Math.floor(days / 30);
+  if (months < 12) return `${months} month${months === 1 ? "" : "s"} ago`;
+
+  return formatDate(d);
+}
+
 export function formatCurrency(amount: number, currency = "USD"): string {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
