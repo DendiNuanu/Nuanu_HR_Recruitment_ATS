@@ -556,6 +556,11 @@ export async function sendCandidateEmail(data: {
       // activity log failure must not break email success
     }
 
+    updateTag("applications");
+    updateTag("candidates");
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/candidates");
+
     return { success: true };
   } catch (error) {
     console.error("Failed to send candidate email:", error);

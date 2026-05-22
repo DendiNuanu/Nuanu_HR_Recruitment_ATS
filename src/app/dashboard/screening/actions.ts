@@ -59,6 +59,7 @@ export async function createAssessment(data: {
 
     revalidatePath("/dashboard/screening");
     revalidatePath("/dashboard/candidates");
+    revalidatePath("/dashboard");
     return { success: true };
   } catch (error) {
     console.error("Create Assessment Error:", error);
@@ -230,6 +231,7 @@ export async function submitAssessmentResult(data: {
 
     revalidatePath("/dashboard/screening");
     revalidatePath("/dashboard/candidates");
+    revalidatePath("/dashboard");
     return { success: true, isPassed, pct: Math.round(pct) };
   } catch (error) {
     console.error("Submit Assessment Result Error:", error);

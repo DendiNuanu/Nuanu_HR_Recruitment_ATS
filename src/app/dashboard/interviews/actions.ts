@@ -175,6 +175,7 @@ export async function scheduleInterview(data: {
 
     revalidatePath("/dashboard/interviews");
     revalidatePath("/dashboard/candidates");
+    revalidatePath("/dashboard");
     return { success: true };
   } catch (error) {
     console.error("Schedule Interview Error:", error);
