@@ -87,11 +87,15 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default function CandidateProfile360({
   candidate,
+  vacancyTitle,
   onClose,
 }: {
   candidate: Candidate;
+  vacancyTitle?: string;
   onClose: () => void;
 }) {
+  const appliedFor =
+    candidate.referPosition || candidate.vacancyTitle || vacancyTitle;
   const [activeTab, setActiveTab] = useState<Tab>("assessments");
   const [assessments, setAssessments] = useState<AssessmentResult[]>([]);
   const [feedback, setFeedback] = useState<InterviewFeedbackItem[]>([]);
@@ -200,13 +204,24 @@ export default function CandidateProfile360({
             </div>
             <div>
               <h2 className="text-xl font-extrabold text-white">{candidate.name}</h2>
-              <p className="text-sm text-white/50">{candidate.vacancyTitle} · 360° Profile</p>
+              <p className="text-sm text-white/50">
+                {appliedFor || "Role not specified"} · 360° Profile
+              </p>
             </div>
           </div>
           <button onClick={onClose} className="p-2 text-white/40 hover:text-white hover:bg-white/10 rounded-full transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
+
+        {appliedFor && (
+          <div className="px-6 py-3 border-b border-gray-100 bg-emerald-50/40 flex-shrink-0">
+            <p className="text-[10px] font-bold text-nuanu-gray-400 uppercase tracking-[0.12em]">
+              Applied For
+            </p>
+            <p className="text-sm font-bold text-nuanu-navy mt-0.5">{appliedFor}</p>
+          </div>
+        )}
 
         {/* Tabs */}
         <div className="flex border-b border-gray-100 bg-gray-50/50 flex-shrink-0 overflow-x-auto">

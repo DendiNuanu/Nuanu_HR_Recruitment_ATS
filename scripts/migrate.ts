@@ -24,7 +24,8 @@ async function main() {
     await prisma.$executeRawUnsafe(`
       ALTER TABLE candidate_profiles
         ADD COLUMN IF NOT EXISTS "domicile" VARCHAR,
-        ADD COLUMN IF NOT EXISTS "referPosition" VARCHAR
+        ADD COLUMN IF NOT EXISTS "referPosition" VARCHAR,
+        ADD COLUMN IF NOT EXISTS "salaryExpectation" TEXT
     `);
     console.log("[migrate] ✅ candidate_profiles columns OK");
   } catch (e) {

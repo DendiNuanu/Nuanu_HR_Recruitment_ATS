@@ -98,6 +98,7 @@ export type Candidate = {
   source?: string;
   domicile?: string;
   referPosition?: string;
+  salaryExpectation?: string;
   emailSentAt?: string;
   emailSentSubject?: string;
   recommendations?: string[];
@@ -184,8 +185,11 @@ function primaryAppliedTimestamp(c: Candidate): string {
 
 export default function CandidatesTable({
   candidates,
+  vacancyTitle,
 }: {
   candidates: Candidate[];
+  /** When opened from Jobs → Candidates, pins Applied For in 360° profile */
+  vacancyTitle?: string;
 }) {
   const [localCandidates, setLocalCandidates] = useState(candidates);
   const [search, setSearch] = useState("");
@@ -239,8 +243,10 @@ export default function CandidatesTable({
   // Refer As / Domicile field state
   const [referAsDraft, setReferAsDraft] = useState("");
   const [domicileDraft, setDomicileDraft] = useState("");
+  const [salaryExpectationDraft, setSalaryExpectationDraft] = useState("");
   const [savingReferAs, setSavingReferAs] = useState(false);
   const [savingDomicile, setSavingDomicile] = useState(false);
+  const [savingSalaryExpectation, setSavingSalaryExpectation] = useState(false);
 
   // CV Upload state
   const [uploadingCv, setUploadingCv] = useState(false);
@@ -533,6 +539,7 @@ export default function CandidatesTable({
     resetSourceFields(normalized.source);
     setReferAsDraft(normalized.referPosition || "");
     setDomicileDraft(normalized.domicile || "");
+    setSalaryExpectationDraft(normalized.salaryExpectation || "");
     setCvFile(null);
     setShow360(false);
     setLoadingProfileDetails(true);
@@ -619,6 +626,29 @@ export default function CandidatesTable({
       }
     } finally {
       setSavingDomicile(false);
+    }
+  };
+
+  const handleSaveSalaryExpectation = async () => {
+    if (!selectedProfile) return;
+    const val = salaryExpectationDraft.trim();
+    if (!val || val === (selectedProfile.salaryExpectation || "")) return;
+    setSavingSalaryExpectation(true);
+    try {
+      const res = await updateCandidateOverviewDetails(
+        selectedProfile.id,
+        selectedProfile.userId,
+        { salaryExpectation: val },
+      );
+      if (res.success) {
+        setSelectedProfile({ ...selectedProfile, salaryExpectation: val });
+        setSalaryExpectationDraft(val);
+        toast.success("Salary expectation updated");
+      } else {
+        toast.error(res.error || "Failed to update salary expectation");
+      }
+    } finally {
+      setSavingSalaryExpectation(false);
     }
   };
 
@@ -1218,7 +1248,8 @@ export default function CandidatesTable({
                         Applied For
                       </p>
                       <p className="text-lg font-bold text-nuanu-navy leading-snug">
-                        {selectedProfile.vacancyTitle}
+                        {selectedProfile.referPosition ||
+                          selectedProfile.vacancyTitle}
                       </p>
                     </div>
                     {/* Change 1: Refer As */}
@@ -1334,6 +1365,42 @@ export default function CandidatesTable({
                           className="btn-primary px-3 py-1.5 text-xs flex items-center gap-1.5 shrink-0"
                         >
                           {savingDomicile ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Check className="w-3.5 h-3.5" />
+                          )}
+                          Apply
+                        </button>
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-bold text-nuanu-gray-400 uppercase tracking-[0.1em] mb-2">
+                        Salary Expectation
+                      </p>
+                      <div className="flex gap-2 -ml-2">
+                        <input
+                          type="text"
+                          value={salaryExpectationDraft}
+                          onChange={(e) =>
+                            setSalaryExpectationDraft(e.target.value)
+                          }
+                          onKeyDown={(e) =>
+                            e.key === "Enter" && handleSaveSalaryExpectation()
+                          }
+                          placeholder="e.g. Rp 10.000.000 / month"
+                          className="flex-1 input-field text-lg font-bold text-nuanu-navy py-1 px-2"
+                        />
+                        <button
+                          onClick={handleSaveSalaryExpectation}
+                          disabled={
+                            savingSalaryExpectation ||
+                            !salaryExpectationDraft.trim() ||
+                            salaryExpectationDraft.trim() ===
+                              (selectedProfile.salaryExpectation || "")
+                          }
+                          className="btn-primary px-3 py-1.5 text-xs flex items-center gap-1.5 shrink-0"
+                        >
+                          {savingSalaryExpectation ? (
                             <Loader2 className="w-3.5 h-3.5 animate-spin" />
                           ) : (
                             <Check className="w-3.5 h-3.5" />
@@ -2043,6 +2110,7 @@ export default function CandidatesTable({
         {show360 && selectedProfile && (
           <CandidateProfile360
             candidate={selectedProfile}
+            vacancyTitle={vacancyTitle ?? selectedProfile.vacancyTitle}
             onClose={() => setShow360(false)}
           />
         )}

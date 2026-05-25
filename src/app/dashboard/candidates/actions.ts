@@ -18,6 +18,7 @@ export async function updateCandidateOverviewDetails(
   data: {
     referPosition?: string;
     domicile?: string;
+    salaryExpectation?: string;
     source?: string;
     appliedAt?: string;
   },
@@ -29,17 +30,25 @@ export async function updateCandidateOverviewDetails(
     }
 
     await prisma.$transaction(async (tx) => {
-      if (data.referPosition !== undefined || data.domicile !== undefined) {
+      if (
+        data.referPosition !== undefined ||
+        data.domicile !== undefined ||
+        data.salaryExpectation !== undefined
+      ) {
         await tx.candidateProfile.upsert({
           where: { userId },
           update: {
             ...(data.referPosition !== undefined && { referPosition: data.referPosition }),
             ...(data.domicile !== undefined && { domicile: data.domicile }),
+            ...(data.salaryExpectation !== undefined && {
+              salaryExpectation: data.salaryExpectation,
+            }),
           },
           create: {
             userId,
             referPosition: data.referPosition ?? null,
             domicile: data.domicile ?? null,
+            salaryExpectation: data.salaryExpectation ?? null,
           },
         });
       }

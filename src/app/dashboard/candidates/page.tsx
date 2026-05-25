@@ -49,6 +49,7 @@ async function getCandidatesData() {
               resumeUrl: true,
               domicile: true,
               referPosition: true,
+              salaryExpectation: true,
             },
           })
         : [];
@@ -76,6 +77,7 @@ async function getCandidatesData() {
         source: app.source ?? "direct",
         domicile: profile?.domicile ?? undefined,
         referPosition: profile?.referPosition ?? undefined,
+        salaryExpectation: profile?.salaryExpectation ?? undefined,
         emailSentAt: (app as any).emailSentAt ? new Date((app as any).emailSentAt).toISOString() : undefined,
         emailSentSubject: (app as any).emailSentSubject ?? undefined,
         recommendations: Array.isArray(app.candidateScore?.recommendations)
