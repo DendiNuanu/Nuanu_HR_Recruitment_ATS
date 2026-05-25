@@ -409,28 +409,37 @@ export default function CandidatesTable({
     }
   };
 
-  // Change 3: email templates
+  // HR email templates (Status → Subject → body)
   const EMAIL_TEMPLATES: Record<string, { subject: string; body: string }> = {
     rejected: {
-      subject: `Update on your application at Nuanu`,
-      body: `Hi {{name}},\n\nThank you for your interest in joining Nuanu and for taking the time to go through our recruitment process.\n\nAfter careful consideration, we regret to inform you that we will not be moving forward with your application at this time.\n\nWe appreciate your effort and encourage you to apply for future openings that match your profile.\n\nBest regards,\nNuanu Recruitment Team`,
+      subject: "Thank You for Applying to Nuanu",
+      body: `Dear {{name}},\n\nThank you for your interest in joining Nuanu and for taking the time to participate in our recruitment process.\n\nAfter careful consideration, we regret to inform you that we will not be moving forward with your application at this stage. While we truly appreciate your background and experience, we have decided to proceed with other candidates whose qualifications more closely match our current needs.\n\nWe sincerely appreciate your interest in Nuanu and wish you all the best in your future career journey.\n\nWarm regards,\nHR Team – Nuanu`,
     },
     on_hold: {
-      subject: `Your application is on hold — Nuanu`,
-      body: `Hi {{name}},\n\nThank you for applying to Nuanu. We wanted to let you know that your application is currently on hold while we complete our review process.\n\nWe will be in touch with an update as soon as possible.\n\nBest regards,\nNuanu Recruitment Team`,
+      subject: "Thank You for Your Patience",
+      body: `Dear {{name}},\n\nThank you for your continued interest in opportunities at Nuanu.\n\nWe would like to inform you that your application is currently on hold as we are still reviewing our hiring priorities and internal requirements.\n\nPlease be assured that your profile remains under consideration, and we will reach out again should there be any updates regarding the recruitment process.\n\nWe appreciate your patience and understanding throughout this process.\n\nWarm regards,\nHR Team – Nuanu`,
     },
     not_open: {
-      subject: `Position no longer available — Nuanu`,
-      body: `Hi {{name}},\n\nThank you for your interest in the {{position}} role at Nuanu.\n\nUnfortunately, this position is no longer open. We will keep your profile on file and reach out if a suitable opportunity arises.\n\nBest regards,\nNuanu Recruitment Team`,
+      subject: "Thank You for Your Interest in Nuanu",
+      body: `Dear {{name}},\n\nThank you for your interest in career opportunities at Nuanu.\n\nAt the moment, the position you applied for is currently not open or not actively hiring. As a result, we are unable to proceed with the recruitment process at this time.\n\nWe truly appreciate your enthusiasm toward joining Nuanu and encourage you to stay connected for future opportunities.\n\nThank you once again for considering Nuanu as part of your career journey.\n\nWarm regards,\nHR Team – Nuanu`,
     },
     process_slow: {
-      subject: `Update on your application process — Nuanu`,
-      body: `Hi {{name}},\n\nWe wanted to reach out and let you know that our recruitment process is taking a bit longer than expected. We appreciate your patience.\n\nWe are still reviewing your application and will be in touch with next steps shortly.\n\nBest regards,\nNuanu Recruitment Team`,
+      subject: "Recruitment Process Update",
+      body: `Dear {{name}},\n\nThank you for your patience throughout our recruitment process.\n\nWe would like to inform you that the hiring process is currently taking longer than expected due to ongoing internal discussions and evaluations.\n\nYour application is still being considered, and we sincerely appreciate your understanding while we complete the next stages of the process. We will keep you updated as soon as there is further progress.\n\nThank you again for your continued interest in Nuanu.\n\nWarm regards,\nHR Team – Nuanu`,
     },
     been_fulfilled: {
-      subject: `Position has been filled — Nuanu`,
-      body: `Hi {{name}},\n\nThank you for your application for the {{position}} position at Nuanu.\n\nWe are pleased to inform you that this position has been filled. We will keep your details on file for future opportunities.\n\nBest regards,\nNuanu Recruitment Team`,
+      subject: "Update on Your Application at Nuanu",
+      body: `Dear {{name}},\n\nThank you for your interest in opportunities at Nuanu and for taking the time to participate in our recruitment process.\n\nWe would like to inform you that the position has now been filled by another candidate.\n\nWe sincerely appreciate your time, effort, and interest in becoming part of Nuanu. We will keep your profile in our database for future opportunities that may align with your background and experience.\n\nWe wish you continued success in your career journey and hope our paths may cross again in the future.\n\nWarm regards,\nHR Team – Nuanu`,
     },
+  };
+
+  const applyEmailTemplate = (tpl: { subject: string; body: string }, c: Candidate) => {
+    setEmailSubject(tpl.subject);
+    setEmailBody(
+      tpl.body
+        .replace(/\{\{name\}\}/g, c.name)
+        .replace(/\{\{position\}\}/g, c.vacancyTitle),
+    );
   };
 
   const openMailtoFallback = (to: string, subject: string, body: string) => {
@@ -676,13 +685,8 @@ export default function CandidatesTable({
 
   const openEmailModal = (c: Candidate) => {
     setSelectedEmail(c);
-    setEmailTemplate("");
-    setEmailSubject(
-      `Update regarding your application for ${c.vacancyTitle} at Nuanu`,
-    );
-    setEmailBody(
-      `Hi ${c.name},\n\nThank you for applying for the ${c.vacancyTitle} position. We wanted to reach out regarding the next steps in our process.\n\nBest regards,\nNuanu Recruitment Team`,
-    );
+    setEmailTemplate("process_slow");
+    applyEmailTemplate(EMAIL_TEMPLATES.process_slow, c);
     setEmailSent(false);
   };
 
@@ -2032,13 +2036,7 @@ export default function CandidatesTable({
                           const key = e.target.value;
                           setEmailTemplate(key);
                           if (key && EMAIL_TEMPLATES[key]) {
-                            const tpl = EMAIL_TEMPLATES[key];
-                            setEmailSubject(tpl.subject);
-                            setEmailBody(
-                              tpl.body
-                                .replace(/\{\{name\}\}/g, selectedEmail.name)
-                                .replace(/\{\{position\}\}/g, selectedEmail.vacancyTitle)
-                            );
+                            applyEmailTemplate(EMAIL_TEMPLATES[key], selectedEmail);
                           }
                         }}
                         className="input-field py-2.5"
