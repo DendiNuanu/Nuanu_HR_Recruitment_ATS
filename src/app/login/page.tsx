@@ -9,8 +9,8 @@ import Link from "next/link";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("admin@nuanu.com");
-  const [password, setPassword] = useState("admin123");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -488,69 +488,6 @@ export default function LoginPage() {
                 )}
               </button>
             </form>
-          </div>
-
-          {/* Demo Credentials */}
-          <div style={{ padding: "0 36px 32px" }}>
-            <div
-              style={{
-                background: "#F8FAFC",
-                borderRadius: "14px",
-                padding: "18px 20px",
-                textAlign: "center",
-                border: "1px solid #F1F5F9",
-              }}
-            >
-              <p
-                style={{
-                  fontSize: "10px",
-                  fontWeight: 700,
-                  color: "#94A3B8",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.15em",
-                  marginBottom: "10px",
-                }}
-              >
-                Demo Credentials
-              </p>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: "12px",
-                  flexWrap: "wrap",
-                }}
-              >
-                <code
-                  style={{
-                    fontSize: "13px",
-                    color: "#0A1628",
-                    fontFamily: "monospace",
-                    background: "#FFFFFF",
-                    padding: "6px 14px",
-                    borderRadius: "8px",
-                    border: "1px solid #E2E8F0",
-                  }}
-                >
-                  admin@nuanu.com
-                </code>
-                <span style={{ color: "#CBD5E1", fontSize: "14px" }}>/</span>
-                <code
-                  style={{
-                    fontSize: "13px",
-                    color: "#0A1628",
-                    fontFamily: "monospace",
-                    background: "#FFFFFF",
-                    padding: "6px 14px",
-                    borderRadius: "8px",
-                    border: "1px solid #E2E8F0",
-                  }}
-                >
-                  admin123
-                </code>
-              </div>
-            </div>
           </div>
         </div>
 
