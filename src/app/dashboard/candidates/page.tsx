@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import CandidatesTable from "./CandidatesTable";
 import ExportButton from "./ExportButton";
@@ -5,95 +6,112 @@ import UploadCVButton from "./UploadCVButton";
 
 export const dynamic = "force-dynamic";
 
-async function getCandidatesData() {
-    const applications = await prisma.application.findMany({
-      where: { deletedAt: null },
-      take: 500,
-      include: {
-        candidate: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            phone: true,
-          },
-        },
-        vacancy: {
-          select: {
-            id: true,
-            title: true,
-            location: true,
-            department: { select: { name: true } },
-          },
-        },
-        candidateScore: {
-          select: {
-            overallScore: true,
-            recommendations: true,
-          },
+const LIST_TAKE = 500;
+
+async function fetchCandidatesList() {
+  const applications = await prisma.application.findMany({
+    where: { deletedAt: null },
+    take: LIST_TAKE,
+    select: {
+      id: true,
+      candidateId: true,
+      currentStage: true,
+      appliedAt: true,
+      createdAt: true,
+      lastActivityAt: true,
+      source: true,
+      coverLetter: true,
+      emailSentAt: true,
+      emailSentSubject: true,
+      candidate: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
         },
       },
-      orderBy: [{ appliedAt: "desc" }, { createdAt: "desc" }],
-    });
+      vacancy: {
+        select: {
+          id: true,
+          title: true,
+          location: true,
+          department: { select: { name: true } },
+        },
+      },
+      candidateScore: {
+        select: {
+          overallScore: true,
+          recommendations: true,
+        },
+      },
+    },
+    orderBy: [{ appliedAt: "desc" }, { createdAt: "desc" }],
+  });
 
-    // Map DB records to a flat shape for the client component
-    const candidateIds = applications.map((a) => a.candidateId);
-    const profiles =
-      candidateIds.length > 0
-        ? await prisma.candidateProfile.findMany({
-            where: { userId: { in: candidateIds } },
-            select: {
-              userId: true,
-              experienceYears: true,
-              skills: true,
-              resumeUrl: true,
-              domicile: true,
-              referPosition: true,
-              salaryExpectation: true,
-            },
-          })
-        : [];
-    const profileByUserId = new Map(profiles.map((p) => [p.userId, p]));
+  const candidateIds = applications.map((a) => a.candidateId);
+  const profiles =
+    candidateIds.length > 0
+      ? await prisma.candidateProfile.findMany({
+          where: { userId: { in: candidateIds } },
+          select: {
+            userId: true,
+            experienceYears: true,
+            skills: true,
+            resumeUrl: true,
+            domicile: true,
+            referPosition: true,
+            salaryExpectation: true,
+          },
+        })
+      : [];
+  const profileByUserId = new Map(profiles.map((p) => [p.userId, p]));
 
-    const candidates = applications.map((app) => {
-      const profile = profileByUserId.get(app.candidateId);
-      return {
-        id: app.id,
-        userId: app.candidateId,
-        name: app.candidate.name,
-        email: app.candidate.email,
-        vacancyTitle: profile?.referPosition ?? app.vacancy.title,
-        stage: app.currentStage,
-        score: app.candidateScore?.overallScore ?? 0,
-        experienceYears: profile?.experienceYears ?? 0,
-        location: app.vacancy.location ?? "Remote",
-        appliedAt: app.appliedAt.toISOString(),
-        createdAt: app.createdAt.toISOString(),
-        lastActivityAt: app.lastActivityAt.toISOString(),
-        phone: app.candidate.phone ?? undefined,
-        skills: profile?.skills ?? ["Communication", "Problem Solving"],
-        coverLetter: app.coverLetter ?? undefined,
-        resumeUrl: profile?.resumeUrl ?? undefined,
-        source: app.source ?? "direct",
-        domicile: profile?.domicile ?? undefined,
-        referPosition: profile?.referPosition ?? undefined,
-        salaryExpectation: profile?.salaryExpectation ?? undefined,
-        emailSentAt: (app as any).emailSentAt ? new Date((app as any).emailSentAt).toISOString() : undefined,
-        emailSentSubject: (app as any).emailSentSubject ?? undefined,
-        recommendations: Array.isArray(app.candidateScore?.recommendations)
-          ? app.candidateScore.recommendations
-          : [],
-        notes: [],
-        interviewComments: [],
-      };
-    });
-
-    return candidates;
+  return applications.map((app) => {
+    const profile = profileByUserId.get(app.candidateId);
+    return {
+      id: app.id,
+      userId: app.candidateId,
+      name: app.candidate.name,
+      email: app.candidate.email,
+      vacancyTitle: profile?.referPosition ?? app.vacancy.title,
+      stage: app.currentStage,
+      score: app.candidateScore?.overallScore ?? 0,
+      experienceYears: profile?.experienceYears ?? 0,
+      location: app.vacancy.location ?? "Remote",
+      appliedAt: app.appliedAt.toISOString(),
+      createdAt: app.createdAt.toISOString(),
+      lastActivityAt: app.lastActivityAt.toISOString(),
+      phone: app.candidate.phone ?? undefined,
+      skills: profile?.skills ?? ["Communication", "Problem Solving"],
+      coverLetter: app.coverLetter ?? undefined,
+      resumeUrl: profile?.resumeUrl ?? undefined,
+      source: app.source ?? "direct",
+      domicile: profile?.domicile ?? undefined,
+      referPosition: profile?.referPosition ?? undefined,
+      salaryExpectation: profile?.salaryExpectation ?? undefined,
+      emailSentAt: app.emailSentAt
+        ? new Date(app.emailSentAt).toISOString()
+        : undefined,
+      emailSentSubject: app.emailSentSubject ?? undefined,
+      recommendations: Array.isArray(app.candidateScore?.recommendations)
+        ? app.candidateScore.recommendations
+        : [],
+      notes: [],
+      interviewComments: [],
+    };
+  });
 }
+
+const getCachedCandidatesList = unstable_cache(
+  fetchCandidatesList,
+  ["candidates-list"],
+  { revalidate: 30, tags: ["applications", "candidates"] },
+);
 
 export default async function CandidatesPage() {
   const [candidates, vacancies] = await Promise.all([
-    getCandidatesData(),
+    getCachedCandidatesList(),
     prisma.vacancy.findMany({
       where: { status: { in: ["published", "approved"] } },
       select: { id: true, title: true, status: true },

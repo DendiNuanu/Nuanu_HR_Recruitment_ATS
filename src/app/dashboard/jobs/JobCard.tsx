@@ -20,6 +20,41 @@ import { deleteVacancy } from "@/app/actions/jobs";
 import ConfirmModal from "@/components/ui/ConfirmModal";
 import JobStreetPoster from "./JobStreetPoster";
 
+function CandidatesLink({
+  vacancyId,
+  count,
+}: {
+  vacancyId: string;
+  count: number;
+}) {
+  const [loading, setLoading] = useState(false);
+
+  return (
+    <Link
+      href={`/dashboard/jobs/${vacancyId}/candidates`}
+      prefetch
+      onClick={() => setLoading(true)}
+      className="flex items-center gap-2 hover:bg-blue-50 p-1 -ml-1 rounded-lg transition-colors cursor-pointer"
+    >
+      {loading ? (
+        <>
+          <Loader2 className="w-4 h-4 text-blue-600 animate-spin flex-shrink-0" />
+          <span className="text-xs text-nuanu-gray-500 font-medium">Loading...</span>
+        </>
+      ) : (
+        <>
+          <span className="flex items-center justify-center bg-blue-50 text-blue-600 text-xs font-bold w-6 h-6 rounded-md">
+            {count}
+          </span>
+          <span className="text-xs text-nuanu-gray-500 font-medium hover:underline group-hover:text-blue-600 transition-colors">
+            Candidates
+          </span>
+        </>
+      )}
+    </Link>
+  );
+}
+
 export default function JobCard({ job }: { job: any }) {
   const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -281,17 +316,10 @@ export default function JobCard({ job }: { job: any }) {
         </div>
 
         <div className="flex items-center justify-between pt-4 border-t border-nuanu-gray-50">
-          <Link
-            href={`/dashboard/jobs/${job.id}/candidates`}
-            className="flex items-center gap-2 hover:bg-blue-50 p-1 -ml-1 rounded-lg transition-colors cursor-pointer"
-          >
-            <span className="flex items-center justify-center bg-blue-50 text-blue-600 text-xs font-bold w-6 h-6 rounded-md">
-              {job._count?.applications || 0}
-            </span>
-            <span className="text-xs text-nuanu-gray-500 font-medium hover:underline group-hover:text-blue-600 transition-colors">
-              Candidates
-            </span>
-          </Link>
+          <CandidatesLink
+            vacancyId={job.id}
+            count={job._count?.applications || 0}
+          />
           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
             <Link
               href={`/careers/${job.id}`}

@@ -256,6 +256,7 @@ export default function Sidebar() {
           <Link
             key={item.href}
             href={item.href}
+            prefetch
             onClick={() => setMobileOpen(false)}
             className={`sidebar-link ${isActive(item.href) ? "active" : ""} ${isCollapsed ? "justify-center px-3" : ""}`}
             title={isCollapsed ? item.label : undefined}

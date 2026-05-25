@@ -1,37 +1,43 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { unstable_cache } from "next/cache";
 import { ChevronRight } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import CandidatesTable from "@/app/dashboard/candidates/CandidatesTable";
+
 export const dynamic = "force-dynamic";
 
 async function getVacancyCandidates(vacancyId: string) {
-  const vacancy = await prisma.vacancy.findFirst({
-    where: { id: vacancyId, deletedAt: null },
-    select: { id: true, title: true, code: true },
-  });
-
-  if (!vacancy) return null;
-
-  const applications = await prisma.application.findMany({
-    where: { vacancyId, deletedAt: null },
-    include: {
-      candidate: {
-        select: { id: true, name: true, email: true, phone: true },
-      },
-      vacancy: {
-        select: {
-          id: true,
-          title: true,
-          location: true,
+  const [vacancy, applications] = await Promise.all([
+    prisma.vacancy.findFirst({
+      where: { id: vacancyId, deletedAt: null },
+      select: { id: true, title: true, code: true },
+    }),
+    prisma.application.findMany({
+      where: { vacancyId, deletedAt: null },
+      select: {
+        id: true,
+        candidateId: true,
+        currentStage: true,
+        appliedAt: true,
+        createdAt: true,
+        lastActivityAt: true,
+        source: true,
+        candidate: {
+          select: { id: true, name: true, email: true, phone: true },
+        },
+        vacancy: {
+          select: { id: true, title: true, location: true },
+        },
+        candidateScore: {
+          select: { overallScore: true, recommendations: true },
         },
       },
-      candidateScore: {
-        select: { overallScore: true, recommendations: true },
-      },
-    },
-    orderBy: [{ appliedAt: "desc" }, { createdAt: "desc" }],
-  });
+      orderBy: [{ appliedAt: "desc" }, { createdAt: "desc" }],
+    }),
+  ]);
+
+  if (!vacancy) return null;
 
   const candidateIds = applications.map((a) => a.candidateId);
   const profiles =
@@ -84,13 +90,21 @@ async function getVacancyCandidates(vacancyId: string) {
   return { vacancy, candidates };
 }
 
+function getCachedVacancyCandidates(vacancyId: string) {
+  return unstable_cache(
+    () => getVacancyCandidates(vacancyId),
+    ["vacancy-candidates", vacancyId],
+    { revalidate: 30, tags: ["applications", "candidates"] },
+  )();
+}
+
 export default async function VacancyCandidatesPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const result = await getVacancyCandidates(id);
+  const result = await getCachedVacancyCandidates(id);
 
   if (!result) {
     notFound();

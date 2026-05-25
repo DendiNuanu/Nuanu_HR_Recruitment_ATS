@@ -15,6 +15,7 @@ const nextConfig: NextConfig = {
         hostname: "www.nuanu.com",
       },
     ],
+    formats: ["image/avif", "image/webp"],
   },
   serverExternalPackages: ["bcryptjs", "pdf-parse"],
   experimental: {

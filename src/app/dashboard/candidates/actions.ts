@@ -248,6 +248,7 @@ export async function updateCandidateStage(
     await delCache("dashboard_metrics");
     updateTag("applications");
     updateTag("candidates");
+    updateTag("dashboard");
     revalidatePath("/dashboard/candidates");
     revalidatePath("/dashboard");
     revalidatePath("/dashboard/pipeline");
@@ -567,6 +568,7 @@ export async function sendCandidateEmail(data: {
 
     updateTag("applications");
     updateTag("candidates");
+    updateTag("dashboard");
     revalidatePath("/dashboard");
     revalidatePath("/dashboard/candidates");
 

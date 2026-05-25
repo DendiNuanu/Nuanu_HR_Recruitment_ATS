@@ -37,15 +37,16 @@ export default async function JobsPage() {
   const { vacancies, departments } = await getCachedJobsData();
 
   // Data Synchronization: Ensure filledCount matches actual hired applications
-  for (const vacancy of vacancies) {
-    const actualHiredCount = vacancy.applications.length;
-    if (vacancy.filledCount !== actualHiredCount) {
-      await prisma.vacancy.update({
-        where: { id: vacancy.id },
-        data: { filledCount: actualHiredCount },
-      });
-    }
-  }
+  await Promise.all(
+    vacancies
+      .filter((vacancy) => vacancy.filledCount !== vacancy.applications.length)
+      .map((vacancy) =>
+        prisma.vacancy.update({
+          where: { id: vacancy.id },
+          data: { filledCount: vacancy.applications.length },
+        }),
+      ),
+  );
 
   return (
     <div className="space-y-6">

@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import DashboardClient, { DashboardMetrics } from "./DashboardClient";
 import { formatDate } from "@/lib/utils";
@@ -90,7 +92,12 @@ async function getDashboardMetrics(): Promise<DashboardMetrics> {
       }),
       prisma.application.findMany({
         where: { ...ACTIVE_APP_WHERE, candidateScore: { isNot: null } },
-        include: { candidate: true, vacancy: true, candidateScore: true },
+        select: {
+          id: true,
+          candidate: { select: { name: true } },
+          vacancy: { select: { title: true } },
+          candidateScore: { select: { overallScore: true } },
+        },
         orderBy: { candidateScore: { overallScore: "desc" } },
         take: 4,
       }),
@@ -104,8 +111,18 @@ async function getDashboardMetrics(): Promise<DashboardMetrics> {
             gte: new Date(Date.now() - 24 * 60 * 60 * 1000),
           },
         },
-        include: {
-          application: { include: { candidate: true, vacancy: true } },
+        select: {
+          id: true,
+          type: true,
+          status: true,
+          scheduledAt: true,
+          location: true,
+          application: {
+            select: {
+              candidate: { select: { name: true } },
+              vacancy: { select: { title: true } },
+            },
+          },
         },
         orderBy: { scheduledAt: "asc" },
         take: 5,
@@ -610,6 +627,20 @@ async function getDashboardMetrics(): Promise<DashboardMetrics> {
     };
 }
 
+const getCachedDashboardMetrics = unstable_cache(
+  getDashboardMetrics,
+  ["dashboard-metrics"],
+  {
+    revalidate: 60,
+    tags: ["applications", "vacancies", "offers", "interviews", "dashboard"],
+  },
+);
+
+async function DashboardMetricsSection() {
+  const metrics = await getCachedDashboardMetrics();
+  return <DashboardClient metrics={metrics} />;
+}
+
 export default async function DashboardPage() {
   await checkRole([
     "admin",
@@ -619,6 +650,23 @@ export default async function DashboardPage() {
     "finance",
     "manager",
   ]);
-  const metrics = await getDashboardMetrics();
-  return <DashboardClient metrics={metrics} />;
+  return (
+    <Suspense
+      fallback={
+        <div className="space-y-6 animate-pulse">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="card h-24 bg-gray-50" />
+            ))}
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="card h-64 bg-gray-50" />
+            <div className="card h-64 bg-gray-50" />
+          </div>
+        </div>
+      }
+    >
+      <DashboardMetricsSection />
+    </Suspense>
+  );
 }
