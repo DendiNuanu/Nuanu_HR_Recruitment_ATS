@@ -148,6 +148,8 @@ async function main() {
 
   await prisma.onboardingTask.deleteMany();
   await prisma.notification.deleteMany();
+  const deletedLogs = await prisma.activityLog.deleteMany();
+  console.log(`Deleted ${deletedLogs.count} activity log(s).`);
 
   for (const u of candidateUsers) {
     try {
