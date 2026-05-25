@@ -881,9 +881,11 @@ export default function CandidatesTable({
                   <p className="font-medium text-nuanu-navy leading-tight">
                     {candidate.vacancyTitle}
                   </p>
-                  <p className="text-[11px] text-nuanu-gray-400 mt-0.5">
-                    {candidate.experienceYears} yrs exp • {candidate.location}
-                  </p>
+                  {candidate.location && candidate.location !== "—" ? (
+                    <p className="text-[11px] text-nuanu-gray-400 mt-0.5">
+                      {candidate.location}
+                    </p>
+                  ) : null}
                 </td>
                 <td>
                   <span
