@@ -508,7 +508,7 @@ async function importOneCandidate(
     },
     create: {
       userId: user.id,
-      location: seekLocation || "Bali, Indonesia",
+      location: seekLocation ?? undefined,
       domicile: seekLocation ?? undefined,
       ...(resumeUrl ? { resumeUrl } : {}),
       ...(currentEmployment ? { currentTitle: currentEmployment } : {}),

@@ -60,6 +60,7 @@ async function fetchCandidatesList() {
             skills: true,
             resumeUrl: true,
             domicile: true,
+            location: true,
             referPosition: true,
             salaryExpectation: true,
           },
@@ -78,7 +79,11 @@ async function fetchCandidatesList() {
       stage: app.currentStage,
       score: app.candidateScore?.overallScore ?? 0,
       experienceYears: profile?.experienceYears ?? 0,
-      location: app.vacancy.location ?? "Remote",
+      location:
+        profile?.domicile?.trim() ||
+        profile?.location?.trim() ||
+        app.vacancy.location ||
+        "—",
       appliedAt: app.appliedAt.toISOString(),
       createdAt: app.createdAt.toISOString(),
       lastActivityAt: app.lastActivityAt.toISOString(),
