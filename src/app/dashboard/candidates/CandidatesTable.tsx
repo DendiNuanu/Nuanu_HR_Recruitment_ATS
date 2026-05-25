@@ -43,7 +43,6 @@ import {
 } from "./actions";
 import {
   formatDate,
-  formatRelativeTime,
   PIPELINE_STAGES,
   SOURCE_PRESET_OPTIONS,
   normalizePipelineStage,
@@ -140,47 +139,11 @@ function timestampMs(iso: string | undefined) {
   return Number.isNaN(t) ? 0 : t;
 }
 
-/** Talent Bank & active pipeline first; rejected last; then newest within each group */
-function candidateRecencyMs(c: Candidate) {
-  return Math.max(
-    timestampMs(c.appliedAt),
-    timestampMs(c.createdAt),
-    timestampMs(c.lastActivityAt),
-  );
-}
-
-const STAGE_LIST_RANK: Record<PipelineStageId, number> = {
-  talent_bank: 0,
-  screening: 1,
-  hr_interview: 2,
-  user_interview: 3,
-  assessment: 4,
-  user_interview_2: 5,
-  offering: 6,
-  hired: 7,
-  onboarding: 8,
-  rejected: 9,
-};
-
-function candidateListRank(c: Candidate) {
-  const stage = resolvePipelineColumn(c.stage);
-  if (stage === "talent_bank") return 0;
-  return STAGE_LIST_RANK[stage as PipelineStageId] ?? 5;
-}
-
+/** Newest application date first (matches server orderBy appliedAt desc). */
 function compareCandidatesForList(a: Candidate, b: Candidate) {
-  const rankA = candidateListRank(a);
-  const rankB = candidateListRank(b);
-  if (rankA !== rankB) return rankA - rankB;
-  return candidateRecencyMs(b) - candidateRecencyMs(a);
-}
-
-/** Best timestamp for SEEK-style "X ago" (prefers newer of applied vs entered ATS) */
-function primaryAppliedTimestamp(c: Candidate): string {
-  const applied = timestampMs(c.appliedAt);
-  const created = timestampMs(c.createdAt);
-  if (created > applied && c.createdAt) return c.createdAt;
-  return c.appliedAt;
+  const appliedDiff = timestampMs(b.appliedAt) - timestampMs(a.appliedAt);
+  if (appliedDiff !== 0) return appliedDiff;
+  return timestampMs(b.createdAt) - timestampMs(a.createdAt);
 }
 
 export default function CandidatesTable({
@@ -921,14 +884,9 @@ export default function CandidatesTable({
                   </div>
                 </td>
                 <td>
-                  <div className="flex flex-col gap-0.5 min-w-[108px]">
-                    <span className="text-sm font-semibold text-nuanu-navy whitespace-nowrap">
-                      {formatRelativeTime(primaryAppliedTimestamp(candidate))}
-                    </span>
-                    <span className="text-[11px] text-nuanu-gray-400 whitespace-nowrap">
-                      {formatDate(candidate.appliedAt)}
-                    </span>
-                  </div>
+                  <span className="text-sm font-medium text-nuanu-navy whitespace-nowrap">
+                    {formatDate(candidate.appliedAt)}
+                  </span>
                 </td>
                 <td className="text-right pr-8">
                   <div className="flex items-center justify-end gap-2">
