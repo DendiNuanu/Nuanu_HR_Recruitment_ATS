@@ -22,6 +22,7 @@ type SeekCandidateInput = {
   mostRecentRole?: string;
   seekStatus?: string;
   location?: string;
+  domicile?: string;
   resumeUrl?: string;
   /** Base64-encoded CV from SEEK scraper (uploaded to Supabase on import) */
   resumeBase64?: string;
@@ -395,6 +396,8 @@ async function importOneCandidate(
   }
   const stage = mapSeekStatus(raw.seekStatus);
   const appliedAt = parseSeekAppliedAt(raw.appliedAt);
+  const seekLocation =
+    raw.domicile?.trim() || raw.location?.trim() || null;
   const seekAppliedRole = raw.appliedRole?.trim() || null;
   const currentEmployment = raw.mostRecentRole?.trim() || null;
   const experienceYears = parseExperienceYears(raw.experience);
@@ -439,6 +442,17 @@ async function importOneCandidate(
           ...(stage === "rejected" ? { rejectedAt: new Date() } : {}),
         },
       });
+      if (seekLocation) {
+        await prisma.candidateProfile.upsert({
+          where: { userId: existingUser.id },
+          update: { location: seekLocation, domicile: seekLocation },
+          create: {
+            userId: existingUser.id,
+            location: seekLocation,
+            domicile: seekLocation,
+          },
+        });
+      }
       let resumeAttached = false;
       if (resumeUrl) {
         const profile = await prisma.candidateProfile.findUnique({
@@ -480,7 +494,9 @@ async function importOneCandidate(
   await prisma.candidateProfile.upsert({
     where: { userId: user.id },
     update: {
-      ...(raw.location ? { location: raw.location.trim() } : {}),
+      ...(seekLocation
+        ? { location: seekLocation, domicile: seekLocation }
+        : {}),
       ...(resumeUrl ? { resumeUrl } : {}),
       ...(currentEmployment ? { currentTitle: currentEmployment } : {}),
       ...(seekAppliedRole ? { referPosition: seekAppliedRole } : {}),
@@ -492,7 +508,8 @@ async function importOneCandidate(
     },
     create: {
       userId: user.id,
-      location: raw.location?.trim() || "Bali, Indonesia",
+      location: seekLocation || "Bali, Indonesia",
+      domicile: seekLocation ?? undefined,
       ...(resumeUrl ? { resumeUrl } : {}),
       ...(currentEmployment ? { currentTitle: currentEmployment } : {}),
       ...(seekAppliedRole ? { referPosition: seekAppliedRole } : {}),

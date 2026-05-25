@@ -273,9 +273,52 @@ async function parseWithOllama(cvText: string): Promise<ParsedCVData | null> {
   }
 }
 
+/** Prefer SEEK domicile; otherwise parse contact/header only — never work history */
+export function extractLocation(
+  cvText: string,
+  seekLocation?: string | null,
+): string | null {
+  if (seekLocation?.trim()) return seekLocation.trim();
+
+  const head = cvText.slice(0, Math.min(cvText.length, 2800));
+  const contactOnly =
+    head.split(
+      /\n\s*(experience|employment history|work experience|professional experience|pengalaman kerja|riwayat pekerjaan)\b/i,
+    )[0] || head;
+
+  const labeled = contactOnly.match(
+    /(?:location|address|domicile|residence|based in|lokasi|alamat)\s*[:\-]\s*([^\n]{3,80})/i,
+  );
+  if (labeled?.[1]) {
+    const loc = labeled[1].trim().replace(/\s+/g, " ");
+    if (loc.length >= 3 && loc.length <= 80) return loc;
+  }
+
+  const city = contactOnly.match(
+    /\b((?:Kabupaten|Kota)\s+)?(Bali|Jakarta|Surabaya|Bandung|Yogyakarta|Semarang|Medan|Denpasar|Makassar)(?:\s*,\s*Indonesia)?/i,
+  );
+  if (city?.[0]) {
+    const loc = city[0].trim().replace(/\s+/g, " ");
+    if (loc.length >= 3 && loc.length <= 80) return loc;
+  }
+
+  return null;
+}
+
+function withResolvedLocation(
+  data: ParsedCVData,
+  cvText: string,
+  seekLocation?: string | null,
+): ParsedCVData {
+  return { ...data, location: extractLocation(cvText, seekLocation) };
+}
+
 // ── MAIN EXPORT ────────────────────────────────────────────────────────────
 
-export async function parseCVWithAI(cvText: string): Promise<ParseResult> {
+export async function parseCVWithAI(
+  cvText: string,
+  seekLocation?: string | null,
+): Promise<ParseResult> {
   if (!cvText.trim()) {
     return { data: EMPTY_DATA, engine: "none", aiWorked: false };
   }
@@ -284,14 +327,22 @@ export async function parseCVWithAI(cvText: string): Promise<ParseResult> {
   const groqResult = await parseWithGroq(cvText);
   if (groqResult) {
     const aiWorked = !!(groqResult.fullName || groqResult.email || groqResult.currentRole);
-    return { data: groqResult, engine: "groq", aiWorked };
+    return {
+      data: withResolvedLocation(groqResult, cvText, seekLocation),
+      engine: "groq",
+      aiWorked,
+    };
   }
 
   // 2. Try Ollama (fallback — works locally only)
   const ollamaResult = await parseWithOllama(cvText);
   if (ollamaResult) {
     const aiWorked = !!(ollamaResult.fullName || ollamaResult.email || ollamaResult.currentRole);
-    return { data: ollamaResult, engine: "ollama", aiWorked };
+    return {
+      data: withResolvedLocation(ollamaResult, cvText, seekLocation),
+      engine: "ollama",
+      aiWorked,
+    };
   }
 
   // 3. Both failed
