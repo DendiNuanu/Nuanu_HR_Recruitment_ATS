@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 
 type Params = { params: Promise<{ id: string }> };
 type ReviewerType = "HR" | "USER_1" | "USER_2";
-type RoleKey = "admin" | "hr_manager" | "hr" | "recruiter";
+type RoleKey = "admin" | "super_admin" | "hr_manager" | "hr" | "recruiter";
 
 function normalizeReviewerType(value: unknown): ReviewerType {
   if (value === "USER_1") return "USER_1";
@@ -34,7 +34,7 @@ function getEditPermission({
     user2ReviewerId: string | null;
   };
 }) {
-  const isHrAdmin = hasAnyRole(sessionRoles, ["admin", "hr_manager", "hr"]);
+  const isHrAdmin = hasAnyRole(sessionRoles, ["admin", "super_admin", "hr_manager", "hr"]);
   if (reviewerType === "HR") {
     return (
       isHrAdmin ||
@@ -126,7 +126,7 @@ export async function GET(_req: Request, { params }: Params) {
         }
       : null;
 
-  const isHrViewer = hasAnyRole(session.roles, ["admin", "hr_manager", "hr"]);
+  const isHrViewer = hasAnyRole(session.roles, ["admin", "super_admin", "hr_manager", "hr"]);
   const canViewHR = isHrViewer;
   const canViewUser1 = isHrViewer || session.id === application.user1ReviewerId;
   const canViewUser2 = isHrViewer || session.id === application.user2ReviewerId;
@@ -228,7 +228,7 @@ export async function POST(req: Request, { params }: Params) {
 export async function PATCH(req: Request, { params }: Params) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!hasAnyRole(session.roles, ["admin", "hr_manager", "hr", "recruiter"])) {
+  if (!hasAnyRole(session.roles, ["admin", "super_admin", "hr_manager", "hr", "recruiter"])) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
