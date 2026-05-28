@@ -6,7 +6,6 @@ import { toast } from "sonner";
 
 const CHANNELS = [
   { key: "seek", label: "SEEK" },
-  { key: "linkedin", label: "LinkedIn" },
   { key: "referral", label: "Employee Referral" },
   { key: "loker_bali", label: "Loker Bali" },
   { key: "instagram", label: "Instagram" },

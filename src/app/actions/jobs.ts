@@ -18,6 +18,24 @@ export async function createVacancy(formData: FormData) {
   const description = formData.get("description") as string;
   const requirements = formData.get("requirements") as string;
 
+  // ── Duplicate title prevention ─────────────────────────────────────────────
+  if (title?.trim()) {
+    const existing = await prisma.vacancy.findFirst({
+      where: {
+        title: { equals: title.trim(), mode: "insensitive" },
+        deletedAt: null,
+        status: { notIn: ["closed", "cancelled"] },
+      },
+      select: { id: true, title: true, status: true, code: true },
+    });
+    if (existing) {
+      throw new Error(
+        `A vacancy named "${existing.title}" already exists (${existing.code}, status: ${existing.status}). ` +
+        `Please use a different title or update the existing vacancy.`
+      );
+    }
+  }
+
   // Find or Create Department
   let targetDept = await prisma.department.findUnique({
     where: { name: departmentName },
@@ -39,7 +57,6 @@ export async function createVacancy(formData: FormData) {
   }
 
   const publishToCareers = formData.get("publishCareers") === "on";
-  const publishToLinkedIn = formData.get("publishLinkedIn") === "on";
   const publishToJobStreet = formData.get("publishJobStreet") === "on";
 
   // Prefer the logged-in user's ID from the session; fall back to the admin
@@ -154,15 +171,6 @@ export async function createVacancy(formData: FormData) {
     });
   }
 
-  if (publishToLinkedIn) {
-    postings.push({
-      vacancyId: newVacancy.id,
-      channel: "linkedin",
-      status: "active",
-      publishedAt: new Date(),
-    });
-  }
-
   if (publishToJobStreet) {
     postings.push({
       vacancyId: newVacancy.id,
@@ -193,6 +201,25 @@ export async function updateVacancy(id: string, formData: FormData) {
   const description = formData.get("description") as string;
   const requirements = formData.get("requirements") as string;
   const status = (formData.get("status") as string) || "published";
+
+  // ── Duplicate title prevention (excluding current vacancy) ─────────────────
+  if (title?.trim()) {
+    const existing = await prisma.vacancy.findFirst({
+      where: {
+        title: { equals: title.trim(), mode: "insensitive" },
+        deletedAt: null,
+        status: { notIn: ["closed", "cancelled"] },
+        id: { not: id }, // Exclude current vacancy from check
+      },
+      select: { id: true, title: true, status: true, code: true },
+    });
+    if (existing) {
+      throw new Error(
+        `A vacancy named "${existing.title}" already exists (${existing.code}, status: ${existing.status}). ` +
+        `Please use a different title or update the existing vacancy.`
+      );
+    }
+  }
 
   // Find or Create Department
   let targetDept = await prisma.department.findUnique({

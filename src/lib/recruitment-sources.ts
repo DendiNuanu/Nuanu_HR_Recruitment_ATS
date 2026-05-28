@@ -36,7 +36,6 @@ export const CHANNEL_COST_IDR: Record<string, number> = {
   referral: 0,
   direct: 0,
   internal: 0,
-  linkedin: 5_000_000,
   seek: 3_000_000,
   loker_bali: 1_000_000,
   career_page: 0,

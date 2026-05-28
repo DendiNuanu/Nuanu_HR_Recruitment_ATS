@@ -138,7 +138,6 @@ export const SOURCE_PRESET_OPTIONS = [
   { value: "seek", label: "SEEK" },
   { value: "career_page", label: "Career Page" },
   { value: "direct", label: "Direct" },
-  { value: "linkedin", label: "LinkedIn" },
   { value: "walk_in", label: "Walk-In" },
   { value: "referral", label: "Referral" },
   { value: "job_board", label: "Job Board" },
