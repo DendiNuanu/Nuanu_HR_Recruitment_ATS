@@ -813,7 +813,7 @@ export default function CandidatesTable({
               <th>Stage</th>
               <th>AI Match</th>
               <th>Applied</th>
-              <th className="text-right pr-8">Actions</th>
+              <th className="text-right pr-4">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -888,7 +888,7 @@ export default function CandidatesTable({
                     {formatDate(candidate.appliedAt)}
                   </span>
                 </td>
-                <td className="text-right pr-8">
+                <td className="text-right pr-4">
                   <div className="flex items-center justify-end gap-2">
                     <button
                       type="button"
