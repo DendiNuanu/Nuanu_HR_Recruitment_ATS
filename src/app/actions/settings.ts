@@ -83,7 +83,7 @@ export async function getUsers() {
 
     return await prisma.user.findMany({
       where: {
-        deletedAt: null, // exclude soft-deleted users
+        deletedAt: null,
         userRoles: {
           some: {
             role: {
@@ -94,13 +94,24 @@ export async function getUsers() {
           },
         },
       },
-      include: {
-        userRoles: {
-          include: { role: true },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        isActive: true,
+        createdAt: true,
+        departmentId: true,
+        department: {
+          select: { id: true, name: true, code: true },
         },
-        department: true,
+        userRoles: {
+          select: {
+            roleId: true,
+            role: { select: { id: true, name: true, slug: true } },
+          },
+        },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: { name: "asc" },
     });
   } catch (error) {
     console.error("Failed to fetch users:", error);
@@ -119,10 +130,88 @@ export async function getRoles() {
       return [];
     }
 
-    return await prisma.role.findMany();
+    return await prisma.role.findMany({
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        description: true,
+        isSystem: true,
+      },
+      orderBy: { name: "asc" },
+    });
   } catch (error) {
     console.error("Failed to fetch roles:", error);
     return [];
+  }
+}
+
+/** Single round-trip for Users & Roles tab (faster than 3 separate client calls). */
+export async function loadUserManagementData() {
+  try {
+    const session = await getSession();
+    if (
+      !session ||
+      (!session.roles.includes("admin") &&
+        !session.roles.includes("super-admin"))
+    ) {
+      return { users: [], roles: [], departments: [] };
+    }
+
+    const [users, roles, departments] = await Promise.all([
+      prisma.user.findMany({
+        where: {
+          deletedAt: null,
+          userRoles: {
+            some: {
+              role: { slug: { notIn: ["candidate"] } },
+            },
+          },
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          isActive: true,
+          createdAt: true,
+          departmentId: true,
+          department: {
+            select: { id: true, name: true, code: true },
+          },
+          userRoles: {
+            select: {
+              roleId: true,
+              role: { select: { id: true, name: true, slug: true } },
+            },
+          },
+        },
+        orderBy: { name: "asc" },
+      }),
+      prisma.role.findMany({
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          description: true,
+          isSystem: true,
+        },
+        orderBy: { name: "asc" },
+      }),
+      prisma.department.findMany({
+        select: {
+          id: true,
+          name: true,
+          code: true,
+          description: true,
+        },
+        orderBy: { name: "asc" },
+      }),
+    ]);
+
+    return { users, roles, departments };
+  } catch (error) {
+    console.error("Failed to load user management data:", error);
+    return { users: [], roles: [], departments: [] };
   }
 }
 

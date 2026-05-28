@@ -52,7 +52,7 @@ const menuItems = [
     label: "Candidates",
     href: "/dashboard/candidates",
     icon: Users,
-    allowed: ["admin", "super-admin", "hr", "recruiter"],
+    allowed: ["admin", "super-admin", "hr", "recruiter", "interviewer", "manager"],
   },
   {
     label: "Pipeline",

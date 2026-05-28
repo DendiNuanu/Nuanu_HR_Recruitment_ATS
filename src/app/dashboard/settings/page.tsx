@@ -41,6 +41,7 @@ import {
   getCalendarStatus,
   getUsers,
   getRoles,
+  loadUserManagementData,
   inviteUser,
   deleteUser,
   updateUser,
@@ -90,6 +91,8 @@ export default function SettingsPage() {
   const [users, setUsers] = useState<any[]>([]);
   const [roles, setRoles] = useState<any[]>([]);
   const [departments, setDepartments] = useState<any[]>([]);
+  const [usersDataLoaded, setUsersDataLoaded] = useState(false);
+  const [isLoadingUsersData, setIsLoadingUsersData] = useState(false);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [inviteData, setInviteData] = useState({
     name: "",
@@ -203,12 +206,32 @@ export default function SettingsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const refreshUserManagementData = async () => {
+    setIsLoadingUsersData(true);
+    try {
+      const { users: usersData, roles: rolesData, departments: deptsData } =
+        await loadUserManagementData();
+      setUsers(usersData);
+      setRoles(rolesData);
+      setDepartments(deptsData);
+      setUsersDataLoaded(true);
+    } finally {
+      setIsLoadingUsersData(false);
+    }
+  };
+
   useEffect(() => {
     async function loadSettings() {
       const user = await getCurrentUser();
       setCurrentUser(user);
 
-      const googleSettings = await getIntegrationSettings("google_sheets");
+      const [googleSettings, calendar, genSettings, emailCfg] = await Promise.all([
+        getIntegrationSettings("google_sheets"),
+        getCalendarStatus(),
+        getIntegrationSettings("general_info"),
+        getEmailConfig(),
+      ]);
+
       if (googleSettings) {
         setSheetsConfig({
           serviceAccount: JSON.stringify(googleSettings.config, null, 2),
@@ -219,28 +242,32 @@ export default function SettingsPage() {
         });
       }
 
-      const calendar = await getCalendarStatus();
       setIsCalendarConnected(calendar.connected);
 
-      const genSettings = await getIntegrationSettings("general_info");
       if (genSettings) {
         setGeneralConfig(genSettings.config as any);
       }
 
-      const [usersData, rolesData, deptsData, emailCfg] = await Promise.all([
-        getUsers(),
-        getRoles(),
-        getDepartments(),
-        getEmailConfig(),
-      ]);
-      setUsers(usersData);
-      setRoles(rolesData);
-      setDepartments(deptsData);
       if (emailCfg) setEmailConfig(emailCfg);
     }
-    loadSettings();
-    checkAI();
+    void loadSettings();
+    void checkAI();
   }, []);
+
+  useEffect(() => {
+    const needsUserData =
+      activeTab === "users" || activeTab === "departments" || rolesExpanded;
+    if (!needsUserData || usersDataLoaded || isLoadingUsersData) return;
+
+    const isAdminUser = currentUser?.roles?.some(
+      (r: string) =>
+        r.toLowerCase() === "admin" || r.toLowerCase() === "super-admin",
+    );
+    if (!isAdminUser) return;
+
+    void refreshUserManagementData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, rolesExpanded, currentUser, usersDataLoaded, isLoadingUsersData]);
 
   const checkAI = async () => {
     setIsCheckingAI(true);
@@ -596,6 +623,12 @@ export default function SettingsPage() {
                   </button>
                 </div>
                 <div className="overflow-x-auto">
+                  {isLoadingUsersData && users.length === 0 ? (
+                    <div className="flex items-center justify-center gap-2 py-16 text-sm text-nuanu-gray-500">
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      Loading team members...
+                    </div>
+                  ) : (
                   <table className="data-table">
                     <thead>
                       <tr>
@@ -697,6 +730,7 @@ export default function SettingsPage() {
                       )}
                     </tbody>
                   </table>
+                  )}
                 </div>
 
                 {/* ─── Roles Section ─────────────────────────────────────── */}
@@ -1794,8 +1828,7 @@ export default function SettingsPage() {
                       description:
                         "The user can now log in with their credentials.",
                     });
-                    const updatedUsers = await getUsers();
-                    setUsers(updatedUsers);
+                    await refreshUserManagementData();
                   } else {
                     toast.error("Failed to create user", {
                       description: res.error,
@@ -2057,8 +2090,7 @@ export default function SettingsPage() {
                       description: "Role and profile changes have been saved.",
                     });
                     setEditingUser(null);
-                    const updatedUsers = await getUsers();
-                    setUsers(updatedUsers);
+                    await refreshUserManagementData();
                   } else {
                     toast.error("Failed to update user", {
                       description: res.error,
