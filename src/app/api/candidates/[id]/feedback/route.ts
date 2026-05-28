@@ -60,19 +60,34 @@ export async function GET(_req: Request, { params }: Params) {
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id: applicationId } = await params;
-  const application = await prisma.application.findUnique({
+  const baseApplication = await prisma.application.findUnique({
     where: { id: applicationId },
-    select: {
-      hrReviewerId: true,
-      user1ReviewerId: true,
-      user2ReviewerId: true,
-      hrReviewer: { select: { id: true, name: true } },
-      user1Reviewer: { select: { id: true, name: true } },
-      user2Reviewer: { select: { id: true, name: true } },
-    },
+    select: { id: true },
   });
-  if (!application) {
+  if (!baseApplication) {
     return NextResponse.json({ error: "Application not found" }, { status: 404 });
+  }
+  let assignment: {
+    hrReviewerId: string | null;
+    user1ReviewerId: string | null;
+    user2ReviewerId: string | null;
+  } = {
+    hrReviewerId: null,
+    user1ReviewerId: null,
+    user2ReviewerId: null,
+  };
+  try {
+    const withAssignment = await prisma.application.findUnique({
+      where: { id: applicationId },
+      select: {
+        hrReviewerId: true,
+        user1ReviewerId: true,
+        user2ReviewerId: true,
+      },
+    });
+    if (withAssignment) assignment = withAssignment;
+  } catch {
+    // Keep backward-compatible behavior when assignment columns are missing.
   }
 
   const rows = await prisma.$queryRaw<
@@ -128,11 +143,11 @@ export async function GET(_req: Request, { params }: Params) {
 
   const isHrViewer = hasAnyRole(session.roles, ["admin", "super_admin", "hr_manager", "hr"]);
   const canViewHR = isHrViewer;
-  const canViewUser1 = isHrViewer || session.id === application.user1ReviewerId;
-  const canViewUser2 = isHrViewer || session.id === application.user2ReviewerId;
+  const canViewUser1 = isHrViewer || session.id === assignment.user1ReviewerId;
+  const canViewUser2 = isHrViewer || session.id === assignment.user2ReviewerId;
   const canEditHR = isHrViewer;
-  const canEditUser1 = session.id === application.user1ReviewerId;
-  const canEditUser2 = session.id === application.user2ReviewerId;
+  const canEditUser1 = session.id === assignment.user1ReviewerId;
+  const canEditUser2 = session.id === assignment.user2ReviewerId;
 
   return NextResponse.json({
     hr: canViewHR ? mapPayload(latestByType.HR) : null,
@@ -155,12 +170,30 @@ export async function POST(req: Request, { params }: Params) {
 
   const { id: applicationId } = await params;
   const body = await req.json();
-  const application = await prisma.application.findUnique({
+  const baseApplication = await prisma.application.findUnique({
     where: { id: applicationId },
-    select: { hrReviewerId: true, user1ReviewerId: true, user2ReviewerId: true },
+    select: { id: true },
   });
-  if (!application) {
+  if (!baseApplication) {
     return NextResponse.json({ error: "Application not found" }, { status: 404 });
+  }
+  let assignment: {
+    hrReviewerId: string | null;
+    user1ReviewerId: string | null;
+    user2ReviewerId: string | null;
+  } = {
+    hrReviewerId: null,
+    user1ReviewerId: null,
+    user2ReviewerId: null,
+  };
+  try {
+    const withAssignment = await prisma.application.findUnique({
+      where: { id: applicationId },
+      select: { hrReviewerId: true, user1ReviewerId: true, user2ReviewerId: true },
+    });
+    if (withAssignment) assignment = withAssignment;
+  } catch {
+    // Keep backward-compatible behavior when assignment columns are missing.
   }
 
   const reviewerType = normalizeReviewerType(body.reviewerType);
@@ -178,7 +211,7 @@ export async function POST(req: Request, { params }: Params) {
     reviewerType,
     sessionUserId: session.id,
     sessionRoles: session.roles,
-    assignment: application,
+    assignment,
   });
   if (!canEdit) {
     return NextResponse.json(

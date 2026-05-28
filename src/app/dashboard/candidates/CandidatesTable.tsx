@@ -1748,8 +1748,8 @@ export default function CandidatesTable({
                     </div>
                   )}
                   <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50/40">
-                    {(
-                      [
+                    {(() => {
+                      const sections = [
                         {
                           key: "HR" as ReviewerType,
                           title: "HR Manager Comment",
@@ -1771,8 +1771,17 @@ export default function CandidatesTable({
                           canEdit: feedbackPermissions.canEditUser2,
                           canView: feedbackPermissions.canViewUser2,
                         },
-                      ].filter((section) => section.canView)
-                    ).map((section) => (
+                      ].filter((section) => section.canView);
+
+                      if (sections.length === 0) {
+                        return (
+                          <div className="bg-white border border-gray-100 rounded-2xl p-6 text-center text-sm text-nuanu-gray-500">
+                            No visible interview comments for your account yet.
+                          </div>
+                        );
+                      }
+
+                      return sections.map((section) => (
                       <div key={section.key} className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
                         <div className="flex items-center justify-between mb-4">
                           <p className="font-bold text-nuanu-navy">{section.title}</p>
@@ -1812,7 +1821,8 @@ export default function CandidatesTable({
                           </button>
                         </div>
                       </div>
-                    ))}
+                    ));
+                    })()}
                   </div>
                 </div>
               )}
