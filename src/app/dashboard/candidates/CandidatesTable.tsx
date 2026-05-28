@@ -34,12 +34,9 @@ import {
   addNote,
   editNote,
   deleteNote,
-  addInterviewComment,
-  deleteInterviewComment,
   uploadCandidateResume,
   updateCandidateOverviewDetails,
   getNotes,
-  getInterviewComments,
 } from "./actions";
 import {
   formatDate,
@@ -125,6 +122,24 @@ type StageNotice = {
   message: string;
 };
 
+type ReviewerType = "HR" | "USER_1" | "USER_2";
+
+type InterviewFeedbackItem = {
+  id: string;
+  reviewerType: ReviewerType;
+  rating: number | null;
+  recommendation: string | null;
+  comments: string;
+  updatedAt: string;
+  authorName: string;
+};
+
+type FeedbackGroup = {
+  hr: InterviewFeedbackItem | null;
+  user1: InterviewFeedbackItem | null;
+  user2: InterviewFeedbackItem | null;
+};
+
 function stageLabel(stageId: string) {
   const canonical = resolvePipelineColumn(stageId);
   return (
@@ -195,9 +210,20 @@ export default function CandidatesTable({
   const [editNoteText, setEditNoteText] = useState("");
   const [savingNote, setSavingNote] = useState(false);
 
-  // Interview comments state
-  const [interviewCommentText, setInterviewCommentText] = useState("");
-  const [savingInterviewComment, setSavingInterviewComment] = useState(false);
+  // Interview results structured feedback state
+  const [interviewFeedback, setInterviewFeedback] = useState<FeedbackGroup>({
+    hr: null,
+    user1: null,
+    user2: null,
+  });
+  const [feedbackDrafts, setFeedbackDrafts] = useState<
+    Record<ReviewerType, { rating: number; recommendation: string; comments: string }>
+  >({
+    HR: { rating: 0, recommendation: "", comments: "" },
+    USER_1: { rating: 0, recommendation: "", comments: "" },
+    USER_2: { rating: 0, recommendation: "", comments: "" },
+  });
+  const [savingFeedbackType, setSavingFeedbackType] = useState<ReviewerType | null>(null);
 
   // Source field state
   const [sourcePreset, setSourcePreset] = useState("direct");
@@ -233,9 +259,6 @@ export default function CandidatesTable({
 
   // Local state for live notes/comments (so UI updates without full reload)
   const [localNotes, setLocalNotes] = useState<Candidate["notes"]>([]);
-  const [localInterviewComments, setLocalInterviewComments] = useState<
-    Candidate["interviewComments"]
-  >([]);
 
   const filteredCandidates = useMemo(() => {
     const q = deferredSearch.trim().toLowerCase();
@@ -500,14 +523,53 @@ export default function CandidatesTable({
     setSourcePreset(normalizeSourcePreset(source));
   };
 
+  const mapFeedbackToDrafts = (group: FeedbackGroup) => {
+    setFeedbackDrafts({
+      HR: {
+        rating: group.hr?.rating ?? 0,
+        recommendation: group.hr?.recommendation ?? "",
+        comments: group.hr?.comments ?? "",
+      },
+      USER_1: {
+        rating: group.user1?.rating ?? 0,
+        recommendation: group.user1?.recommendation ?? "",
+        comments: group.user1?.comments ?? "",
+      },
+      USER_2: {
+        rating: group.user2?.rating ?? 0,
+        recommendation: group.user2?.recommendation ?? "",
+        comments: group.user2?.comments ?? "",
+      },
+    });
+  };
+
+  const loadInterviewFeedback = async (applicationId: string) => {
+    const res = await fetch(`/api/candidates/${applicationId}/feedback`);
+    if (!res.ok) {
+      throw new Error("Failed to load interview feedback");
+    }
+    const payload = (await res.json()) as FeedbackGroup;
+    const normalized: FeedbackGroup = {
+      hr: payload.hr ?? null,
+      user1: payload.user1 ?? null,
+      user2: payload.user2 ?? null,
+    };
+    setInterviewFeedback(normalized);
+    mapFeedbackToDrafts(normalized);
+  };
+
   const openProfile = async (c: Candidate) => {
     const normalized = normalizeCandidate(c);
     setSelectedProfile(normalized);
     setProfileTab("overview");
     setLocalNotes([]);
-    setLocalInterviewComments([]);
     setNoteText("");
-    setInterviewCommentText("");
+    setInterviewFeedback({ hr: null, user1: null, user2: null });
+    setFeedbackDrafts({
+      HR: { rating: 0, recommendation: "", comments: "" },
+      USER_1: { rating: 0, recommendation: "", comments: "" },
+      USER_2: { rating: 0, recommendation: "", comments: "" },
+    });
     resetSourceFields(normalized.source);
     setReferAsDraft(normalized.referPosition || "");
     setDomicileDraft(normalized.domicile || "");
@@ -516,10 +578,7 @@ export default function CandidatesTable({
     setShow360(false);
     setLoadingProfileDetails(true);
     try {
-      const [notes, comments] = await Promise.all([
-        getNotes(c.id),
-        getInterviewComments(c.id),
-      ]);
+      const [notes] = await Promise.all([getNotes(c.id), loadInterviewFeedback(c.id)]);
       const mappedNotes = notes.map((n) => ({
         id: n.id,
         content: n.content,
@@ -528,28 +587,18 @@ export default function CandidatesTable({
         createdAt: n.createdAt.toISOString(),
         updatedAt: n.updatedAt.toISOString(),
       }));
-      const mappedComments = comments.map((comment) => ({
-        id: comment.id,
-        content: comment.content,
-        authorName: comment.author.name,
-        authorId: comment.authorId,
-        createdAt: comment.createdAt.toISOString(),
-        updatedAt: comment.updatedAt.toISOString(),
-      }));
       setLocalNotes(mappedNotes);
-      setLocalInterviewComments(mappedComments);
       setSelectedProfile((prev) =>
         prev?.id === c.id
           ? {
               ...prev,
               notes: mappedNotes,
-              interviewComments: mappedComments,
             }
           : prev,
       );
     } catch (error) {
       console.error("Failed to load profile details:", error);
-      toast.error("Could not load notes and interview comments");
+      toast.error("Could not load profile details");
     } finally {
       setLoadingProfileDetails(false);
     }
@@ -712,42 +761,37 @@ export default function CandidatesTable({
     }
   };
 
-  // ── Interview comment handlers ──────────────────────────────
-  const handleAddInterviewComment = async () => {
-    if (!selectedProfile || !interviewCommentText.trim()) return;
-    setSavingInterviewComment(true);
-    const res = await addInterviewComment(
-      selectedProfile.id,
-      interviewCommentText.trim(),
-    );
-    if (res.success && res.comment) {
-      const newComment = {
-        id: res.comment.id,
-        content: res.comment.content,
-        authorName: res.comment.author.name,
-        authorId: res.comment.authorId,
-        createdAt: res.comment.createdAt.toString(),
-        updatedAt: res.comment.updatedAt.toString(),
-      };
-      setLocalInterviewComments([newComment, ...localInterviewComments]);
-      setInterviewCommentText("");
-      toast.success("Comment posted");
-    } else {
-      toast.error(res.error || "Failed to post comment");
+  // ── Interview result handlers ──────────────────────────────
+  const saveStructuredFeedback = async (reviewerType: ReviewerType) => {
+    if (!selectedProfile) return;
+    const draft = feedbackDrafts[reviewerType];
+    if (!draft.comments.trim()) {
+      toast.error("Comments are required");
+      return;
     }
-    setSavingInterviewComment(false);
-  };
-
-  const handleDeleteInterviewComment = async (commentId: string) => {
-    if (!confirm("Delete this comment?")) return;
-    const res = await deleteInterviewComment(commentId);
-    if (res.success) {
-      setLocalInterviewComments(
-        localInterviewComments.filter((c) => c.id !== commentId),
-      );
-      toast.success("Comment deleted");
-    } else {
-      toast.error("Failed to delete comment");
+    setSavingFeedbackType(reviewerType);
+    try {
+      const res = await fetch(`/api/candidates/${selectedProfile.id}/feedback`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          reviewerType,
+          rating: draft.rating || null,
+          recommendation: draft.recommendation || null,
+          comments: draft.comments.trim(),
+        }),
+      });
+      if (!res.ok) {
+        const payload = await res.json().catch(() => ({}));
+        toast.error(payload.error || "Failed to save feedback");
+        return;
+      }
+      await loadInterviewFeedback(selectedProfile.id);
+      toast.success("Interview feedback saved");
+    } catch {
+      toast.error("Network error while saving feedback");
+    } finally {
+      setSavingFeedbackType(null);
     }
   };
 
@@ -1180,9 +1224,9 @@ export default function CandidatesTable({
                   }`}
                 >
                   <MessageSquare className="w-4 h-4" /> Interview Results
-                  {localInterviewComments.length > 0 && (
+                  {[interviewFeedback.hr, interviewFeedback.user1, interviewFeedback.user2].filter(Boolean).length > 0 && (
                     <span className="ml-1 bg-blue-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
-                      {localInterviewComments.length}
+                      {[interviewFeedback.hr, interviewFeedback.user1, interviewFeedback.user2].filter(Boolean).length}
                     </span>
                   )}
                 </button>
@@ -1677,92 +1721,101 @@ export default function CandidatesTable({
                   {loadingProfileDetails && (
                     <div className="flex items-center justify-center gap-2 border-b border-gray-100 bg-white px-6 py-3 text-sm text-nuanu-gray-500">
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      Loading interview comments...
+                      Loading interview results...
                     </div>
                   )}
-                  <div className="p-6 border-b border-gray-100 bg-white">
-                    <div className="flex gap-3">
-                      <input
-                        type="text"
-                        value={interviewCommentText}
-                        onChange={(e) => setInterviewCommentText(e.target.value)}
-                        onKeyDown={(e) =>
-                          e.key === "Enter" && handleAddInterviewComment()
-                        }
-                        placeholder="Add interview feedback..."
-                        className="flex-1 input-field"
-                      />
-                      <button
-                        onClick={handleAddInterviewComment}
-                        disabled={
-                          !interviewCommentText.trim() || savingInterviewComment
-                        }
-                        className="btn-primary px-4 py-2 flex items-center gap-2"
-                      >
-                        {savingInterviewComment ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <Check className="w-4 h-4" />
-                        )}
-                        Apply
-                      </button>
-                    </div>
-                  </div>
+                  <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50/40">
+                    {(
+                      [
+                        { key: "HR" as ReviewerType, title: "HR Feedback", data: interviewFeedback.hr },
+                        { key: "USER_1" as ReviewerType, title: "User 1 Feedback", data: interviewFeedback.user1 },
+                        { key: "USER_2" as ReviewerType, title: "User 2 Feedback", data: interviewFeedback.user2 },
+                      ]
+                    ).map((section) => (
+                      <div key={section.key} className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
+                        <div className="flex items-center justify-between mb-4">
+                          <p className="font-bold text-nuanu-navy">{section.title}</p>
+                          <span className={`text-xs px-2.5 py-1 rounded-full font-bold ${section.data ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
+                            {section.data ? "Completed" : "Pending"}
+                          </span>
+                        </div>
 
-                  <div className="flex-1 overflow-y-auto p-6 space-y-4">
-                    {localInterviewComments.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center py-12 text-center">
-                        <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center mb-4">
-                          <MessageSquare className="w-8 h-8 text-blue-400" />
+                        <div className="mb-4">
+                          <p className="text-xs text-nuanu-gray-400 mb-2">Rating</p>
+                          <div className="flex gap-1">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <button
+                                key={star}
+                                type="button"
+                                onClick={() =>
+                                  setFeedbackDrafts((prev) => ({
+                                    ...prev,
+                                    [section.key]: { ...prev[section.key], rating: star },
+                                  }))
+                                }
+                                className={`text-xl ${(feedbackDrafts[section.key].rating || 0) >= star ? "text-amber-400" : "text-gray-200"}`}
+                              >
+                                ★
+                              </button>
+                            ))}
+                          </div>
                         </div>
-                        <p className="text-lg font-bold text-nuanu-navy mb-1">
-                          No Interview Comments Yet
-                        </p>
-                        <p className="text-sm text-nuanu-gray-400 max-w-xs">
-                          Post interview feedback and notes from HR and
-                          interviewers.
-                        </p>
+
+                        <div className="mb-4">
+                          <p className="text-xs text-nuanu-gray-400 mb-2">Recommendation</p>
+                          <div className="flex gap-2 flex-wrap">
+                            {["PROCEED", "HOLD", "REJECT"].map((opt) => (
+                              <button
+                                key={opt}
+                                type="button"
+                                onClick={() =>
+                                  setFeedbackDrafts((prev) => ({
+                                    ...prev,
+                                    [section.key]: { ...prev[section.key], recommendation: opt },
+                                  }))
+                                }
+                                className={`text-xs px-3 py-1.5 rounded-lg border font-semibold transition-colors ${feedbackDrafts[section.key].recommendation === opt ? "bg-emerald-600 text-white border-emerald-600" : "border-gray-200 text-gray-600 hover:bg-gray-50"}`}
+                              >
+                                {opt}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div>
+                          <p className="text-xs text-nuanu-gray-400 mb-1">Comments</p>
+                          <textarea
+                            value={feedbackDrafts[section.key].comments}
+                            onChange={(e) =>
+                              setFeedbackDrafts((prev) => ({
+                                ...prev,
+                                [section.key]: { ...prev[section.key], comments: e.target.value },
+                              }))
+                            }
+                            rows={3}
+                            className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 resize-none"
+                            placeholder="Write interview feedback"
+                          />
+                        </div>
+
+                        {section.data && (
+                          <p className="text-xs text-nuanu-gray-400 mt-3">
+                            {section.data.authorName} · {formatDate(section.data.updatedAt)}
+                          </p>
+                        )}
+
+                        <div className="flex justify-end mt-4">
+                          <button
+                            type="button"
+                            onClick={() => saveStructuredFeedback(section.key)}
+                            disabled={savingFeedbackType === section.key}
+                            className="btn-primary px-4 py-2 text-sm"
+                          >
+                            {savingFeedbackType === section.key ? "Saving..." : "Save Feedback"}
+                          </button>
+                        </div>
                       </div>
-                    ) : (
-                      localInterviewComments.map((comment) => (
-                        <div
-                          key={comment.id}
-                          className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm"
-                        >
-                          <div className="flex items-start justify-between mb-3">
-                            <div className="flex items-center gap-2">
-                              <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold">
-                                {comment.authorName
-                                  .split(" ")
-                                  .map((n) => n[0])
-                                  .join("")
-                                  .substring(0, 2)
-                                  .toUpperCase()}
-                              </div>
-                              <div>
-                                <p className="text-sm font-bold text-nuanu-navy">
-                                  {comment.authorName}
-                                </p>
-                                <p className="text-xs text-nuanu-gray-400">
-                                  {formatDate(comment.createdAt)}
-                                </p>
-                              </div>
-                            </div>
-                            <button
-                              onClick={() =>
-                                handleDeleteInterviewComment(comment.id)
-                              }
-                              className="p-1.5 text-nuanu-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                          <div className="text-sm text-nuanu-gray-700 whitespace-pre-wrap">
-                            {comment.content}
-                          </div>
-                        </div>
-                      ))
-                    )}
+                    ))}
                   </div>
                 </div>
               )}

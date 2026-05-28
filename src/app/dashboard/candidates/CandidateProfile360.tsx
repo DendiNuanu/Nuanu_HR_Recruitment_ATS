@@ -9,8 +9,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import {
-  X, ClipboardList, MessageSquare, Activity, UserCheck, Star, Download,
-  Loader2, Clock,
+  X, ClipboardList, Activity, UserCheck, Download, Loader2, Clock,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
@@ -57,29 +56,10 @@ interface AssessmentResult {
   createdAt: string;
 }
 
-interface InterviewFeedbackItem {
-  id: string;
-  reviewerType: "HR" | "USER_1" | "USER_2";
-  rating: number | null;
-  recommendation: string | null;
-  comments: string;
-  createdAt: string;
-  updatedAt: string;
-  authorId: string;
-  authorName: string;
-}
-
-type FeedbackGroup = {
-  hr: InterviewFeedbackItem | null;
-  user1: InterviewFeedbackItem | null;
-  user2: InterviewFeedbackItem | null;
-};
-
-type Tab = "assessments" | "feedback" | "references" | "timeline";
+type Tab = "assessments" | "references" | "timeline";
 
 const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "assessments", label: "Assessments", icon: ClipboardList },
-  { id: "feedback", label: "Interview Feedback", icon: MessageSquare },
   { id: "references", label: "Reference Check", icon: UserCheck },
   { id: "timeline", label: "Activity Timeline", icon: Activity },
 ];
@@ -109,7 +89,6 @@ export default function CandidateProfile360({
     candidate.referPosition || candidate.vacancyTitle || vacancyTitle;
   const [activeTab, setActiveTab] = useState<Tab>("assessments");
   const [assessments, setAssessments] = useState<AssessmentResult[]>([]);
-  const [feedback, setFeedback] = useState<FeedbackGroup>({ hr: null, user1: null, user2: null });
   const [referenceChecks, setReferenceChecks] = useState<ReferenceCheck[]>([]);
   const [timeline, setTimeline] = useState<{ action: string; createdAt: string }[]>([]);
   const [loading, setLoading] = useState(false);
@@ -122,9 +101,6 @@ export default function CandidateProfile360({
       if (tab === "assessments") {
         const res = await fetch(`/api/candidates/${candidate.id}/assessments`);
         if (res.ok) setAssessments(await res.json());
-      } else if (tab === "feedback") {
-        const res = await fetch(`/api/candidates/${candidate.id}/feedback`);
-        if (res.ok) setFeedback(await res.json());
       } else if (tab === "references") {
         const res = await fetch(`/api/candidates/${candidate.id}/reference-check`);
         if (res.ok) {
@@ -154,7 +130,7 @@ export default function CandidateProfile360({
   // ── Render ───────────────────────────────────────────────────────────────
 
   return (
-    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[110] flex">
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -166,7 +142,7 @@ export default function CandidateProfile360({
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl max-h-[92vh] flex flex-col relative z-10 overflow-hidden"
+        className="bg-white w-[98vw] h-[96vh] my-auto mx-auto rounded-2xl shadow-2xl flex flex-col relative z-10 overflow-hidden"
       >
         {/* Header */}
         <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-nuanu-navy to-[#0D2040] flex-shrink-0">
@@ -251,33 +227,6 @@ export default function CandidateProfile360({
                       )}
                     </div>
                   ))}
-                </div>
-              )}
-
-              {/* ── Interview Feedback ── */}
-              {activeTab === "feedback" && (
-                <div className="p-6 space-y-4">
-                  <InterviewFeedbackCard
-                    title="HR Feedback"
-                    reviewerType="HR"
-                    data={feedback.hr}
-                    candidateId={candidate.id}
-                    onSaved={() => fetchTabData("feedback")}
-                  />
-                  <InterviewFeedbackCard
-                    title="User 1 Feedback"
-                    reviewerType="USER_1"
-                    data={feedback.user1}
-                    candidateId={candidate.id}
-                    onSaved={() => fetchTabData("feedback")}
-                  />
-                  <InterviewFeedbackCard
-                    title="User 2 Feedback"
-                    reviewerType="USER_2"
-                    data={feedback.user2}
-                    candidateId={candidate.id}
-                    onSaved={() => fetchTabData("feedback")}
-                  />
                 </div>
               )}
 
@@ -487,112 +436,6 @@ function ReferenceCheckCard({
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-function InterviewFeedbackCard({
-  title,
-  reviewerType,
-  data,
-  candidateId,
-  onSaved,
-}: {
-  title: string;
-  reviewerType: "HR" | "USER_1" | "USER_2";
-  data: InterviewFeedbackItem | null;
-  candidateId: string;
-  onSaved: () => Promise<void>;
-}) {
-  const [rating, setRating] = useState<number>(data?.rating ?? 0);
-  const [recommendation, setRecommendation] = useState<string>(data?.recommendation ?? "");
-  const [comments, setComments] = useState<string>(data?.comments ?? "");
-  const [saving, setSaving] = useState(false);
-
-  return (
-    <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
-      <div className="flex items-center justify-between mb-4">
-        <p className="font-bold text-nuanu-navy">{title}</p>
-        <span className={`text-xs px-2.5 py-1 rounded-full font-bold ${data ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
-          {data ? "Completed" : "Pending"}
-        </span>
-      </div>
-
-      <div className="mb-4">
-        <p className="text-xs text-nuanu-gray-400 mb-2">Rating</p>
-        <div className="flex items-center gap-1">
-          {[1, 2, 3, 4, 5].map((s) => (
-            <button key={s} type="button" onClick={() => setRating(s)}>
-              <Star className={`w-5 h-5 ${s <= rating ? "text-amber-400 fill-amber-400" : "text-gray-200"}`} />
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="mb-4">
-        <p className="text-xs text-nuanu-gray-400 mb-2">Recommendation</p>
-        <div className="flex gap-2">
-          {["PROCEED", "HOLD", "REJECT"].map((opt) => (
-            <button
-              key={opt}
-              type="button"
-              onClick={() => setRecommendation(opt)}
-              className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors ${
-                recommendation === opt ? "bg-emerald-600 text-white border-emerald-600" : "border-gray-200 text-gray-600 hover:bg-gray-50"
-              }`}
-            >
-              {opt}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="mb-3">
-        <label className="text-xs text-nuanu-gray-400">Comments</label>
-        <textarea
-          value={comments}
-          onChange={(e) => setComments(e.target.value)}
-          rows={3}
-          className="mt-1 w-full text-sm border border-gray-200 rounded-xl px-3 py-2 resize-none"
-          placeholder="Write interview feedback"
-        />
-      </div>
-
-      {data && (
-        <p className="text-xs text-nuanu-gray-400 mb-3">
-          {data.authorName} · {formatDate(data.updatedAt)}
-        </p>
-      )}
-
-      <div className="flex justify-end">
-        <button
-          type="button"
-          onClick={async () => {
-            setSaving(true);
-            const res = await fetch(`/api/candidates/${candidateId}/feedback`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                reviewerType,
-                rating: rating || null,
-                recommendation: recommendation || null,
-                comments,
-              }),
-            });
-            setSaving(false);
-            if (!res.ok) {
-              toast.error("Failed to save feedback");
-              return;
-            }
-            toast.success("Feedback saved");
-            await onSaved();
-          }}
-          className="btn-primary text-sm py-2 px-4"
-          disabled={saving}
-        >
-          {saving ? "Saving..." : "Save Feedback"}
-        </button>
-      </div>
     </div>
   );
 }
