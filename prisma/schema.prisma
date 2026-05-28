@@ -42,6 +42,7 @@ model User {
   verifiedDocuments   EmployeeDocument[]
   assignedAssets      EmployeeAsset[]
   probationExtensions ProbationExtension[]
+  conductedReferenceChecks ReferenceCheck[] @relation("RefCheckConductor")
 
   @@map("users")
 }
@@ -689,25 +690,34 @@ model AssessmentLink {
 
 // ── Feature 5: Reference / Background Checks ─────────────────────────────────
 model ReferenceCheck {
-  id           String    @id @default(uuid())
-  applicationId String
-  refereeName  String
-  relationship String
-  company      String?
-  phone        String?
-  email        String?
-  feedback     String?
-  rating       Int?
-  status       String    @default("pending")
-  checkedById  String?
-  checkedAt    DateTime?
-  notes        String?
-  recommendation String?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  application  Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  id                  String      @id @default(uuid())
+  candidateId         String      @map("candidate_id")
+  referenceNo         Int         @map("reference_no")
+  agencyName          String?     @map("agency_name")
+  telephone           String?
+  cityState           String?     @map("city_state")
+  jobTitle            String?     @map("job_title")
+  employmentFrom      String?     @map("employment_from")
+  employmentTo        String?     @map("employment_to")
+  reasonForLeaving    String?     @map("reason_for_leaving")
+  eligibleForRehire   String?     @map("eligible_for_rehire")
+  rehireRemarks       String?     @map("rehire_remarks")
+  personProvidingInfo String?     @map("person_providing_info")
+  personTitle         String?     @map("person_title")
+  workPerformance     String?     @map("work_performance")
+  strengths           String?
+  areasToImprove      String?     @map("areas_to_improve")
+  additionalNotes     String?     @map("additional_notes")
+  overallRating       Int?        @map("overall_rating")
+  recommendation      String?
+  conductedBy         String?     @map("conducted_by")
+  conductedAt         DateTime?   @default(now()) @map("conducted_at")
+  updatedAt           DateTime    @updatedAt @map("updated_at")
+  candidate           Application @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  conductor           User?       @relation("RefCheckConductor", fields: [conductedBy], references: [id])
 
-  @@index([applicationId])
+  @@unique([candidateId, referenceNo])
+  @@index([candidateId])
   @@map("reference_checks")
 }
 
