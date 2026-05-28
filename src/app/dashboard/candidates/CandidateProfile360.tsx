@@ -9,12 +9,10 @@
 
 import { useState, useEffect, useCallback } from "react";
 import {
-  X, FileText, StickyNote, ClipboardList, MessageSquare,
-  Gift, FileSignature, Activity, UserCheck, Star, Download,
-  ExternalLink, Plus, Loader2, CheckCircle2, AlertCircle,
-  Clock, ChevronDown, ChevronUp, Trash2,
+  X, ClipboardList, MessageSquare, Activity, UserCheck, Star, Download,
+  Loader2, Clock,
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { formatDate } from "@/lib/utils";
 import type { Candidate } from "./CandidatesTable";
@@ -23,18 +21,27 @@ import type { Candidate } from "./CandidatesTable";
 
 interface ReferenceCheck {
   id: string;
-  refereeName: string;
-  relationship: string;
-  company: string | null;
-  phone: string | null;
-  email: string | null;
-  feedback: string | null;
-  rating: number | null;
-  status: string;
-  notes: string | null;
+  referenceNo: number;
+  agencyName: string | null;
+  telephone: string | null;
+  cityState: string | null;
+  jobTitle: string | null;
+  employmentFrom: string | null;
+  employmentTo: string | null;
+  reasonForLeaving: string | null;
+  eligibleForRehire: string | null;
+  rehireRemarks: string | null;
+  personProvidingInfo: string | null;
+  personTitle: string | null;
+  workPerformance: string | null;
+  strengths: string | null;
+  areasToImprove: string | null;
+  additionalNotes: string | null;
+  overallRating: number | null;
   recommendation: string | null;
-  checkedAt: string | null;
-  createdAt: string;
+  conductedAt: string | null;
+  updatedAt: string;
+  conductor?: { id: string; name: string; email: string };
 }
 
 interface AssessmentResult {
@@ -69,7 +76,7 @@ type Tab = "assessments" | "feedback" | "references" | "timeline";
 const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "assessments", label: "Assessments", icon: ClipboardList },
   { id: "feedback", label: "Interview Feedback", icon: MessageSquare },
-  { id: "references", label: "Reference Checks", icon: UserCheck },
+  { id: "references", label: "Reference Check", icon: UserCheck },
   { id: "timeline", label: "Activity Timeline", icon: Activity },
 ];
 
@@ -99,14 +106,9 @@ export default function CandidateProfile360({
   const [activeTab, setActiveTab] = useState<Tab>("assessments");
   const [assessments, setAssessments] = useState<AssessmentResult[]>([]);
   const [feedback, setFeedback] = useState<InterviewFeedbackItem[]>([]);
-  const [references, setReferences] = useState<ReferenceCheck[]>([]);
+  const [referenceChecks, setReferenceChecks] = useState<ReferenceCheck[]>([]);
   const [timeline, setTimeline] = useState<{ action: string; createdAt: string }[]>([]);
   const [loading, setLoading] = useState(false);
-
-  // Reference check form
-  const [showRefForm, setShowRefForm] = useState(false);
-  const [refForm, setRefForm] = useState({ refereeName: "", relationship: "", company: "", phone: "", email: "", notes: "" });
-  const [savingRef, setSavingRef] = useState(false);
 
   // ── Data fetching ────────────────────────────────────────────────────────
 
@@ -120,8 +122,11 @@ export default function CandidateProfile360({
         const res = await fetch(`/api/candidates/${candidate.id}/feedback`);
         if (res.ok) setFeedback(await res.json());
       } else if (tab === "references") {
-        const res = await fetch(`/api/reference-checks?applicationId=${candidate.id}`);
-        if (res.ok) setReferences(await res.json());
+        const res = await fetch(`/api/candidates/${candidate.id}/reference-check`);
+        if (res.ok) {
+          const payload = await res.json();
+          setReferenceChecks(payload.referenceChecks ?? []);
+        }
       } else if (tab === "timeline") {
         const res = await fetch(`/api/candidates/${candidate.id}/timeline`);
         if (res.ok) setTimeline(await res.json());
@@ -130,53 +135,16 @@ export default function CandidateProfile360({
     setLoading(false);
   }, [candidate.id]);
 
-  useEffect(() => { fetchTabData(activeTab); }, [activeTab, fetchTabData]);
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      void fetchTabData(activeTab);
+    }, 0);
+    return () => window.clearTimeout(timeoutId);
+  }, [activeTab, fetchTabData]);
 
   // ── Reference check handlers ─────────────────────────────────────────────
-
-  const handleAddReference = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!refForm.refereeName || !refForm.relationship) return;
-    setSavingRef(true);
-    try {
-      const res = await fetch("/api/reference-checks", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ applicationId: candidate.id, ...refForm }),
-      });
-      if (res.ok) {
-        const newRef = await res.json();
-        setReferences((prev) => [newRef, ...prev]);
-        setRefForm({ refereeName: "", relationship: "", company: "", phone: "", email: "", notes: "" });
-        setShowRefForm(false);
-        toast.success("Reference check added");
-      } else {
-        toast.error("Failed to add reference check");
-      }
-    } catch { toast.error("Network error"); }
-    setSavingRef(false);
-  };
-
-  const handleUpdateRefStatus = async (id: string, status: string) => {
-    const res = await fetch(`/api/reference-checks/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status }),
-    });
-    if (res.ok) {
-      const updated = await res.json();
-      setReferences((prev) => prev.map((r) => r.id === id ? updated : r));
-      toast.success("Status updated");
-    }
-  };
-
-  const handleDeleteRef = async (id: string) => {
-    if (!confirm("Delete this reference check?")) return;
-    const res = await fetch(`/api/reference-checks/${id}`, { method: "DELETE" });
-    if (res.ok) {
-      setReferences((prev) => prev.filter((r) => r.id !== id));
-      toast.success("Deleted");
-    }
+  const handleRefCheckSave = async () => {
+    await fetchTabData("references");
   };
 
   // ── Render ───────────────────────────────────────────────────────────────
@@ -342,103 +310,28 @@ export default function CandidateProfile360({
               {/* ── Reference Checks ── */}
               {activeTab === "references" && (
                 <div className="p-6 space-y-4">
-                  <div className="flex justify-end">
-                    <button
-                      onClick={() => setShowRefForm(!showRefForm)}
-                      className="btn-primary text-sm flex items-center gap-2 py-2"
-                    >
-                      <Plus className="w-4 h-4" /> Add Reference
-                    </button>
-                  </div>
-
-                  {/* Add form */}
-                  <AnimatePresence>
-                    {showRefForm && (
-                      <motion.form
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        exit={{ opacity: 0, height: 0 }}
-                        onSubmit={handleAddReference}
-                        className="bg-emerald-50 border border-emerald-100 rounded-2xl p-5 space-y-4 overflow-hidden"
+                  <div className="flex justify-between items-center">
+                    <h3 className="font-medium text-sm text-gray-700">
+                      Reference Check & Employment Verification
+                    </h3>
+                    {referenceChecks.length > 0 && (
+                      <button
+                        onClick={() => window.open(`/api/candidates/${candidate.id}/reference-check/pdf`, "_blank")}
+                        className="text-sm flex items-center gap-1.5 text-green-600 hover:text-green-700 font-medium"
                       >
-                        <h3 className="font-bold text-nuanu-navy text-sm">New Reference Check</h3>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          <div>
-                            <label className="block text-xs font-semibold text-nuanu-gray-600 mb-1">Referee Name *</label>
-                            <input required type="text" className="input-field py-2 text-sm" value={refForm.refereeName}
-                              onChange={(e) => setRefForm({ ...refForm, refereeName: e.target.value })} />
-                          </div>
-                          <div>
-                            <label className="block text-xs font-semibold text-nuanu-gray-600 mb-1">Relationship *</label>
-                            <input required type="text" className="input-field py-2 text-sm" placeholder="e.g. Direct Manager"
-                              value={refForm.relationship} onChange={(e) => setRefForm({ ...refForm, relationship: e.target.value })} />
-                          </div>
-                          <div>
-                            <label className="block text-xs font-semibold text-nuanu-gray-600 mb-1">Company</label>
-                            <input type="text" className="input-field py-2 text-sm" value={refForm.company}
-                              onChange={(e) => setRefForm({ ...refForm, company: e.target.value })} />
-                          </div>
-                          <div>
-                            <label className="block text-xs font-semibold text-nuanu-gray-600 mb-1">Email</label>
-                            <input type="email" className="input-field py-2 text-sm" value={refForm.email}
-                              onChange={(e) => setRefForm({ ...refForm, email: e.target.value })} />
-                          </div>
-                          <div>
-                            <label className="block text-xs font-semibold text-nuanu-gray-600 mb-1">Phone</label>
-                            <input type="tel" className="input-field py-2 text-sm" value={refForm.phone}
-                              onChange={(e) => setRefForm({ ...refForm, phone: e.target.value })} />
-                          </div>
-                          <div>
-                            <label className="block text-xs font-semibold text-nuanu-gray-600 mb-1">Notes</label>
-                            <input type="text" className="input-field py-2 text-sm" value={refForm.notes}
-                              onChange={(e) => setRefForm({ ...refForm, notes: e.target.value })} />
-                          </div>
-                        </div>
-                        <div className="flex gap-2 justify-end">
-                          <button type="button" onClick={() => setShowRefForm(false)} className="btn-secondary text-sm py-2 px-4">Cancel</button>
-                          <button type="submit" disabled={savingRef} className="btn-primary text-sm py-2 px-4 flex items-center gap-2">
-                            {savingRef ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                            Add
-                          </button>
-                        </div>
-                      </motion.form>
+                        <Download className="w-4 h-4" />
+                        Download PDF
+                      </button>
                     )}
-                  </AnimatePresence>
-
-                  {references.length === 0 && !showRefForm ? (
-                    <EmptyState icon={UserCheck} title="No Reference Checks" message="Add referee details to begin the reference check process." />
-                  ) : references.map((ref) => (
-                    <div key={ref.id} className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
-                      <div className="flex items-start justify-between mb-3">
-                        <div>
-                          <p className="font-bold text-nuanu-navy">{ref.refereeName}</p>
-                          <p className="text-xs text-nuanu-gray-400">{ref.relationship}{ref.company ? ` · ${ref.company}` : ""}</p>
-                          {ref.email && <p className="text-xs text-nuanu-gray-400">{ref.email}</p>}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className={`text-xs font-bold px-2.5 py-1 rounded-full uppercase tracking-wide ${STATUS_COLORS[ref.status] ?? "bg-gray-100 text-gray-600"}`}>
-                            {ref.status}
-                          </span>
-                          <button onClick={() => handleDeleteRef(ref.id)}
-                            className="p-1.5 text-nuanu-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-                      {ref.feedback && (
-                        <p className="text-sm text-nuanu-gray-700 bg-gray-50 rounded-xl p-3 mb-3">{ref.feedback}</p>
-                      )}
-                      {ref.status !== "verified" && ref.status !== "failed" && (
-                        <div className="flex gap-2 flex-wrap">
-                          {["contacted", "verified", "failed"].map((s) => (
-                            <button key={s} onClick={() => handleUpdateRefStatus(ref.id, s)}
-                              className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors capitalize">
-                              Mark {s}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
+                  </div>
+                  {[1, 2, 3].map((refNo) => (
+                    <ReferenceCheckCard
+                      key={`${refNo}-${referenceChecks.find((item) => item.referenceNo === refNo)?.updatedAt ?? "new"}`}
+                      referenceNo={refNo}
+                      data={referenceChecks.find((item) => item.referenceNo === refNo) ?? null}
+                      candidateId={candidate.id}
+                      onSave={handleRefCheckSave}
+                    />
                   ))}
                 </div>
               )}
@@ -474,6 +367,186 @@ export default function CandidateProfile360({
           )}
         </div>
       </motion.div>
+    </div>
+  );
+}
+
+function ReferenceCheckCard({
+  referenceNo,
+  data,
+  candidateId,
+  onSave,
+}: {
+  referenceNo: number;
+  data: ReferenceCheck | null;
+  candidateId: string;
+  onSave: () => Promise<void>;
+}) {
+  const [isExpanded, setIsExpanded] = useState(!data);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState<Partial<ReferenceCheck>>(data ?? {});
+
+  return (
+    <div className="border border-gray-200 rounded-lg overflow-hidden">
+      <div
+        className="flex justify-between items-center p-3 bg-gray-50 cursor-pointer"
+        onClick={() => setIsExpanded((prev) => !prev)}
+      >
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium">Reference {referenceNo}</span>
+          {data?.agencyName && (
+            <span className="text-xs text-gray-500">{data.agencyName}</span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${data ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
+            {data ? "Completed" : "Not started"}
+          </span>
+          <span className="text-xs text-gray-500">{isExpanded ? "▲" : "▼"}</span>
+        </div>
+      </div>
+
+      {isExpanded && (
+        <div className="p-4 space-y-3">
+          <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide border-b pb-1">
+            I. Employment History Verification
+          </div>
+
+          <div>
+            <label className="text-xs text-gray-500">Agency / Organization</label>
+            <input
+              type="text"
+              value={form.agencyName ?? ""}
+              onChange={(e) => setForm({ ...form, agencyName: e.target.value })}
+              className="mt-1 w-full text-sm border border-gray-200 rounded px-3 py-1.5 focus:outline-none focus:border-green-500"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Telephone" value={form.telephone} onChange={(value) => setForm({ ...form, telephone: value })} />
+            <Field label="City / State" value={form.cityState} onChange={(value) => setForm({ ...form, cityState: value })} />
+          </div>
+          <Field label="Job Title" value={form.jobTitle} onChange={(value) => setForm({ ...form, jobTitle: value })} />
+
+          <div>
+            <label className="text-xs text-gray-500">Employment Date(s)</label>
+            <div className="flex gap-2 mt-1 items-center">
+              <input type="text" value={form.employmentFrom ?? ""} onChange={(e) => setForm({ ...form, employmentFrom: e.target.value })} className="flex-1 text-sm border border-gray-200 rounded px-3 py-1.5" placeholder="From" />
+              <span className="text-gray-400 text-sm">→</span>
+              <input type="text" value={form.employmentTo ?? ""} onChange={(e) => setForm({ ...form, employmentTo: e.target.value })} className="flex-1 text-sm border border-gray-200 rounded px-3 py-1.5" placeholder="To" />
+            </div>
+          </div>
+
+          <Field label="Reason(s) for Leaving" value={form.reasonForLeaving} onChange={(value) => setForm({ ...form, reasonForLeaving: value })} />
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-gray-500">Eligible for Rehire</label>
+              <select value={form.eligibleForRehire ?? ""} onChange={(e) => setForm({ ...form, eligibleForRehire: e.target.value })} className="mt-1 w-full text-sm border border-gray-200 rounded px-3 py-1.5 bg-white">
+                <option value="">Select...</option>
+                <option value="Yes">Yes</option>
+                <option value="No">No</option>
+                <option value="With Conditions">With Conditions</option>
+              </select>
+            </div>
+            <Field label="Remarks" value={form.rehireRemarks} onChange={(value) => setForm({ ...form, rehireRemarks: value })} />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Person Providing Information" value={form.personProvidingInfo} onChange={(value) => setForm({ ...form, personProvidingInfo: value })} />
+            <Field label="Title" value={form.personTitle} onChange={(value) => setForm({ ...form, personTitle: value })} />
+          </div>
+
+          <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide border-b pb-1 mt-4">
+            Additional Notes (HR Internal)
+          </div>
+
+          <Area label="How would you describe their work performance?" value={form.workPerformance} onChange={(value) => setForm({ ...form, workPerformance: value })} />
+          <Area label="Key Strengths" value={form.strengths} onChange={(value) => setForm({ ...form, strengths: value })} />
+          <Area label="Areas for Improvement" value={form.areasToImprove} onChange={(value) => setForm({ ...form, areasToImprove: value })} />
+          <Area label="Additional Notes" value={form.additionalNotes} onChange={(value) => setForm({ ...form, additionalNotes: value })} />
+
+          <div>
+            <label className="text-xs text-gray-500">Overall Rating</label>
+            <div className="flex gap-1 mt-1">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button key={star} type="button" onClick={() => setForm({ ...form, overallRating: star })} className={`text-xl ${(form.overallRating ?? 0) >= star ? "text-yellow-400" : "text-gray-200"}`}>
+                  ★
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs text-gray-500">HR Recommendation</label>
+            <div className="flex gap-2 mt-1 flex-wrap">
+              {["RECOMMEND", "RECOMMEND_WITH_RESERVATION", "NOT_RECOMMEND"].map((opt) => (
+                <button key={opt} type="button" onClick={() => setForm({ ...form, recommendation: opt })} className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-colors ${form.recommendation === opt ? "bg-green-600 text-white border-green-600" : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"}`}>
+                  {opt === "RECOMMEND" ? "Recommend" : opt === "RECOMMEND_WITH_RESERVATION" ? "With Reservation" : "Do Not Recommend"}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex justify-end pt-2">
+            <button
+              onClick={async () => {
+                setSaving(true);
+                const res = await fetch(`/api/candidates/${candidateId}/reference-check`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ referenceNo, ...form }),
+                });
+                setSaving(false);
+                if (!res.ok) {
+                  toast.error("Failed to save reference check");
+                  return;
+                }
+                toast.success("Reference check saved");
+                await onSave();
+              }}
+              disabled={saving}
+              className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg disabled:opacity-50"
+            >
+              {saving ? "Saving..." : "Save Reference Check"}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Field({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value?: string | null;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div>
+      <label className="text-xs text-gray-500">{label}</label>
+      <input type="text" value={value ?? ""} onChange={(e) => onChange(e.target.value)} className="mt-1 w-full text-sm border border-gray-200 rounded px-3 py-1.5" />
+    </div>
+  );
+}
+
+function Area({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value?: string | null;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div>
+      <label className="text-xs text-gray-500">{label}</label>
+      <textarea value={value ?? ""} onChange={(e) => onChange(e.target.value)} rows={2} className="mt-1 w-full text-sm border border-gray-200 rounded px-3 py-1.5 resize-none" />
     </div>
   );
 }
