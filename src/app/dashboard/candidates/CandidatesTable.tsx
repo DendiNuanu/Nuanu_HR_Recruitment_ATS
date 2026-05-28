@@ -147,6 +147,22 @@ type FeedbackPermissions = {
   canEditHR: boolean;
   canEditUser1: boolean;
   canEditUser2: boolean;
+  canAssignReviewers: boolean;
+};
+
+type FeedbackAssignments = {
+  user1ReviewerId: string | null;
+  user2ReviewerId: string | null;
+  user1ReviewerName: string | null;
+  user2ReviewerName: string | null;
+  assignmentsAvailable: boolean;
+};
+
+type AssignableReviewer = {
+  id: string;
+  name: string;
+  email: string;
+  roleLabel: string;
 };
 
 function stageLabel(stageId: string) {
@@ -238,7 +254,21 @@ export default function CandidatesTable({
     canEditHR: false,
     canEditUser1: false,
     canEditUser2: false,
+    canAssignReviewers: false,
   });
+  const [feedbackAssignments, setFeedbackAssignments] = useState<FeedbackAssignments>({
+    user1ReviewerId: null,
+    user2ReviewerId: null,
+    user1ReviewerName: null,
+    user2ReviewerName: null,
+    assignmentsAvailable: false,
+  });
+  const [assignableReviewers, setAssignableReviewers] = useState<AssignableReviewer[]>([]);
+  const [reviewerAssignmentDraft, setReviewerAssignmentDraft] = useState({
+    user1ReviewerId: "",
+    user2ReviewerId: "",
+  });
+  const [savingReviewerAssignments, setSavingReviewerAssignments] = useState(false);
   const [feedbackLoadError, setFeedbackLoadError] = useState<string | null>(null);
 
   // Source field state
@@ -560,6 +590,8 @@ export default function CandidatesTable({
       user1?: InterviewFeedbackItem | null;
       user2?: InterviewFeedbackItem | null;
       permissions?: FeedbackPermissions;
+      assignments?: FeedbackAssignments;
+      assignableUsers?: AssignableReviewer[];
       error?: string;
       warning?: string;
     };
@@ -575,6 +607,19 @@ export default function CandidatesTable({
     };
     setInterviewFeedback(normalized);
     mapFeedbackToDrafts(normalized);
+    const assignments = payload.assignments ?? {
+      user1ReviewerId: null,
+      user2ReviewerId: null,
+      user1ReviewerName: null,
+      user2ReviewerName: null,
+      assignmentsAvailable: false,
+    };
+    setFeedbackAssignments(assignments);
+    setReviewerAssignmentDraft({
+      user1ReviewerId: assignments.user1ReviewerId ?? "",
+      user2ReviewerId: assignments.user2ReviewerId ?? "",
+    });
+    setAssignableReviewers(payload.assignableUsers ?? []);
     setFeedbackPermissions(
       payload.permissions ?? {
         canViewHR: false,
@@ -583,6 +628,7 @@ export default function CandidatesTable({
         canEditHR: false,
         canEditUser1: false,
         canEditUser2: false,
+        canAssignReviewers: false,
       },
     );
     return true;
@@ -607,7 +653,17 @@ export default function CandidatesTable({
       canEditHR: false,
       canEditUser1: false,
       canEditUser2: false,
+      canAssignReviewers: false,
     });
+    setFeedbackAssignments({
+      user1ReviewerId: null,
+      user2ReviewerId: null,
+      user1ReviewerName: null,
+      user2ReviewerName: null,
+      assignmentsAvailable: false,
+    });
+    setAssignableReviewers([]);
+    setReviewerAssignmentDraft({ user1ReviewerId: "", user2ReviewerId: "" });
     setFeedbackLoadError(null);
     resetSourceFields(normalized.source);
     setReferAsDraft(normalized.referPosition || "");
@@ -807,6 +863,45 @@ export default function CandidatesTable({
     if (profileTab !== "interview_results" || !selectedProfile?.id) return;
     void loadInterviewFeedback(selectedProfile.id);
   }, [profileTab, selectedProfile?.id]);
+
+  const saveReviewerAssignments = async () => {
+    if (!selectedProfile) return;
+    const user1ReviewerId = reviewerAssignmentDraft.user1ReviewerId || null;
+    const user2ReviewerId = reviewerAssignmentDraft.user2ReviewerId || null;
+    if (user1ReviewerId && user2ReviewerId && user1ReviewerId === user2ReviewerId) {
+      toast.error("User 1 and User 2 reviewers must be different people");
+      return;
+    }
+    setSavingReviewerAssignments(true);
+    try {
+      const res = await fetch(`/api/candidates/${selectedProfile.id}/feedback`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user1ReviewerId, user2ReviewerId }),
+      });
+      const payload = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        assignments?: FeedbackAssignments;
+      };
+      if (!res.ok) {
+        toast.error(payload.error || "Failed to save reviewer assignments");
+        return;
+      }
+      if (payload.assignments) {
+        setFeedbackAssignments(payload.assignments);
+        setReviewerAssignmentDraft({
+          user1ReviewerId: payload.assignments.user1ReviewerId ?? "",
+          user2ReviewerId: payload.assignments.user2ReviewerId ?? "",
+        });
+      }
+      await loadInterviewFeedback(selectedProfile.id);
+      toast.success("Reviewer assignments saved");
+    } catch {
+      toast.error("Network error while saving reviewer assignments");
+    } finally {
+      setSavingReviewerAssignments(false);
+    }
+  };
 
   // ── Interview result handlers ──────────────────────────────
   const saveStructuredFeedback = async (reviewerType: ReviewerType) => {
@@ -1772,11 +1867,89 @@ export default function CandidatesTable({
                     </div>
                   )}
                   <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50/40">
+                    {feedbackPermissions.canAssignReviewers && (
+                      <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm space-y-4">
+                        <div>
+                          <p className="font-bold text-nuanu-navy">Assign interview reviewers</p>
+                          <p className="text-xs text-nuanu-gray-400 mt-1">
+                            Choose who can fill User 1 and User 2 comments for this candidate.
+                          </p>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="text-xs text-nuanu-gray-400 mb-1 block">
+                              User 1 reviewer
+                            </label>
+                            <select
+                              value={reviewerAssignmentDraft.user1ReviewerId}
+                              onChange={(e) =>
+                                setReviewerAssignmentDraft((prev) => ({
+                                  ...prev,
+                                  user1ReviewerId: e.target.value,
+                                }))
+                              }
+                              className="w-full input-field py-2 text-sm"
+                            >
+                              <option value="">Unassigned</option>
+                              {assignableReviewers
+                                .filter(
+                                  (user) =>
+                                    user.id !== reviewerAssignmentDraft.user2ReviewerId,
+                                )
+                                .map((user) => (
+                                <option key={`u1-${user.id}`} value={user.id}>
+                                  {user.name} ({user.roleLabel})
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="text-xs text-nuanu-gray-400 mb-1 block">
+                              User 2 reviewer
+                            </label>
+                            <select
+                              value={reviewerAssignmentDraft.user2ReviewerId}
+                              onChange={(e) =>
+                                setReviewerAssignmentDraft((prev) => ({
+                                  ...prev,
+                                  user2ReviewerId: e.target.value,
+                                }))
+                              }
+                              className="w-full input-field py-2 text-sm"
+                            >
+                              <option value="">Unassigned</option>
+                              {assignableReviewers
+                                .filter(
+                                  (user) =>
+                                    user.id !== reviewerAssignmentDraft.user1ReviewerId,
+                                )
+                                .map((user) => (
+                                <option key={`u2-${user.id}`} value={user.id}>
+                                  {user.name} ({user.roleLabel})
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                        <div className="flex justify-end">
+                          <button
+                            type="button"
+                            onClick={saveReviewerAssignments}
+                            disabled={savingReviewerAssignments}
+                            className="btn-primary px-4 py-2 text-sm"
+                          >
+                            {savingReviewerAssignments ? "Saving..." : "Save assignments"}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
                     {(() => {
                       const sections = [
                         {
                           key: "HR" as ReviewerType,
                           title: "HR Manager Comment",
+                          assignedTo: null as string | null,
                           data: interviewFeedback.hr,
                           canEdit: feedbackPermissions.canEditHR,
                           canView: feedbackPermissions.canViewHR,
@@ -1784,6 +1957,7 @@ export default function CandidatesTable({
                         {
                           key: "USER_1" as ReviewerType,
                           title: "User 1 Comment",
+                          assignedTo: feedbackAssignments.user1ReviewerName,
                           data: interviewFeedback.user1,
                           canEdit: feedbackPermissions.canEditUser1,
                           canView: feedbackPermissions.canViewUser1,
@@ -1791,6 +1965,7 @@ export default function CandidatesTable({
                         {
                           key: "USER_2" as ReviewerType,
                           title: "User 2 Comment",
+                          assignedTo: feedbackAssignments.user2ReviewerName,
                           data: interviewFeedback.user2,
                           canEdit: feedbackPermissions.canEditUser2,
                           canView: feedbackPermissions.canViewUser2,
@@ -1821,8 +1996,17 @@ export default function CandidatesTable({
 
                       return sections.map((section) => (
                       <div key={section.key} className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
-                        <div className="flex items-center justify-between mb-4">
-                          <p className="font-bold text-nuanu-navy">{section.title}</p>
+                        <div className="flex items-start justify-between gap-3 mb-4">
+                          <div>
+                            <p className="font-bold text-nuanu-navy">{section.title}</p>
+                            {section.key !== "HR" && (
+                              <p className="text-xs text-nuanu-gray-400 mt-1">
+                                {section.assignedTo
+                                  ? `Assigned to ${section.assignedTo}`
+                                  : "No reviewer assigned yet"}
+                              </p>
+                            )}
+                          </div>
                         </div>
 
                         <div>

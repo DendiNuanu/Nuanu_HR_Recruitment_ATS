@@ -12,7 +12,25 @@ type FeedbackPermissions = {
   canEditHR: boolean;
   canEditUser1: boolean;
   canEditUser2: boolean;
+  canAssignReviewers: boolean;
 };
+
+type ApplicationAssignment = {
+  user1ReviewerId: string | null;
+  user2ReviewerId: string | null;
+  user1ReviewerName: string | null;
+  user2ReviewerName: string | null;
+  assignmentsAvailable: boolean;
+};
+
+const ASSIGNABLE_REVIEWER_ROLE_SLUGS = [
+  "interviewer",
+  "manager",
+  "recruiter",
+  "hr",
+  "super-admin",
+  "admin",
+];
 
 type CommentRow = {
   id: string;
@@ -39,10 +57,7 @@ function isHrViewer(roles: string[] = []): boolean {
 
 function computeFeedbackPermissions(
   session: { id: string; roles: string[] },
-  assignment: {
-    user1ReviewerId: string | null;
-    user2ReviewerId: string | null;
-  },
+  assignment: ApplicationAssignment,
 ): FeedbackPermissions {
   const hr = isHrViewer(session.roles);
   return {
@@ -56,6 +71,17 @@ function computeFeedbackPermissions(
     canEditUser2:
       assignment.user2ReviewerId !== null &&
       session.id === assignment.user2ReviewerId,
+    canAssignReviewers: hr && assignment.assignmentsAvailable,
+  };
+}
+
+function mapAssignmentsResponse(assignment: ApplicationAssignment) {
+  return {
+    user1ReviewerId: assignment.user1ReviewerId,
+    user2ReviewerId: assignment.user2ReviewerId,
+    user1ReviewerName: assignment.user1ReviewerName,
+    user2ReviewerName: assignment.user2ReviewerName,
+    assignmentsAvailable: assignment.assignmentsAvailable,
   };
 }
 
@@ -65,25 +91,83 @@ function normalizeReviewerType(value: unknown): ReviewerType {
   return "HR";
 }
 
-async function loadAssignment(applicationId: string) {
-  const fallback = {
-    hrReviewerId: null as string | null,
-    user1ReviewerId: null as string | null,
-    user2ReviewerId: null as string | null,
+async function loadAssignment(applicationId: string): Promise<ApplicationAssignment> {
+  const fallback: ApplicationAssignment = {
+    user1ReviewerId: null,
+    user2ReviewerId: null,
+    user1ReviewerName: null,
+    user2ReviewerName: null,
+    assignmentsAvailable: false,
   };
   try {
     const withAssignment = await prisma.application.findUnique({
       where: { id: applicationId },
       select: {
-        hrReviewerId: true,
         user1ReviewerId: true,
         user2ReviewerId: true,
+        user1Reviewer: { select: { name: true } },
+        user2Reviewer: { select: { name: true } },
       },
     });
-    return withAssignment ?? fallback;
+    if (!withAssignment) {
+      return { ...fallback, assignmentsAvailable: true };
+    }
+    return {
+      user1ReviewerId: withAssignment.user1ReviewerId,
+      user2ReviewerId: withAssignment.user2ReviewerId,
+      user1ReviewerName: withAssignment.user1Reviewer?.name ?? null,
+      user2ReviewerName: withAssignment.user2Reviewer?.name ?? null,
+      assignmentsAvailable: true,
+    };
   } catch {
     return fallback;
   }
+}
+
+async function loadAssignableUsers() {
+  return prisma.user.findMany({
+    where: {
+      deletedAt: null,
+      userRoles: {
+        some: {
+          role: {
+            slug: { in: ASSIGNABLE_REVIEWER_ROLE_SLUGS },
+          },
+        },
+      },
+    },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      userRoles: {
+        select: {
+          role: { select: { name: true, slug: true } },
+        },
+      },
+    },
+    orderBy: { name: "asc" },
+  });
+}
+
+async function validateReviewerAssignments(
+  user1ReviewerId: string | null,
+  user2ReviewerId: string | null,
+): Promise<string | null> {
+  if (user1ReviewerId && user2ReviewerId && user1ReviewerId === user2ReviewerId) {
+    return "User 1 and User 2 reviewers must be different people";
+  }
+  const ids = [user1ReviewerId, user2ReviewerId].filter(
+    (id): id is string => typeof id === "string" && id.length > 0,
+  );
+  if (ids.length === 0) return null;
+  const count = await prisma.user.count({
+    where: { id: { in: ids }, deletedAt: null },
+  });
+  if (count !== ids.length) {
+    return "One or more selected reviewers could not be found";
+  }
+  return null;
 }
 
 async function loadInterviewCommentRows(
@@ -157,11 +241,22 @@ export async function GET(_req: Request, { params }: Params) {
   } catch (error) {
     console.error("Failed to load interview comments:", error);
     const permissions = computeFeedbackPermissions(session, assignment);
+    const assignableUsers = permissions.canAssignReviewers
+      ? (await loadAssignableUsers()).map((user) => ({
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          roleLabel:
+            user.userRoles.map((ur) => ur.role.name).join(", ") || "Staff",
+        }))
+      : [];
     return NextResponse.json({
       hr: null,
       user1: null,
       user2: null,
       permissions,
+      assignments: mapAssignmentsResponse(assignment),
+      assignableUsers,
       warning: "Interview comments could not be loaded from the database.",
     });
   }
@@ -190,12 +285,22 @@ export async function GET(_req: Request, { params }: Params) {
       : null;
 
   const permissions = computeFeedbackPermissions(session, assignment);
+  const assignableUsers = permissions.canAssignReviewers
+    ? (await loadAssignableUsers()).map((user) => ({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        roleLabel: user.userRoles.map((ur) => ur.role.name).join(", ") || "Staff",
+      }))
+    : [];
 
   return NextResponse.json({
     hr: permissions.canViewHR ? mapPayload(latestByType.HR) : null,
     user1: permissions.canViewUser1 ? mapPayload(latestByType.USER_1) : null,
     user2: permissions.canViewUser2 ? mapPayload(latestByType.USER_2) : null,
     permissions,
+    assignments: mapAssignmentsResponse(assignment),
+    assignableUsers,
   });
 }
 
@@ -330,22 +435,55 @@ export async function PATCH(req: Request, { params }: Params) {
     user2ReviewerId?: string | null;
   };
 
+  const current = await loadAssignment(applicationId);
+  if (!current.assignmentsAvailable) {
+    return NextResponse.json(
+      { error: "Reviewer assignment columns are not available in this environment" },
+      { status: 503 },
+    );
+  }
+
+  const hasUser1 = Object.prototype.hasOwnProperty.call(body, "user1ReviewerId");
+  const hasUser2 = Object.prototype.hasOwnProperty.call(body, "user2ReviewerId");
+  const hasHr = Object.prototype.hasOwnProperty.call(body, "hrReviewerId");
+  if (!hasUser1 && !hasUser2 && !hasHr) {
+    return NextResponse.json(
+      { error: "No assignment fields provided" },
+      { status: 400 },
+    );
+  }
+
+  const nextUser1 = hasUser1
+    ? body.user1ReviewerId || null
+    : current.user1ReviewerId;
+  const nextUser2 = hasUser2
+    ? body.user2ReviewerId || null
+    : current.user2ReviewerId;
+
+  const validationError = await validateReviewerAssignments(nextUser1, nextUser2);
+  if (validationError) {
+    return NextResponse.json({ error: validationError }, { status: 400 });
+  }
+
+  const data: {
+    hrReviewerId?: string | null;
+    user1ReviewerId?: string | null;
+    user2ReviewerId?: string | null;
+  } = {};
+  if (hasHr) data.hrReviewerId = body.hrReviewerId || null;
+  if (hasUser1) data.user1ReviewerId = nextUser1;
+  if (hasUser2) data.user2ReviewerId = nextUser2;
+
   try {
-    const updated = await prisma.application.update({
+    await prisma.application.update({
       where: { id: applicationId },
-      data: {
-        hrReviewerId: body.hrReviewerId ?? null,
-        user1ReviewerId: body.user1ReviewerId ?? null,
-        user2ReviewerId: body.user2ReviewerId ?? null,
-      },
-      select: {
-        id: true,
-        hrReviewerId: true,
-        user1ReviewerId: true,
-        user2ReviewerId: true,
-      },
+      data,
     });
-    return NextResponse.json({ success: true, assignments: updated });
+    const assignment = await loadAssignment(applicationId);
+    return NextResponse.json({
+      success: true,
+      assignments: mapAssignmentsResponse(assignment),
+    });
   } catch {
     return NextResponse.json(
       { error: "Reviewer assignment columns are not available in this environment" },
