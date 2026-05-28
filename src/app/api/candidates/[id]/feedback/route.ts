@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 
 type Params = { params: Promise<{ id: string }> };
 type ReviewerType = "HR" | "USER_1" | "USER_2";
+type RoleKey = "admin" | "hr_manager" | "hr" | "recruiter";
 
 function normalizeReviewerType(value: unknown): ReviewerType {
   if (value === "USER_1") return "USER_1";
@@ -11,11 +12,67 @@ function normalizeReviewerType(value: unknown): ReviewerType {
   return "HR";
 }
 
+function hasAnyRole(roles: string[] = [], allowed: RoleKey[]) {
+  const set = new Set(roles.map((role) => role.toLowerCase()));
+  return allowed.some((role) => set.has(role));
+}
+
+function getEditPermission({
+  reviewerType,
+  sessionUserId,
+  sessionRoles,
+  assignment,
+}: {
+  reviewerType: ReviewerType;
+  sessionUserId: string;
+  sessionRoles: string[];
+  assignment: {
+    hrReviewerId: string | null;
+    user1ReviewerId: string | null;
+    user2ReviewerId: string | null;
+  };
+}) {
+  const isHrAdmin = hasAnyRole(sessionRoles, ["admin", "hr_manager", "hr"]);
+  if (reviewerType === "HR") {
+    return (
+      isHrAdmin ||
+      (assignment.hrReviewerId !== null && assignment.hrReviewerId === sessionUserId)
+    );
+  }
+  if (reviewerType === "USER_1") {
+    return (
+      (assignment.user1ReviewerId !== null &&
+        assignment.user1ReviewerId === sessionUserId) ||
+      isHrAdmin
+    );
+  }
+  return (
+    (assignment.user2ReviewerId !== null &&
+      assignment.user2ReviewerId === sessionUserId) ||
+    isHrAdmin
+  );
+}
+
 export async function GET(_req: Request, { params }: Params) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id: applicationId } = await params;
+  const application = await prisma.application.findUnique({
+    where: { id: applicationId },
+    select: {
+      hrReviewerId: true,
+      user1ReviewerId: true,
+      user2ReviewerId: true,
+      hrReviewer: { select: { id: true, name: true } },
+      user1Reviewer: { select: { id: true, name: true } },
+      user2Reviewer: { select: { id: true, name: true } },
+    },
+  });
+  if (!application) {
+    return NextResponse.json({ error: "Application not found" }, { status: 404 });
+  }
+
   const rows = await prisma.$queryRaw<
     {
       id: string;
@@ -71,6 +128,52 @@ export async function GET(_req: Request, { params }: Params) {
     hr: mapPayload(latestByType.HR),
     user1: mapPayload(latestByType.USER_1),
     user2: mapPayload(latestByType.USER_2),
+    assignments: {
+      hrReviewerId: application.hrReviewerId,
+      user1ReviewerId: application.user1ReviewerId,
+      user2ReviewerId: application.user2ReviewerId,
+      hrReviewerName: application.hrReviewer?.name ?? null,
+      user1ReviewerName: application.user1Reviewer?.name ?? null,
+      user2ReviewerName: application.user2Reviewer?.name ?? null,
+    },
+    permissions: {
+      canAssign: hasAnyRole(session.roles, ["admin", "hr_manager", "hr", "recruiter"]),
+      canEditHR: getEditPermission({
+        reviewerType: "HR",
+        sessionUserId: session.id,
+        sessionRoles: session.roles,
+        assignment: application,
+      }),
+      canEditUser1: getEditPermission({
+        reviewerType: "USER_1",
+        sessionUserId: session.id,
+        sessionRoles: session.roles,
+        assignment: application,
+      }),
+      canEditUser2: getEditPermission({
+        reviewerType: "USER_2",
+        sessionUserId: session.id,
+        sessionRoles: session.roles,
+        assignment: application,
+      }),
+    },
+    reviewerOptions: await prisma.user.findMany({
+      where: {
+        isActive: true,
+        userRoles: {
+          some: {
+            role: {
+              slug: {
+                in: ["admin", "hr_manager", "hr", "recruiter", "manager", "interviewer"],
+              },
+            },
+          },
+        },
+      },
+      select: { id: true, name: true, email: true },
+      orderBy: { name: "asc" },
+      take: 200,
+    }),
   });
 }
 
@@ -80,6 +183,13 @@ export async function POST(req: Request, { params }: Params) {
 
   const { id: applicationId } = await params;
   const body = await req.json();
+  const application = await prisma.application.findUnique({
+    where: { id: applicationId },
+    select: { hrReviewerId: true, user1ReviewerId: true, user2ReviewerId: true },
+  });
+  if (!application) {
+    return NextResponse.json({ error: "Application not found" }, { status: 404 });
+  }
 
   const reviewerType = normalizeReviewerType(body.reviewerType);
   const rating = typeof body.rating === "number" ? body.rating : null;
@@ -91,6 +201,18 @@ export async function POST(req: Request, { params }: Params) {
   }
   if (!comments) {
     return NextResponse.json({ error: "comments is required" }, { status: 400 });
+  }
+  const canEdit = getEditPermission({
+    reviewerType,
+    sessionUserId: session.id,
+    sessionRoles: session.roles,
+    assignment: application,
+  });
+  if (!canEdit) {
+    return NextResponse.json(
+      { error: "You are not allowed to edit this section" },
+      { status: 403 },
+    );
   }
 
   const existing = await prisma.$queryRaw<{ id: string }[]>`
@@ -129,4 +251,36 @@ export async function POST(req: Request, { params }: Params) {
   }
 
   return NextResponse.json({ success: true, id });
+}
+
+export async function PATCH(req: Request, { params }: Params) {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!hasAnyRole(session.roles, ["admin", "hr_manager", "hr", "recruiter"])) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const { id: applicationId } = await params;
+  const body = (await req.json()) as {
+    hrReviewerId?: string | null;
+    user1ReviewerId?: string | null;
+    user2ReviewerId?: string | null;
+  };
+
+  const updated = await prisma.application.update({
+    where: { id: applicationId },
+    data: {
+      hrReviewerId: body.hrReviewerId ?? null,
+      user1ReviewerId: body.user1ReviewerId ?? null,
+      user2ReviewerId: body.user2ReviewerId ?? null,
+    },
+    select: {
+      id: true,
+      hrReviewerId: true,
+      user1ReviewerId: true,
+      user2ReviewerId: true,
+    },
+  });
+
+  return NextResponse.json({ success: true, assignments: updated });
 }

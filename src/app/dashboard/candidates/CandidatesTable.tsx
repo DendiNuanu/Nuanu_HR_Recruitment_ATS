@@ -140,6 +140,28 @@ type FeedbackGroup = {
   user2: InterviewFeedbackItem | null;
 };
 
+type FeedbackAssignments = {
+  hrReviewerId: string | null;
+  user1ReviewerId: string | null;
+  user2ReviewerId: string | null;
+  hrReviewerName: string | null;
+  user1ReviewerName: string | null;
+  user2ReviewerName: string | null;
+};
+
+type FeedbackPermissions = {
+  canAssign: boolean;
+  canEditHR: boolean;
+  canEditUser1: boolean;
+  canEditUser2: boolean;
+};
+
+type ReviewerOption = {
+  id: string;
+  name: string;
+  email: string;
+};
+
 function stageLabel(stageId: string) {
   const canonical = resolvePipelineColumn(stageId);
   return (
@@ -224,6 +246,22 @@ export default function CandidatesTable({
     USER_2: { rating: 0, recommendation: "", comments: "" },
   });
   const [savingFeedbackType, setSavingFeedbackType] = useState<ReviewerType | null>(null);
+  const [feedbackAssignments, setFeedbackAssignments] = useState<FeedbackAssignments>({
+    hrReviewerId: null,
+    user1ReviewerId: null,
+    user2ReviewerId: null,
+    hrReviewerName: null,
+    user1ReviewerName: null,
+    user2ReviewerName: null,
+  });
+  const [feedbackPermissions, setFeedbackPermissions] = useState<FeedbackPermissions>({
+    canAssign: false,
+    canEditHR: false,
+    canEditUser1: false,
+    canEditUser2: false,
+  });
+  const [reviewerOptions, setReviewerOptions] = useState<ReviewerOption[]>([]);
+  const [savingAssignments, setSavingAssignments] = useState(false);
 
   // Source field state
   const [sourcePreset, setSourcePreset] = useState("direct");
@@ -548,7 +586,14 @@ export default function CandidatesTable({
     if (!res.ok) {
       throw new Error("Failed to load interview feedback");
     }
-    const payload = (await res.json()) as FeedbackGroup;
+    const payload = (await res.json()) as {
+      hr: InterviewFeedbackItem | null;
+      user1: InterviewFeedbackItem | null;
+      user2: InterviewFeedbackItem | null;
+      assignments: FeedbackAssignments;
+      permissions: FeedbackPermissions;
+      reviewerOptions: ReviewerOption[];
+    };
     const normalized: FeedbackGroup = {
       hr: payload.hr ?? null,
       user1: payload.user1 ?? null,
@@ -556,6 +601,9 @@ export default function CandidatesTable({
     };
     setInterviewFeedback(normalized);
     mapFeedbackToDrafts(normalized);
+    setFeedbackAssignments(payload.assignments);
+    setFeedbackPermissions(payload.permissions);
+    setReviewerOptions(payload.reviewerOptions ?? []);
   };
 
   const openProfile = async (c: Candidate) => {
@@ -570,6 +618,21 @@ export default function CandidatesTable({
       USER_1: { rating: 0, recommendation: "", comments: "" },
       USER_2: { rating: 0, recommendation: "", comments: "" },
     });
+    setFeedbackAssignments({
+      hrReviewerId: null,
+      user1ReviewerId: null,
+      user2ReviewerId: null,
+      hrReviewerName: null,
+      user1ReviewerName: null,
+      user2ReviewerName: null,
+    });
+    setFeedbackPermissions({
+      canAssign: false,
+      canEditHR: false,
+      canEditUser1: false,
+      canEditUser2: false,
+    });
+    setReviewerOptions([]);
     resetSourceFields(normalized.source);
     setReferAsDraft(normalized.referPosition || "");
     setDomicileDraft(normalized.domicile || "");
@@ -792,6 +855,33 @@ export default function CandidatesTable({
       toast.error("Network error while saving feedback");
     } finally {
       setSavingFeedbackType(null);
+    }
+  };
+
+  const saveReviewerAssignments = async () => {
+    if (!selectedProfile) return;
+    setSavingAssignments(true);
+    try {
+      const res = await fetch(`/api/candidates/${selectedProfile.id}/feedback`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          hrReviewerId: feedbackAssignments.hrReviewerId,
+          user1ReviewerId: feedbackAssignments.user1ReviewerId,
+          user2ReviewerId: feedbackAssignments.user2ReviewerId,
+        }),
+      });
+      if (!res.ok) {
+        const payload = await res.json().catch(() => ({}));
+        toast.error(payload.error || "Failed to save reviewer assignments");
+        return;
+      }
+      await loadInterviewFeedback(selectedProfile.id);
+      toast.success("Reviewer assignments saved");
+    } catch {
+      toast.error("Network error while saving assignments");
+    } finally {
+      setSavingAssignments(false);
     }
   };
 
@@ -1725,16 +1815,82 @@ export default function CandidatesTable({
                     </div>
                   )}
                   <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50/40">
+                    {feedbackPermissions.canAssign && (
+                      <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
+                        <div className="flex items-center justify-between mb-4">
+                          <p className="font-bold text-nuanu-navy">Reviewer Assignment</p>
+                          <button
+                            type="button"
+                            onClick={saveReviewerAssignments}
+                            disabled={savingAssignments}
+                            className="btn-primary px-4 py-2 text-sm"
+                          >
+                            {savingAssignments ? "Saving..." : "Save Assignment"}
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                          {[
+                            { key: "hrReviewerId", label: "HR Reviewer" },
+                            { key: "user1ReviewerId", label: "User 1 Reviewer" },
+                            { key: "user2ReviewerId", label: "User 2 Reviewer" },
+                          ].map((item) => (
+                            <div key={item.key}>
+                              <p className="text-xs text-nuanu-gray-400 mb-1">{item.label}</p>
+                              <select
+                                className="input-field text-sm"
+                                value={(feedbackAssignments as Record<string, string | null>)[item.key] ?? ""}
+                                onChange={(e) =>
+                                  setFeedbackAssignments((prev) => ({
+                                    ...prev,
+                                    [item.key]: e.target.value || null,
+                                  }))
+                                }
+                              >
+                                <option value="">Unassigned</option>
+                                {reviewerOptions.map((user) => (
+                                  <option key={user.id} value={user.id}>
+                                    {user.name} ({user.email})
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     {(
                       [
-                        { key: "HR" as ReviewerType, title: "HR Feedback", data: interviewFeedback.hr },
-                        { key: "USER_1" as ReviewerType, title: "User 1 Feedback", data: interviewFeedback.user1 },
-                        { key: "USER_2" as ReviewerType, title: "User 2 Feedback", data: interviewFeedback.user2 },
+                        {
+                          key: "HR" as ReviewerType,
+                          title: "HR Feedback",
+                          data: interviewFeedback.hr,
+                          assignedName: feedbackAssignments.hrReviewerName,
+                          canEdit: feedbackPermissions.canEditHR,
+                        },
+                        {
+                          key: "USER_1" as ReviewerType,
+                          title: "User 1 Feedback",
+                          data: interviewFeedback.user1,
+                          assignedName: feedbackAssignments.user1ReviewerName,
+                          canEdit: feedbackPermissions.canEditUser1,
+                        },
+                        {
+                          key: "USER_2" as ReviewerType,
+                          title: "User 2 Feedback",
+                          data: interviewFeedback.user2,
+                          assignedName: feedbackAssignments.user2ReviewerName,
+                          canEdit: feedbackPermissions.canEditUser2,
+                        },
                       ]
                     ).map((section) => (
                       <div key={section.key} className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
                         <div className="flex items-center justify-between mb-4">
-                          <p className="font-bold text-nuanu-navy">{section.title}</p>
+                          <div>
+                            <p className="font-bold text-nuanu-navy">{section.title}</p>
+                            <p className="text-xs text-nuanu-gray-400">
+                              Assigned: {section.assignedName ?? "Unassigned"}
+                            </p>
+                          </div>
                           <span className={`text-xs px-2.5 py-1 rounded-full font-bold ${section.data ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
                             {section.data ? "Completed" : "Pending"}
                           </span>
@@ -1748,11 +1904,13 @@ export default function CandidatesTable({
                                 key={star}
                                 type="button"
                                 onClick={() =>
+                                  section.canEdit &&
                                   setFeedbackDrafts((prev) => ({
                                     ...prev,
                                     [section.key]: { ...prev[section.key], rating: star },
                                   }))
                                 }
+                                disabled={!section.canEdit}
                                 className={`text-xl ${(feedbackDrafts[section.key].rating || 0) >= star ? "text-amber-400" : "text-gray-200"}`}
                               >
                                 ★
@@ -1769,11 +1927,13 @@ export default function CandidatesTable({
                                 key={opt}
                                 type="button"
                                 onClick={() =>
+                                  section.canEdit &&
                                   setFeedbackDrafts((prev) => ({
                                     ...prev,
                                     [section.key]: { ...prev[section.key], recommendation: opt },
                                   }))
                                 }
+                                disabled={!section.canEdit}
                                 className={`text-xs px-3 py-1.5 rounded-lg border font-semibold transition-colors ${feedbackDrafts[section.key].recommendation === opt ? "bg-emerald-600 text-white border-emerald-600" : "border-gray-200 text-gray-600 hover:bg-gray-50"}`}
                               >
                                 {opt}
@@ -1792,6 +1952,7 @@ export default function CandidatesTable({
                                 [section.key]: { ...prev[section.key], comments: e.target.value },
                               }))
                             }
+                            disabled={!section.canEdit}
                             rows={3}
                             className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 resize-none"
                             placeholder="Write interview feedback"
@@ -1808,10 +1969,14 @@ export default function CandidatesTable({
                           <button
                             type="button"
                             onClick={() => saveStructuredFeedback(section.key)}
-                            disabled={savingFeedbackType === section.key}
+                            disabled={!section.canEdit || savingFeedbackType === section.key}
                             className="btn-primary px-4 py-2 text-sm"
                           >
-                            {savingFeedbackType === section.key ? "Saving..." : "Save Feedback"}
+                            {!section.canEdit
+                              ? "Locked"
+                              : savingFeedbackType === section.key
+                                ? "Saving..."
+                                : "Save Feedback"}
                           </button>
                         </div>
                       </div>
