@@ -813,7 +813,7 @@ export default function CandidatesTable({
               <th>Stage</th>
               <th>AI Match</th>
               <th>Applied</th>
-              <th className="text-right pr-4">Actions</th>
+              <th style={{ textAlign: "right", paddingRight: "16px", paddingLeft: 0 }}>Actions</th>
             </tr>
           </thead>
           <tbody>
