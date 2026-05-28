@@ -104,14 +104,6 @@ export default async function CreateVacancyPage() {
                 </div>
               </label>
 
-              <label className="flex items-start gap-3 p-3 bg-nuanu-gray-50 rounded-lg border border-nuanu-gray-200 cursor-pointer hover:bg-blue-50 hover:border-blue-200 transition-colors">
-                <input type="checkbox" name="publishLinkedIn" className="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300" />
-                <div>
-                  <p className="text-sm font-bold text-nuanu-navy flex items-center gap-2"><Webhook className="w-4 h-4 text-blue-500" /> LinkedIn Network</p>
-                  <p className="text-xs text-nuanu-gray-500 mt-1">Push to LinkedIn Talent Solutions via API.</p>
-                </div>
-              </label>
-
               <label className="flex items-start gap-3 p-3 bg-nuanu-gray-50 rounded-lg border border-nuanu-gray-200 cursor-pointer hover:bg-indigo-50 hover:border-indigo-200 transition-colors">
                 <input type="checkbox" name="publishJobStreet" className="mt-1 w-4 h-4 text-indigo-600 rounded border-gray-300" />
                 <div>
