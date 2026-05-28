@@ -239,6 +239,7 @@ export default function CandidatesTable({
     canEditUser1: false,
     canEditUser2: false,
   });
+  const [feedbackLoadError, setFeedbackLoadError] = useState<string | null>(null);
 
   // Source field state
   const [sourcePreset, setSourcePreset] = useState("direct");
@@ -554,15 +555,19 @@ export default function CandidatesTable({
 
   const loadInterviewFeedback = async (applicationId: string) => {
     const res = await fetch(`/api/candidates/${applicationId}/feedback`);
-    if (!res.ok) {
-      throw new Error("Failed to load interview feedback");
-    }
-    const payload = (await res.json()) as {
-      hr: InterviewFeedbackItem | null;
-      user1: InterviewFeedbackItem | null;
-      user2: InterviewFeedbackItem | null;
-      permissions: FeedbackPermissions;
+    const payload = (await res.json().catch(() => ({}))) as {
+      hr?: InterviewFeedbackItem | null;
+      user1?: InterviewFeedbackItem | null;
+      user2?: InterviewFeedbackItem | null;
+      permissions?: FeedbackPermissions;
+      error?: string;
+      warning?: string;
     };
+    if (!res.ok) {
+      setFeedbackLoadError(payload.error || "Failed to load interview feedback");
+      return false;
+    }
+    setFeedbackLoadError(payload.warning ?? null);
     const normalized: FeedbackGroup = {
       hr: payload.hr ?? null,
       user1: payload.user1 ?? null,
@@ -570,7 +575,17 @@ export default function CandidatesTable({
     };
     setInterviewFeedback(normalized);
     mapFeedbackToDrafts(normalized);
-    setFeedbackPermissions(payload.permissions);
+    setFeedbackPermissions(
+      payload.permissions ?? {
+        canViewHR: false,
+        canViewUser1: false,
+        canViewUser2: false,
+        canEditHR: false,
+        canEditUser1: false,
+        canEditUser2: false,
+      },
+    );
+    return true;
   };
 
   const openProfile = async (c: Candidate) => {
@@ -593,6 +608,7 @@ export default function CandidatesTable({
       canEditUser1: false,
       canEditUser2: false,
     });
+    setFeedbackLoadError(null);
     resetSourceFields(normalized.source);
     setReferAsDraft(normalized.referPosition || "");
     setDomicileDraft(normalized.domicile || "");
@@ -601,7 +617,10 @@ export default function CandidatesTable({
     setShow360(false);
     setLoadingProfileDetails(true);
     try {
-      const [notes] = await Promise.all([getNotes(c.id), loadInterviewFeedback(c.id)]);
+      const [notes] = await Promise.all([
+        getNotes(c.id),
+        loadInterviewFeedback(c.id),
+      ]);
       const mappedNotes = notes.map((n) => ({
         id: n.id,
         content: n.content,
@@ -783,6 +802,11 @@ export default function CandidatesTable({
       toast.error("Failed to delete note");
     }
   };
+
+  useEffect(() => {
+    if (profileTab !== "interview_results" || !selectedProfile?.id) return;
+    void loadInterviewFeedback(selectedProfile.id);
+  }, [profileTab, selectedProfile?.id]);
 
   // ── Interview result handlers ──────────────────────────────
   const saveStructuredFeedback = async (reviewerType: ReviewerType) => {
@@ -1775,8 +1799,22 @@ export default function CandidatesTable({
 
                       if (sections.length === 0) {
                         return (
-                          <div className="bg-white border border-gray-100 rounded-2xl p-6 text-center text-sm text-nuanu-gray-500">
-                            No visible interview comments for your account yet.
+                          <div className="bg-white border border-gray-100 rounded-2xl p-6 text-center text-sm text-nuanu-gray-500 space-y-2">
+                            {feedbackLoadError ? (
+                              <>
+                                <p className="font-medium text-amber-700">
+                                  Could not load interview results
+                                </p>
+                                <p>{feedbackLoadError}</p>
+                              </>
+                            ) : (
+                              <p>
+                                No interview comment sections are visible for your
+                                account. HR Manager, Admin, and Super Admin users see
+                                all three sections; User 1 and User 2 reviewers only
+                                see their assigned section.
+                              </p>
+                            )}
                           </div>
                         );
                       }
