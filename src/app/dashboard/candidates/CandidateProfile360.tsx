@@ -59,17 +59,21 @@ interface AssessmentResult {
 
 interface InterviewFeedbackItem {
   id: string;
-  overallRating: number;
-  technicalScore: number | null;
-  communicationScore: number | null;
-  cultureFitScore: number | null;
-  strengths: string | null;
-  weaknesses: string | null;
-  recommendation: string;
-  notes: string | null;
-  submittedAt: string | null;
-  interviewerName: string;
+  reviewerType: "HR" | "USER_1" | "USER_2";
+  rating: number | null;
+  recommendation: string | null;
+  comments: string;
+  createdAt: string;
+  updatedAt: string;
+  authorId: string;
+  authorName: string;
 }
+
+type FeedbackGroup = {
+  hr: InterviewFeedbackItem | null;
+  user1: InterviewFeedbackItem | null;
+  user2: InterviewFeedbackItem | null;
+};
 
 type Tab = "assessments" | "feedback" | "references" | "timeline";
 
@@ -105,7 +109,7 @@ export default function CandidateProfile360({
     candidate.referPosition || candidate.vacancyTitle || vacancyTitle;
   const [activeTab, setActiveTab] = useState<Tab>("assessments");
   const [assessments, setAssessments] = useState<AssessmentResult[]>([]);
-  const [feedback, setFeedback] = useState<InterviewFeedbackItem[]>([]);
+  const [feedback, setFeedback] = useState<FeedbackGroup>({ hr: null, user1: null, user2: null });
   const [referenceChecks, setReferenceChecks] = useState<ReferenceCheck[]>([]);
   const [timeline, setTimeline] = useState<{ action: string; createdAt: string }[]>([]);
   const [loading, setLoading] = useState(false);
@@ -253,57 +257,27 @@ export default function CandidateProfile360({
               {/* ── Interview Feedback ── */}
               {activeTab === "feedback" && (
                 <div className="p-6 space-y-4">
-                  {feedback.length === 0 ? (
-                    <EmptyState icon={MessageSquare} title="No Feedback Yet" message="Interview feedback will appear here once interviewers submit their evaluations." />
-                  ) : feedback.map((f) => (
-                    <div key={f.id} className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
-                      <div className="flex items-start justify-between mb-4">
-                        <div>
-                          <p className="font-bold text-nuanu-navy">{f.interviewerName}</p>
-                          {f.submittedAt && <p className="text-xs text-nuanu-gray-400">{formatDate(f.submittedAt)}</p>}
-                        </div>
-                        <div className="flex items-center gap-1">
-                          {[1,2,3,4,5].map((s) => (
-                            <Star key={s} className={`w-4 h-4 ${s <= f.overallRating ? "text-amber-400 fill-amber-400" : "text-gray-200"}`} />
-                          ))}
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-                        {[
-                          { label: "Technical", value: f.technicalScore },
-                          { label: "Communication", value: f.communicationScore },
-                          { label: "Culture Fit", value: f.cultureFitScore },
-                        ].filter((s) => s.value !== null).map(({ label, value }) => (
-                          <div key={label} className="bg-gray-50 rounded-xl p-3 text-center">
-                            <p className="text-xs text-nuanu-gray-400 mb-1">{label}</p>
-                            <p className="text-lg font-bold text-nuanu-navy">{value}/5</p>
-                          </div>
-                        ))}
-                        <div className={`rounded-xl p-3 text-center ${
-                          f.recommendation === "proceed" ? "bg-emerald-50" :
-                          f.recommendation === "reject" ? "bg-red-50" : "bg-gray-50"
-                        }`}>
-                          <p className="text-xs text-nuanu-gray-400 mb-1">Decision</p>
-                          <p className={`text-sm font-bold capitalize ${
-                            f.recommendation === "proceed" ? "text-emerald-700" :
-                            f.recommendation === "reject" ? "text-red-600" : "text-gray-600"
-                          }`}>{f.recommendation}</p>
-                        </div>
-                      </div>
-                      {f.strengths && (
-                        <div className="mb-2">
-                          <p className="text-xs font-bold text-emerald-600 mb-1">Strengths</p>
-                          <p className="text-sm text-nuanu-gray-700">{f.strengths}</p>
-                        </div>
-                      )}
-                      {f.weaknesses && (
-                        <div>
-                          <p className="text-xs font-bold text-red-500 mb-1">Areas for Improvement</p>
-                          <p className="text-sm text-nuanu-gray-700">{f.weaknesses}</p>
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                  <InterviewFeedbackCard
+                    title="HR Feedback"
+                    reviewerType="HR"
+                    data={feedback.hr}
+                    candidateId={candidate.id}
+                    onSaved={() => fetchTabData("feedback")}
+                  />
+                  <InterviewFeedbackCard
+                    title="User 1 Feedback"
+                    reviewerType="USER_1"
+                    data={feedback.user1}
+                    candidateId={candidate.id}
+                    onSaved={() => fetchTabData("feedback")}
+                  />
+                  <InterviewFeedbackCard
+                    title="User 2 Feedback"
+                    reviewerType="USER_2"
+                    data={feedback.user2}
+                    candidateId={candidate.id}
+                    onSaved={() => fetchTabData("feedback")}
+                  />
                 </div>
               )}
 
@@ -513,6 +487,112 @@ function ReferenceCheckCard({
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function InterviewFeedbackCard({
+  title,
+  reviewerType,
+  data,
+  candidateId,
+  onSaved,
+}: {
+  title: string;
+  reviewerType: "HR" | "USER_1" | "USER_2";
+  data: InterviewFeedbackItem | null;
+  candidateId: string;
+  onSaved: () => Promise<void>;
+}) {
+  const [rating, setRating] = useState<number>(data?.rating ?? 0);
+  const [recommendation, setRecommendation] = useState<string>(data?.recommendation ?? "");
+  const [comments, setComments] = useState<string>(data?.comments ?? "");
+  const [saving, setSaving] = useState(false);
+
+  return (
+    <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
+      <div className="flex items-center justify-between mb-4">
+        <p className="font-bold text-nuanu-navy">{title}</p>
+        <span className={`text-xs px-2.5 py-1 rounded-full font-bold ${data ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
+          {data ? "Completed" : "Pending"}
+        </span>
+      </div>
+
+      <div className="mb-4">
+        <p className="text-xs text-nuanu-gray-400 mb-2">Rating</p>
+        <div className="flex items-center gap-1">
+          {[1, 2, 3, 4, 5].map((s) => (
+            <button key={s} type="button" onClick={() => setRating(s)}>
+              <Star className={`w-5 h-5 ${s <= rating ? "text-amber-400 fill-amber-400" : "text-gray-200"}`} />
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="mb-4">
+        <p className="text-xs text-nuanu-gray-400 mb-2">Recommendation</p>
+        <div className="flex gap-2">
+          {["PROCEED", "HOLD", "REJECT"].map((opt) => (
+            <button
+              key={opt}
+              type="button"
+              onClick={() => setRecommendation(opt)}
+              className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors ${
+                recommendation === opt ? "bg-emerald-600 text-white border-emerald-600" : "border-gray-200 text-gray-600 hover:bg-gray-50"
+              }`}
+            >
+              {opt}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="mb-3">
+        <label className="text-xs text-nuanu-gray-400">Comments</label>
+        <textarea
+          value={comments}
+          onChange={(e) => setComments(e.target.value)}
+          rows={3}
+          className="mt-1 w-full text-sm border border-gray-200 rounded-xl px-3 py-2 resize-none"
+          placeholder="Write interview feedback"
+        />
+      </div>
+
+      {data && (
+        <p className="text-xs text-nuanu-gray-400 mb-3">
+          {data.authorName} · {formatDate(data.updatedAt)}
+        </p>
+      )}
+
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={async () => {
+            setSaving(true);
+            const res = await fetch(`/api/candidates/${candidateId}/feedback`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                reviewerType,
+                rating: rating || null,
+                recommendation: recommendation || null,
+                comments,
+              }),
+            });
+            setSaving(false);
+            if (!res.ok) {
+              toast.error("Failed to save feedback");
+              return;
+            }
+            toast.success("Feedback saved");
+            await onSaved();
+          }}
+          className="btn-primary text-sm py-2 px-4"
+          disabled={saving}
+        >
+          {saving ? "Saving..." : "Save Feedback"}
+        </button>
+      </div>
     </div>
   );
 }
