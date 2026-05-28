@@ -140,26 +140,13 @@ type FeedbackGroup = {
   user2: InterviewFeedbackItem | null;
 };
 
-type FeedbackAssignments = {
-  hrReviewerId: string | null;
-  user1ReviewerId: string | null;
-  user2ReviewerId: string | null;
-  hrReviewerName: string | null;
-  user1ReviewerName: string | null;
-  user2ReviewerName: string | null;
-};
-
 type FeedbackPermissions = {
-  canAssign: boolean;
+  canViewHR: boolean;
+  canViewUser1: boolean;
+  canViewUser2: boolean;
   canEditHR: boolean;
   canEditUser1: boolean;
   canEditUser2: boolean;
-};
-
-type ReviewerOption = {
-  id: string;
-  name: string;
-  email: string;
 };
 
 function stageLabel(stageId: string) {
@@ -238,30 +225,20 @@ export default function CandidatesTable({
     user1: null,
     user2: null,
   });
-  const [feedbackDrafts, setFeedbackDrafts] = useState<
-    Record<ReviewerType, { rating: number; recommendation: string; comments: string }>
-  >({
-    HR: { rating: 0, recommendation: "", comments: "" },
-    USER_1: { rating: 0, recommendation: "", comments: "" },
-    USER_2: { rating: 0, recommendation: "", comments: "" },
+  const [feedbackDrafts, setFeedbackDrafts] = useState<Record<ReviewerType, { comments: string }>>({
+    HR: { comments: "" },
+    USER_1: { comments: "" },
+    USER_2: { comments: "" },
   });
   const [savingFeedbackType, setSavingFeedbackType] = useState<ReviewerType | null>(null);
-  const [feedbackAssignments, setFeedbackAssignments] = useState<FeedbackAssignments>({
-    hrReviewerId: null,
-    user1ReviewerId: null,
-    user2ReviewerId: null,
-    hrReviewerName: null,
-    user1ReviewerName: null,
-    user2ReviewerName: null,
-  });
   const [feedbackPermissions, setFeedbackPermissions] = useState<FeedbackPermissions>({
-    canAssign: false,
+    canViewHR: false,
+    canViewUser1: false,
+    canViewUser2: false,
     canEditHR: false,
     canEditUser1: false,
     canEditUser2: false,
   });
-  const [reviewerOptions, setReviewerOptions] = useState<ReviewerOption[]>([]);
-  const [savingAssignments, setSavingAssignments] = useState(false);
 
   // Source field state
   const [sourcePreset, setSourcePreset] = useState("direct");
@@ -564,18 +541,12 @@ export default function CandidatesTable({
   const mapFeedbackToDrafts = (group: FeedbackGroup) => {
     setFeedbackDrafts({
       HR: {
-        rating: group.hr?.rating ?? 0,
-        recommendation: group.hr?.recommendation ?? "",
         comments: group.hr?.comments ?? "",
       },
       USER_1: {
-        rating: group.user1?.rating ?? 0,
-        recommendation: group.user1?.recommendation ?? "",
         comments: group.user1?.comments ?? "",
       },
       USER_2: {
-        rating: group.user2?.rating ?? 0,
-        recommendation: group.user2?.recommendation ?? "",
         comments: group.user2?.comments ?? "",
       },
     });
@@ -590,9 +561,7 @@ export default function CandidatesTable({
       hr: InterviewFeedbackItem | null;
       user1: InterviewFeedbackItem | null;
       user2: InterviewFeedbackItem | null;
-      assignments: FeedbackAssignments;
       permissions: FeedbackPermissions;
-      reviewerOptions: ReviewerOption[];
     };
     const normalized: FeedbackGroup = {
       hr: payload.hr ?? null,
@@ -601,9 +570,7 @@ export default function CandidatesTable({
     };
     setInterviewFeedback(normalized);
     mapFeedbackToDrafts(normalized);
-    setFeedbackAssignments(payload.assignments);
     setFeedbackPermissions(payload.permissions);
-    setReviewerOptions(payload.reviewerOptions ?? []);
   };
 
   const openProfile = async (c: Candidate) => {
@@ -614,25 +581,18 @@ export default function CandidatesTable({
     setNoteText("");
     setInterviewFeedback({ hr: null, user1: null, user2: null });
     setFeedbackDrafts({
-      HR: { rating: 0, recommendation: "", comments: "" },
-      USER_1: { rating: 0, recommendation: "", comments: "" },
-      USER_2: { rating: 0, recommendation: "", comments: "" },
-    });
-    setFeedbackAssignments({
-      hrReviewerId: null,
-      user1ReviewerId: null,
-      user2ReviewerId: null,
-      hrReviewerName: null,
-      user1ReviewerName: null,
-      user2ReviewerName: null,
+      HR: { comments: "" },
+      USER_1: { comments: "" },
+      USER_2: { comments: "" },
     });
     setFeedbackPermissions({
-      canAssign: false,
+      canViewHR: false,
+      canViewUser1: false,
+      canViewUser2: false,
       canEditHR: false,
       canEditUser1: false,
       canEditUser2: false,
     });
-    setReviewerOptions([]);
     resetSourceFields(normalized.source);
     setReferAsDraft(normalized.referPosition || "");
     setDomicileDraft(normalized.domicile || "");
@@ -839,8 +799,8 @@ export default function CandidatesTable({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           reviewerType,
-          rating: draft.rating || null,
-          recommendation: draft.recommendation || null,
+          rating: null,
+          recommendation: null,
           comments: draft.comments.trim(),
         }),
       });
@@ -855,33 +815,6 @@ export default function CandidatesTable({
       toast.error("Network error while saving feedback");
     } finally {
       setSavingFeedbackType(null);
-    }
-  };
-
-  const saveReviewerAssignments = async () => {
-    if (!selectedProfile) return;
-    setSavingAssignments(true);
-    try {
-      const res = await fetch(`/api/candidates/${selectedProfile.id}/feedback`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          hrReviewerId: feedbackAssignments.hrReviewerId,
-          user1ReviewerId: feedbackAssignments.user1ReviewerId,
-          user2ReviewerId: feedbackAssignments.user2ReviewerId,
-        }),
-      });
-      if (!res.ok) {
-        const payload = await res.json().catch(() => ({}));
-        toast.error(payload.error || "Failed to save reviewer assignments");
-        return;
-      }
-      await loadInterviewFeedback(selectedProfile.id);
-      toast.success("Reviewer assignments saved");
-    } catch {
-      toast.error("Network error while saving assignments");
-    } finally {
-      setSavingAssignments(false);
     }
   };
 
@@ -1815,135 +1748,38 @@ export default function CandidatesTable({
                     </div>
                   )}
                   <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50/40">
-                    {feedbackPermissions.canAssign && (
-                      <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
-                        <div className="flex items-center justify-between mb-4">
-                          <p className="font-bold text-nuanu-navy">Reviewer Assignment</p>
-                          <button
-                            type="button"
-                            onClick={saveReviewerAssignments}
-                            disabled={savingAssignments}
-                            className="btn-primary px-4 py-2 text-sm"
-                          >
-                            {savingAssignments ? "Saving..." : "Save Assignment"}
-                          </button>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                          {[
-                            { key: "hrReviewerId", label: "HR Reviewer" },
-                            { key: "user1ReviewerId", label: "User 1 Reviewer" },
-                            { key: "user2ReviewerId", label: "User 2 Reviewer" },
-                          ].map((item) => (
-                            <div key={item.key}>
-                              <p className="text-xs text-nuanu-gray-400 mb-1">{item.label}</p>
-                              <select
-                                className="input-field text-sm"
-                                value={(feedbackAssignments as Record<string, string | null>)[item.key] ?? ""}
-                                onChange={(e) =>
-                                  setFeedbackAssignments((prev) => ({
-                                    ...prev,
-                                    [item.key]: e.target.value || null,
-                                  }))
-                                }
-                              >
-                                <option value="">Unassigned</option>
-                                {reviewerOptions.map((user) => (
-                                  <option key={user.id} value={user.id}>
-                                    {user.name} ({user.email})
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
                     {(
                       [
                         {
                           key: "HR" as ReviewerType,
-                          title: "HR Feedback",
+                          title: "HR Manager Comment",
                           data: interviewFeedback.hr,
-                          assignedName: feedbackAssignments.hrReviewerName,
                           canEdit: feedbackPermissions.canEditHR,
+                          canView: feedbackPermissions.canViewHR,
                         },
                         {
                           key: "USER_1" as ReviewerType,
-                          title: "User 1 Feedback",
+                          title: "User 1 Comment",
                           data: interviewFeedback.user1,
-                          assignedName: feedbackAssignments.user1ReviewerName,
                           canEdit: feedbackPermissions.canEditUser1,
+                          canView: feedbackPermissions.canViewUser1,
                         },
                         {
                           key: "USER_2" as ReviewerType,
-                          title: "User 2 Feedback",
+                          title: "User 2 Comment",
                           data: interviewFeedback.user2,
-                          assignedName: feedbackAssignments.user2ReviewerName,
                           canEdit: feedbackPermissions.canEditUser2,
+                          canView: feedbackPermissions.canViewUser2,
                         },
-                      ]
+                      ].filter((section) => section.canView)
                     ).map((section) => (
                       <div key={section.key} className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
                         <div className="flex items-center justify-between mb-4">
-                          <div>
-                            <p className="font-bold text-nuanu-navy">{section.title}</p>
-                            <p className="text-xs text-nuanu-gray-400">
-                              Assigned: {section.assignedName ?? "Unassigned"}
-                            </p>
-                          </div>
-                          <span className={`text-xs px-2.5 py-1 rounded-full font-bold ${section.data ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
-                            {section.data ? "Completed" : "Pending"}
-                          </span>
-                        </div>
-
-                        <div className="mb-4">
-                          <p className="text-xs text-nuanu-gray-400 mb-2">Rating</p>
-                          <div className="flex gap-1">
-                            {[1, 2, 3, 4, 5].map((star) => (
-                              <button
-                                key={star}
-                                type="button"
-                                onClick={() =>
-                                  section.canEdit &&
-                                  setFeedbackDrafts((prev) => ({
-                                    ...prev,
-                                    [section.key]: { ...prev[section.key], rating: star },
-                                  }))
-                                }
-                                disabled={!section.canEdit}
-                                className={`text-xl ${(feedbackDrafts[section.key].rating || 0) >= star ? "text-amber-400" : "text-gray-200"}`}
-                              >
-                                ★
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-
-                        <div className="mb-4">
-                          <p className="text-xs text-nuanu-gray-400 mb-2">Recommendation</p>
-                          <div className="flex gap-2 flex-wrap">
-                            {["PROCEED", "HOLD", "REJECT"].map((opt) => (
-                              <button
-                                key={opt}
-                                type="button"
-                                onClick={() =>
-                                  section.canEdit &&
-                                  setFeedbackDrafts((prev) => ({
-                                    ...prev,
-                                    [section.key]: { ...prev[section.key], recommendation: opt },
-                                  }))
-                                }
-                                disabled={!section.canEdit}
-                                className={`text-xs px-3 py-1.5 rounded-lg border font-semibold transition-colors ${feedbackDrafts[section.key].recommendation === opt ? "bg-emerald-600 text-white border-emerald-600" : "border-gray-200 text-gray-600 hover:bg-gray-50"}`}
-                              >
-                                {opt}
-                              </button>
-                            ))}
-                          </div>
+                          <p className="font-bold text-nuanu-navy">{section.title}</p>
                         </div>
 
                         <div>
-                          <p className="text-xs text-nuanu-gray-400 mb-1">Comments</p>
+                          <p className="text-xs text-nuanu-gray-400 mb-1">Comment</p>
                           <textarea
                             value={feedbackDrafts[section.key].comments}
                             onChange={(e) =>
@@ -1955,7 +1791,7 @@ export default function CandidatesTable({
                             disabled={!section.canEdit}
                             rows={3}
                             className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 resize-none"
-                            placeholder="Write interview feedback"
+                            placeholder="Write comment"
                           />
                         </div>
 
@@ -1972,11 +1808,7 @@ export default function CandidatesTable({
                             disabled={!section.canEdit || savingFeedbackType === section.key}
                             className="btn-primary px-4 py-2 text-sm"
                           >
-                            {!section.canEdit
-                              ? "Locked"
-                              : savingFeedbackType === section.key
-                                ? "Saving..."
-                                : "Save Feedback"}
+                            {savingFeedbackType === section.key ? "Saving..." : "Save Comment"}
                           </button>
                         </div>
                       </div>

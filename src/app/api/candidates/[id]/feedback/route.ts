@@ -13,7 +13,9 @@ function normalizeReviewerType(value: unknown): ReviewerType {
 }
 
 function hasAnyRole(roles: string[] = [], allowed: RoleKey[]) {
-  const set = new Set(roles.map((role) => role.toLowerCase()));
+  const set = new Set(
+    roles.map((role) => role.toLowerCase().trim().replace(/\s+/g, "_")),
+  );
   return allowed.some((role) => set.has(role));
 }
 
@@ -124,56 +126,26 @@ export async function GET(_req: Request, { params }: Params) {
         }
       : null;
 
+  const isHrViewer = hasAnyRole(session.roles, ["admin", "hr_manager", "hr"]);
+  const canViewHR = isHrViewer;
+  const canViewUser1 = isHrViewer || session.id === application.user1ReviewerId;
+  const canViewUser2 = isHrViewer || session.id === application.user2ReviewerId;
+  const canEditHR = isHrViewer;
+  const canEditUser1 = session.id === application.user1ReviewerId;
+  const canEditUser2 = session.id === application.user2ReviewerId;
+
   return NextResponse.json({
-    hr: mapPayload(latestByType.HR),
-    user1: mapPayload(latestByType.USER_1),
-    user2: mapPayload(latestByType.USER_2),
-    assignments: {
-      hrReviewerId: application.hrReviewerId,
-      user1ReviewerId: application.user1ReviewerId,
-      user2ReviewerId: application.user2ReviewerId,
-      hrReviewerName: application.hrReviewer?.name ?? null,
-      user1ReviewerName: application.user1Reviewer?.name ?? null,
-      user2ReviewerName: application.user2Reviewer?.name ?? null,
-    },
+    hr: canViewHR ? mapPayload(latestByType.HR) : null,
+    user1: canViewUser1 ? mapPayload(latestByType.USER_1) : null,
+    user2: canViewUser2 ? mapPayload(latestByType.USER_2) : null,
     permissions: {
-      canAssign: hasAnyRole(session.roles, ["admin", "hr_manager", "hr", "recruiter"]),
-      canEditHR: getEditPermission({
-        reviewerType: "HR",
-        sessionUserId: session.id,
-        sessionRoles: session.roles,
-        assignment: application,
-      }),
-      canEditUser1: getEditPermission({
-        reviewerType: "USER_1",
-        sessionUserId: session.id,
-        sessionRoles: session.roles,
-        assignment: application,
-      }),
-      canEditUser2: getEditPermission({
-        reviewerType: "USER_2",
-        sessionUserId: session.id,
-        sessionRoles: session.roles,
-        assignment: application,
-      }),
+      canViewHR,
+      canViewUser1,
+      canViewUser2,
+      canEditHR,
+      canEditUser1,
+      canEditUser2,
     },
-    reviewerOptions: await prisma.user.findMany({
-      where: {
-        isActive: true,
-        userRoles: {
-          some: {
-            role: {
-              slug: {
-                in: ["admin", "hr_manager", "hr", "recruiter", "manager", "interviewer"],
-              },
-            },
-          },
-        },
-      },
-      select: { id: true, name: true, email: true },
-      orderBy: { name: "asc" },
-      take: 200,
-    }),
   });
 }
 
