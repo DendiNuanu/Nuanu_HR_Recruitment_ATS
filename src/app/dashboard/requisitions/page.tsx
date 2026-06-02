@@ -2,15 +2,23 @@ import { checkRole } from "@/lib/rbac";
 import RequisitionsClient from "./RequisitionsClient";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+
 export default async function RequisitionsPage() {
   // Protect page and get session
-  const session = await checkRole(["admin", "hr", "recruiter", "finance", "manager"]);
+  const session = await checkRole([
+    "admin",
+    "hr",
+    "recruiter",
+    "finance",
+    "manager",
+  ]);
 
   // Fetch departments for the requisition form
   const departments = await prisma.department.findMany({
     where: { isActive: true },
     select: { id: true, name: true, code: true },
-    orderBy: { name: 'asc' }
+    orderBy: { name: "asc" },
   });
 
   return (

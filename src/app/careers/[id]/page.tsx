@@ -7,6 +7,8 @@ import { formatDate } from "@/lib/utils";
 import { getSession } from "@/lib/auth";
 import { unstable_cache } from "next/cache";
 
+export const dynamic = "force-dynamic";
+
 const getVacancy = unstable_cache(
   async (id: string) =>
     prisma.vacancy.findUnique({ where: { id }, include: { department: true } }),

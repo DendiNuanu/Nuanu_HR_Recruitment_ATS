@@ -74,8 +74,12 @@ export async function moveApplication(applicationId: string, toStage: string) {
               departmentId: app.vacancy.departmentId,
               startDate,
               status: stage === "hired" ? "active" : "onboarding",
-              check90DueAt: new Date(startDate.getTime() + 90 * 24 * 60 * 60 * 1000),
-              check180DueAt: new Date(startDate.getTime() + 180 * 24 * 60 * 60 * 1000),
+              check90DueAt: new Date(
+                startDate.getTime() + 90 * 24 * 60 * 60 * 1000,
+              ),
+              check180DueAt: new Date(
+                startDate.getTime() + 180 * 24 * 60 * 60 * 1000,
+              ),
             },
           });
         } else if (stage === "hired" && existing.status === "onboarding") {
@@ -89,6 +93,7 @@ export async function moveApplication(applicationId: string, toStage: string) {
       }
     }
 
+    let rejectionEmailSentTo: string | null = null;
     if (stage === "rejected") {
       try {
         await sendEmail({
@@ -106,6 +111,7 @@ export async function moveApplication(applicationId: string, toStage: string) {
             </div>
           `,
         });
+        rejectionEmailSentTo = app.candidate.email;
       } catch (emailErr) {
         console.error("Rejection email failed (non-blocking):", emailErr);
       }
@@ -146,9 +152,10 @@ export async function moveApplication(applicationId: string, toStage: string) {
     await delCache("dashboard_metrics");
     revalidatePath("/dashboard/pipeline");
     revalidatePath("/dashboard/candidates");
+    revalidatePath("/dashboard/talent-bank");
     revalidatePath("/dashboard/employees");
     revalidatePath("/dashboard");
-    return { success: true };
+    return { success: true, rejectionEmailSentTo };
   } catch (error) {
     console.error("Move Application Error:", error);
     const msg = error instanceof Error ? error.message : String(error);

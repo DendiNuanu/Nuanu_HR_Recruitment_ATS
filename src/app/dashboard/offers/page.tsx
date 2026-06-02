@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import OffersClient from "./OffersClient";
 
+export const dynamic = "force-dynamic";
+
 export default async function OffersPage() {
   const [offersDb, applicationsDb] = await Promise.all([
     prisma.offer.findMany({

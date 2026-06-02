@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import GenerateOfferForm from "@/components/offers/GenerateOfferForm";
 
+export const dynamic = "force-dynamic";
+
 export default async function GenerateOfferPage() {
   const applicationsDb = await prisma.application.findMany({
     where: {

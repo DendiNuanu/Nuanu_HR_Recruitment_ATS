@@ -8,19 +8,28 @@ export async function POST(request: Request) {
   try {
     const authHeader = request.headers.get("Authorization");
     if (!authHeader || authHeader !== `Bearer ${JOBSTREET_WEBHOOK_SECRET}`) {
-      return NextResponse.json({ error: "Unauthorized request" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Unauthorized request" },
+        { status: 401 },
+      );
     }
 
     const payload = await request.json();
-    
+
     if (!payload.application || !payload.jobReferenceId) {
-      return NextResponse.json({ error: "Invalid SEEK/JobStreet payload structure" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Invalid SEEK/JobStreet payload structure" },
+        { status: 400 },
+      );
     }
 
     const applicant = payload.application;
 
     // Create user for the candidate
-    const randomPassword = await bcrypt.hash(Math.random().toString(36).slice(-8), 10);
+    const randomPassword = await bcrypt.hash(
+      Math.random().toString(36).slice(-8),
+      10,
+    );
     const user = await prisma.user.upsert({
       where: { email: applicant.email },
       update: { name: `${applicant.firstName} ${applicant.lastName}` },
@@ -39,18 +48,23 @@ export async function POST(request: Request) {
         candidateId: user.id,
         source: "seek",
         status: "applied",
-        currentStage: "applied",
+        currentStage: "new",
       },
     });
 
-    return NextResponse.json({ 
-      success: true, 
-      applicationId: application.id,
-      message: "Candidate successfully ingested from JobStreet" 
-    }, { status: 201 });
-
+    return NextResponse.json(
+      {
+        success: true,
+        applicationId: application.id,
+        message: "Candidate successfully ingested from JobStreet",
+      },
+      { status: 201 },
+    );
   } catch (error) {
     console.error("JobStreet Webhook Error:", error);
-    return NextResponse.json({ error: "Internal Server Error processing webhook" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal Server Error processing webhook" },
+      { status: 500 },
+    );
   }
 }

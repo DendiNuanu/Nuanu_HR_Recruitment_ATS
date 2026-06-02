@@ -1,3 +1,4 @@
+import path from "path";
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
@@ -21,6 +22,11 @@ const nextConfig: NextConfig = {
   experimental: {
     // Tree-shake large icon/animation libraries so only used exports are bundled
     optimizePackageImports: ["lucide-react", "framer-motion"],
+  },
+  // Ensure Turbopack uses this project as the workspace root (avoids resolving
+  // modules from parent directories when multiple lockfiles are present).
+  turbopack: {
+    root: path.resolve(__dirname),
   },
 };
 

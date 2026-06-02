@@ -46,6 +46,8 @@ model User {
   assignedAssets      EmployeeAsset[]
   probationExtensions ProbationExtension[]
   conductedReferenceChecks ReferenceCheck[] @relation("RefCheckConductor")
+  sharedReferenceChecks    ReferenceCheckShare[] @relation("ReferenceCheckSharedWith")
+  referenceCheckSharesSent ReferenceCheckShare[] @relation("ReferenceCheckSharedBy")
 
   @@map("users")
 }
@@ -273,7 +275,7 @@ model Application {
   user2ReviewerId String?
   source          String          @default("direct")
   status          String          @default("applied")
-  currentStage    String          @default("applied")
+  currentStage    String          @default("new")
   coverLetter     String?
   referralSource  String?
   referralName    String?
@@ -303,6 +305,7 @@ model Application {
   interviewComments  InterviewComment[]
   customFields       ApplicationCustomField[]
   referenceChecks    ReferenceCheck[]
+  referenceCheckShare ReferenceCheckShare?
 
   @@unique([vacancyId, candidateId])
   @@index([status])
@@ -733,6 +736,23 @@ model ReferenceCheck {
   @@map("reference_checks")
 }
 
+model ReferenceCheckShare {
+  id           String      @id @default(uuid())
+  applicationId String     @unique @map("application_id")
+  sharedWithId String      @map("shared_with_id")
+  sharedById   String      @map("shared_by_id")
+  shareToken   String      @unique @map("share_token")
+  sharedAt     DateTime    @default(now()) @map("shared_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
+  application  Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  sharedWith   User        @relation("ReferenceCheckSharedWith", fields: [sharedWithId], references: [id])
+  sharedBy     User        @relation("ReferenceCheckSharedBy", fields: [sharedById], references: [id])
+
+  @@index([sharedWithId])
+  @@index([sharedById])
+  @@map("reference_check_shares")
+}
+
 // ── Feature 7: Offer Templates ────────────────────────────────────────────────
 model OfferTemplate {
   id          String   @id @default(uuid())
@@ -771,7 +791,7 @@ model Employee {
   departmentId     String?
   startDate        DateTime
   status           String    @default("active")
-  
+
   // New fields from Offer Conversion
   entity           String    @default("Nuanu")
   employmentType   String    @default("Full Time")

@@ -43,7 +43,13 @@ interface ParsedData {
  * submitting  — manual form submit in progress
  * success     — done
  */
-type UploadStep = "idle" | "uploading" | "auto" | "form" | "submitting" | "success";
+type UploadStep =
+  | "idle"
+  | "uploading"
+  | "auto"
+  | "form"
+  | "submitting"
+  | "success";
 
 const STAGES = PIPELINE_STAGES.map((s) => ({ value: s.id, label: s.label }));
 
@@ -51,7 +57,11 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
 // ── Component ──────────────────────────────────────────────────────────────
 
-export default function UploadCVButton({ vacancies }: { vacancies: Vacancy[] }) {
+export default function UploadCVButton({
+  vacancies,
+}: {
+  vacancies: Vacancy[];
+}) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [step, setStep] = useState<UploadStep>("idle");
@@ -73,7 +83,7 @@ export default function UploadCVButton({ vacancies }: { vacancies: Vacancy[] }) 
     vacancyId: "",
     location: "",
     yearsOfExperience: "",
-    stage: "talent_bank",
+    stage: "new",
   });
 
   // ── Reset & close ──────────────────────────────────────────────────────────
@@ -92,12 +102,13 @@ export default function UploadCVButton({ vacancies }: { vacancies: Vacancy[] }) 
       vacancyId: "",
       location: "",
       yearsOfExperience: "",
-      stage: "talent_bank",
+      stage: "new",
     });
   }, []);
 
   const handleClose = useCallback(() => {
-    if (step === "uploading" || step === "auto" || step === "submitting") return;
+    if (step === "uploading" || step === "auto" || step === "submitting")
+      return;
     setIsOpen(false);
     setTimeout(resetState, 300);
   }, [step, resetState]);
@@ -126,8 +137,14 @@ export default function UploadCVButton({ vacancies }: { vacancies: Vacancy[] }) 
 
   // ── Drag & Drop ────────────────────────────────────────────────────────────
 
-  const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(true); };
-  const handleDragLeave = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(false); };
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
@@ -148,7 +165,9 @@ export default function UploadCVButton({ vacancies }: { vacancies: Vacancy[] }) 
     engine: string,
   ): Promise<boolean> => {
     try {
-      setAutoStatusMsg(`Creating candidate profile via ${engine.toUpperCase()}...`);
+      setAutoStatusMsg(
+        `Creating candidate profile via ${engine.toUpperCase()}...`,
+      );
 
       const res = await fetch("/api/candidates", {
         method: "POST",
@@ -159,7 +178,7 @@ export default function UploadCVButton({ vacancies }: { vacancies: Vacancy[] }) 
           phone: parsed.phone || undefined,
           location: parsed.location || undefined,
           yearsOfExperience: parsed.yearsOfExperience ?? undefined,
-          stage: "talent_bank",
+          stage: "new",
           cvUrl: uploadedCvUrl || undefined,
           aiMatch: 50,
         }),
@@ -183,7 +202,9 @@ export default function UploadCVButton({ vacancies }: { vacancies: Vacancy[] }) 
 
       // Conflict (already applied) — still show success-ish
       if (res.status === 409) {
-        toast.warning(data.error || "This candidate already exists in the system.");
+        toast.warning(
+          data.error || "This candidate already exists in the system.",
+        );
         return false;
       }
 
@@ -199,7 +220,10 @@ export default function UploadCVButton({ vacancies }: { vacancies: Vacancy[] }) 
 
   const processFile = async (f: File) => {
     const error = validateFile(f);
-    if (error) { toast.error(error); return; }
+    if (error) {
+      toast.error(error);
+      return;
+    }
 
     setFile(f);
     setStep("uploading");
@@ -237,7 +261,11 @@ export default function UploadCVButton({ vacancies }: { vacancies: Vacancy[] }) 
       // ── AI succeeded → auto-create ─────────────────────────────────────────
       if (aiWorked && parsed) {
         setStep("auto");
-        const created = await autoCreateCandidate(parsed, apiData.cvUrl || "", engine);
+        const created = await autoCreateCandidate(
+          parsed,
+          apiData.cvUrl || "",
+          engine,
+        );
 
         if (created) return; // success path — modal closes automatically
 
@@ -250,7 +278,9 @@ export default function UploadCVButton({ vacancies }: { vacancies: Vacancy[] }) 
           phone: parsed.phone || "",
           location: parsed.location || "",
           yearsOfExperience:
-            parsed.yearsOfExperience != null ? String(parsed.yearsOfExperience) : "",
+            parsed.yearsOfExperience != null
+              ? String(parsed.yearsOfExperience)
+              : "",
         }));
         setParseWarning(false);
         setStep("form");
@@ -267,12 +297,16 @@ export default function UploadCVButton({ vacancies }: { vacancies: Vacancy[] }) 
           phone: parsed.phone || "",
           location: parsed.location || "",
           yearsOfExperience:
-            parsed.yearsOfExperience != null ? String(parsed.yearsOfExperience) : "",
+            parsed.yearsOfExperience != null
+              ? String(parsed.yearsOfExperience)
+              : "",
         }));
       }
 
       setParseWarning(true);
-      toast.warning("Could not auto-extract data. Please fill in the details manually.");
+      toast.warning(
+        "Could not auto-extract data. Please fill in the details manually.",
+      );
 
       // Brief pause so the progress bar reaches 100% visually
       await new Promise((r) => setTimeout(r, 400));
@@ -324,7 +358,9 @@ export default function UploadCVButton({ vacancies }: { vacancies: Vacancy[] }) 
       }
 
       setStep("success");
-      toast.success(`Candidate ${data.candidateName} has been added successfully!`);
+      toast.success(
+        `Candidate ${data.candidateName} has been added successfully!`,
+      );
 
       setTimeout(() => {
         setIsOpen(false);
@@ -333,7 +369,8 @@ export default function UploadCVButton({ vacancies }: { vacancies: Vacancy[] }) 
       }, 1500);
     } catch (err: unknown) {
       setStep("form");
-      const msg = err instanceof Error ? err.message : "Failed to create candidate";
+      const msg =
+        err instanceof Error ? err.message : "Failed to create candidate";
       toast.error(msg, { duration: 6000 });
     }
   };
@@ -378,15 +415,22 @@ export default function UploadCVButton({ vacancies }: { vacancies: Vacancy[] }) 
                     <UploadCloud className="w-5 h-5 text-emerald-600" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold text-nuanu-navy">Upload Candidate CV</h2>
+                    <h2 className="text-xl font-bold text-nuanu-navy">
+                      Upload Candidate CV
+                    </h2>
                     <p className="text-sm text-nuanu-gray-500">
-                      Upload a resume to automatically create a candidate profile
+                      Upload a resume to automatically create a candidate
+                      profile
                     </p>
                   </div>
                 </div>
                 <button
                   onClick={handleClose}
-                  disabled={step === "uploading" || step === "auto" || step === "submitting"}
+                  disabled={
+                    step === "uploading" ||
+                    step === "auto" ||
+                    step === "submitting"
+                  }
                   className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors disabled:opacity-40"
                 >
                   <X className="w-5 h-5" />
@@ -395,7 +439,6 @@ export default function UploadCVButton({ vacancies }: { vacancies: Vacancy[] }) 
 
               {/* Body */}
               <div className="overflow-y-auto flex-1">
-
                 {/* ── idle / uploading ── */}
                 {(step === "idle" || step === "uploading") && (
                   <div className="p-6">
@@ -403,7 +446,9 @@ export default function UploadCVButton({ vacancies }: { vacancies: Vacancy[] }) 
                       onDragOver={handleDragOver}
                       onDragLeave={handleDragLeave}
                       onDrop={handleDrop}
-                      onClick={() => step === "idle" && fileInputRef.current?.click()}
+                      onClick={() =>
+                        step === "idle" && fileInputRef.current?.click()
+                      }
                       className={`relative border-2 border-dashed rounded-2xl p-14 text-center transition-all ${
                         step === "idle"
                           ? isDragging
@@ -475,7 +520,9 @@ export default function UploadCVButton({ vacancies }: { vacancies: Vacancy[] }) 
                       <p className="font-bold text-nuanu-navy text-lg mb-1">
                         AI Extraction Successful!
                       </p>
-                      <p className="text-sm text-nuanu-gray-500">{autoStatusMsg}</p>
+                      <p className="text-sm text-nuanu-gray-500">
+                        {autoStatusMsg}
+                      </p>
                     </div>
                     <Loader2 className="w-5 h-5 text-emerald-500 animate-spin" />
                   </div>
@@ -483,7 +530,11 @@ export default function UploadCVButton({ vacancies }: { vacancies: Vacancy[] }) 
 
                 {/* ── manual form ── */}
                 {step === "form" && (
-                  <form id="cv-upload-form" onSubmit={handleSubmit} className="p-6 space-y-5">
+                  <form
+                    id="cv-upload-form"
+                    onSubmit={handleSubmit}
+                    className="p-6 space-y-5"
+                  >
                     {/* File indicator */}
                     {file && (
                       <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-100 rounded-xl px-4 py-3">
@@ -500,7 +551,8 @@ export default function UploadCVButton({ vacancies }: { vacancies: Vacancy[] }) 
                       <div className="flex items-start gap-3 bg-amber-50 border border-amber-100 rounded-xl px-4 py-3">
                         <AlertCircle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
                         <p className="text-sm text-amber-700">
-                          Could not auto-extract data. Please fill in the details manually.
+                          Could not auto-extract data. Please fill in the
+                          details manually.
                         </p>
                       </div>
                     )}
@@ -517,7 +569,9 @@ export default function UploadCVButton({ vacancies }: { vacancies: Vacancy[] }) 
                           className="input-field py-2.5 text-sm"
                           placeholder="e.g. Jane Smith"
                           value={form.fullName}
-                          onChange={(e) => setForm({ ...form, fullName: e.target.value })}
+                          onChange={(e) =>
+                            setForm({ ...form, fullName: e.target.value })
+                          }
                         />
                       </div>
                       <div>
@@ -530,7 +584,9 @@ export default function UploadCVButton({ vacancies }: { vacancies: Vacancy[] }) 
                           className="input-field py-2.5 text-sm"
                           placeholder="jane@example.com"
                           value={form.email}
-                          onChange={(e) => setForm({ ...form, email: e.target.value })}
+                          onChange={(e) =>
+                            setForm({ ...form, email: e.target.value })
+                          }
                         />
                       </div>
                     </div>
@@ -546,7 +602,9 @@ export default function UploadCVButton({ vacancies }: { vacancies: Vacancy[] }) 
                           className="input-field py-2.5 text-sm"
                           placeholder="+62 812 3456 7890"
                           value={form.phone}
-                          onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                          onChange={(e) =>
+                            setForm({ ...form, phone: e.target.value })
+                          }
                         />
                       </div>
                       <div>
@@ -558,7 +616,9 @@ export default function UploadCVButton({ vacancies }: { vacancies: Vacancy[] }) 
                           className="input-field py-2.5 text-sm"
                           placeholder="e.g. Bali, Indonesia"
                           value={form.location}
-                          onChange={(e) => setForm({ ...form, location: e.target.value })}
+                          onChange={(e) =>
+                            setForm({ ...form, location: e.target.value })
+                          }
                         />
                       </div>
                     </div>
@@ -572,7 +632,9 @@ export default function UploadCVButton({ vacancies }: { vacancies: Vacancy[] }) 
                         <select
                           className="input-field py-2.5 text-sm"
                           value={form.vacancyId}
-                          onChange={(e) => setForm({ ...form, vacancyId: e.target.value })}
+                          onChange={(e) =>
+                            setForm({ ...form, vacancyId: e.target.value })
+                          }
                         >
                           <option value="">— Select a vacancy —</option>
                           {vacancies.map((v) => (
@@ -594,7 +656,10 @@ export default function UploadCVButton({ vacancies }: { vacancies: Vacancy[] }) 
                           placeholder="e.g. 3"
                           value={form.yearsOfExperience}
                           onChange={(e) =>
-                            setForm({ ...form, yearsOfExperience: e.target.value })
+                            setForm({
+                              ...form,
+                              yearsOfExperience: e.target.value,
+                            })
                           }
                         />
                       </div>
@@ -608,7 +673,9 @@ export default function UploadCVButton({ vacancies }: { vacancies: Vacancy[] }) 
                       <select
                         className="input-field py-2.5 text-sm"
                         value={form.stage}
-                        onChange={(e) => setForm({ ...form, stage: e.target.value })}
+                        onChange={(e) =>
+                          setForm({ ...form, stage: e.target.value })
+                        }
                       >
                         {STAGES.map((s) => (
                           <option key={s.value} value={s.value}>

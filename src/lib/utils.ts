@@ -91,25 +91,26 @@ export function slugify(text: string): string {
 }
 
 export const PIPELINE_STAGES = [
-  { id: "talent_bank",     label: "Talent Bank",          color: "#64748B" },
-  { id: "screening",       label: "Screening",            color: "#8B5CF6" },
-  { id: "hr_interview",    label: "HR Interview",         color: "#3B82F6" },
-  { id: "user_interview",  label: "User Interview",       color: "#0EA5E9" },
-  { id: "assessment",      label: "Assessment",           color: "#06B6D4" },
-  { id: "user_interview_2",label: "User Interview II",    color: "#14B8A6" },
-  { id: "offering",        label: "Offering",             color: "#F59E0B" },
-  { id: "hired",           label: "Hired",                color: "#22C55E" },
-  { id: "rejected",        label: "Rejected",             color: "#EF4444" },
-  { id: "onboarding",      label: "Onboarding",           color: "#84CC16" },
+  { id: "new", label: "New", color: "#38BDF8" },
+  { id: "talent_bank", label: "Talent Bank", color: "#64748B" },
+  { id: "screening", label: "Screening", color: "#8B5CF6" },
+  { id: "hr_interview", label: "HR Interview", color: "#3B82F6" },
+  { id: "user_interview", label: "User Interview", color: "#0EA5E9" },
+  { id: "assessment", label: "Assessment", color: "#06B6D4" },
+  { id: "user_interview_2", label: "User Interview II", color: "#14B8A6" },
+  { id: "offering", label: "Offering", color: "#F59E0B" },
+  { id: "hired", label: "Hired", color: "#22C55E" },
+  { id: "rejected", label: "Rejected", color: "#EF4444" },
+  { id: "onboarding", label: "Onboarding", color: "#84CC16" },
 ] as const;
 
-export type PipelineStageId = typeof PIPELINE_STAGES[number]["id"];
+export type PipelineStageId = (typeof PIPELINE_STAGES)[number]["id"];
 
 export const PIPELINE_STAGE_IDS = PIPELINE_STAGES.map((s) => s.id);
 
 /** Map legacy DB stage slugs to canonical pipeline column IDs */
 export const LEGACY_STAGE_TO_PIPELINE: Record<string, PipelineStageId> = {
-  applied: "talent_bank",
+  applied: "new",
   phone_screening: "screening",
   interview_1: "hr_interview",
   interview_2: "user_interview",
@@ -131,7 +132,7 @@ export function resolvePipelineColumn(stage: string): PipelineStageId {
   if (PIPELINE_STAGE_IDS.includes(normalized as PipelineStageId)) {
     return normalized as PipelineStageId;
   }
-  return "talent_bank";
+  return "new";
 }
 
 export const SOURCE_PRESET_OPTIONS = [

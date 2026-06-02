@@ -241,35 +241,45 @@ export default function CandidatesTable({
     user1: null,
     user2: null,
   });
-  const [feedbackDrafts, setFeedbackDrafts] = useState<Record<ReviewerType, { comments: string }>>({
+  const [feedbackDrafts, setFeedbackDrafts] = useState<
+    Record<ReviewerType, { comments: string }>
+  >({
     HR: { comments: "" },
     USER_1: { comments: "" },
     USER_2: { comments: "" },
   });
-  const [savingFeedbackType, setSavingFeedbackType] = useState<ReviewerType | null>(null);
-  const [feedbackPermissions, setFeedbackPermissions] = useState<FeedbackPermissions>({
-    canViewHR: false,
-    canViewUser1: false,
-    canViewUser2: false,
-    canEditHR: false,
-    canEditUser1: false,
-    canEditUser2: false,
-    canAssignReviewers: false,
-  });
-  const [feedbackAssignments, setFeedbackAssignments] = useState<FeedbackAssignments>({
-    user1ReviewerId: null,
-    user2ReviewerId: null,
-    user1ReviewerName: null,
-    user2ReviewerName: null,
-    assignmentsAvailable: false,
-  });
-  const [assignableReviewers, setAssignableReviewers] = useState<AssignableReviewer[]>([]);
+  const [savingFeedbackType, setSavingFeedbackType] =
+    useState<ReviewerType | null>(null);
+  const [feedbackPermissions, setFeedbackPermissions] =
+    useState<FeedbackPermissions>({
+      canViewHR: false,
+      canViewUser1: false,
+      canViewUser2: false,
+      canEditHR: false,
+      canEditUser1: false,
+      canEditUser2: false,
+      canAssignReviewers: false,
+    });
+  const [feedbackAssignments, setFeedbackAssignments] =
+    useState<FeedbackAssignments>({
+      user1ReviewerId: null,
+      user2ReviewerId: null,
+      user1ReviewerName: null,
+      user2ReviewerName: null,
+      assignmentsAvailable: false,
+    });
+  const [assignableReviewers, setAssignableReviewers] = useState<
+    AssignableReviewer[]
+  >([]);
   const [reviewerAssignmentDraft, setReviewerAssignmentDraft] = useState({
     user1ReviewerId: "",
     user2ReviewerId: "",
   });
-  const [savingReviewerAssignments, setSavingReviewerAssignments] = useState(false);
-  const [feedbackLoadError, setFeedbackLoadError] = useState<string | null>(null);
+  const [savingReviewerAssignments, setSavingReviewerAssignments] =
+    useState(false);
+  const [feedbackLoadError, setFeedbackLoadError] = useState<string | null>(
+    null,
+  );
 
   // Source field state
   const [sourcePreset, setSourcePreset] = useState("direct");
@@ -297,11 +307,13 @@ export default function CandidatesTable({
   const [emailTemplate, setEmailTemplate] = useState("");
 
   // Optimistic email sent tracking (candidateId → ISO timestamp)
-  const [emailSentMap, setEmailSentMap] = useState<Record<string, string>>(() => {
-    // Pre-populate from initial candidate data
-    const map: Record<string, string> = {};
-    return map;
-  });
+  const [emailSentMap, setEmailSentMap] = useState<Record<string, string>>(
+    () => {
+      // Pre-populate from initial candidate data
+      const map: Record<string, string> = {};
+      return map;
+    },
+  );
 
   // Local state for live notes/comments (so UI updates without full reload)
   const [localNotes, setLocalNotes] = useState<Candidate["notes"]>([]);
@@ -316,14 +328,16 @@ export default function CandidatesTable({
           c.email.toLowerCase().includes(q) ||
           c.vacancyTitle.toLowerCase().includes(q);
         const canonical = normalizePipelineStage(c.stage);
-        const matchStage =
-          stageFilter === "all" || canonical === stageFilter;
+        const matchStage = stageFilter === "all" || canonical === stageFilter;
         return matchSearch && matchStage;
       })
       .sort(compareCandidatesForList);
   }, [localCandidates, deferredSearch, stageFilter]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredCandidates.length / PAGE_SIZE));
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredCandidates.length / PAGE_SIZE),
+  );
   const paginatedCandidates = useMemo(() => {
     const start = (page - 1) * PAGE_SIZE;
     return filteredCandidates.slice(start, start + PAGE_SIZE);
@@ -349,11 +363,18 @@ export default function CandidatesTable({
           c.id === applicationId ? { ...c, stage: result.newStage! } : c,
         ),
       );
+      const rejectionMessage =
+        result.newStage === "rejected" && result.rejectionEmailSentTo
+          ? ` Rejection email sent to ${result.rejectionEmailSentTo}.`
+          : "";
       showStageNotice({
         type: "success",
         title: "Stage updated",
-        message: `${candidateName} moved to ${stageLabel(result.newStage)}.`,
+        message: `${candidateName} moved to ${stageLabel(result.newStage)}.${rejectionMessage}`,
       });
+      if (result.newStage === "rejected" && result.rejectionEmailSentTo) {
+        toast.success(`Rejection email sent to ${result.rejectionEmailSentTo}`);
+      }
       return;
     }
 
@@ -384,7 +405,13 @@ export default function CandidatesTable({
     );
     try {
       const result = await updateCandidateStage(id, action);
-      applyStageUpdateResult(id, result, candidate.name, targetStage, previousStage);
+      applyStageUpdateResult(
+        id,
+        result,
+        candidate.name,
+        targetStage,
+        previousStage,
+      );
     } catch (error) {
       console.error(error);
       setLocalCandidates((prev) =>
@@ -411,9 +438,7 @@ export default function CandidatesTable({
     setStageSelectorId(null);
     setLoadingActionId(applicationId);
     setLocalCandidates((prev) =>
-      prev.map((c) =>
-        c.id === applicationId ? { ...c, stage: stageId } : c,
-      ),
+      prev.map((c) => (c.id === applicationId ? { ...c, stage: stageId } : c)),
     );
     try {
       const result = await updateCandidateStage(applicationId, stageId);
@@ -465,7 +490,10 @@ export default function CandidatesTable({
     },
   };
 
-  const applyEmailTemplate = (tpl: { subject: string; body: string }, c: Candidate) => {
+  const applyEmailTemplate = (
+    tpl: { subject: string; body: string },
+    c: Candidate,
+  ) => {
     setEmailSubject(tpl.subject);
     setEmailBody(
       tpl.body
@@ -596,7 +624,9 @@ export default function CandidatesTable({
       warning?: string;
     };
     if (!res.ok) {
-      setFeedbackLoadError(payload.error || "Failed to load interview feedback");
+      setFeedbackLoadError(
+        payload.error || "Failed to load interview feedback",
+      );
       return false;
     }
     setFeedbackLoadError(payload.warning ?? null);
@@ -868,17 +898,24 @@ export default function CandidatesTable({
     if (!selectedProfile) return;
     const user1ReviewerId = reviewerAssignmentDraft.user1ReviewerId || null;
     const user2ReviewerId = reviewerAssignmentDraft.user2ReviewerId || null;
-    if (user1ReviewerId && user2ReviewerId && user1ReviewerId === user2ReviewerId) {
+    if (
+      user1ReviewerId &&
+      user2ReviewerId &&
+      user1ReviewerId === user2ReviewerId
+    ) {
       toast.error("User 1 and User 2 reviewers must be different people");
       return;
     }
     setSavingReviewerAssignments(true);
     try {
-      const res = await fetch(`/api/candidates/${selectedProfile.id}/feedback`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user1ReviewerId, user2ReviewerId }),
-      });
+      const res = await fetch(
+        `/api/candidates/${selectedProfile.id}/feedback`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ user1ReviewerId, user2ReviewerId }),
+        },
+      );
       const payload = (await res.json().catch(() => ({}))) as {
         error?: string;
         assignments?: FeedbackAssignments;
@@ -913,16 +950,19 @@ export default function CandidatesTable({
     }
     setSavingFeedbackType(reviewerType);
     try {
-      const res = await fetch(`/api/candidates/${selectedProfile.id}/feedback`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          reviewerType,
-          rating: null,
-          recommendation: null,
-          comments: draft.comments.trim(),
-        }),
-      });
+      const res = await fetch(
+        `/api/candidates/${selectedProfile.id}/feedback`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            reviewerType,
+            rating: null,
+            recommendation: null,
+            comments: draft.comments.trim(),
+          }),
+        },
+      );
       if (!res.ok) {
         const payload = await res.json().catch(() => ({}));
         toast.error(payload.error || "Failed to save feedback");
@@ -999,7 +1039,15 @@ export default function CandidatesTable({
               <th>Stage</th>
               <th>AI Match</th>
               <th>Applied</th>
-              <th style={{ textAlign: "right", paddingRight: "16px", paddingLeft: 0 }}>Actions</th>
+              <th
+                style={{
+                  textAlign: "right",
+                  paddingRight: "16px",
+                  paddingLeft: 0,
+                }}
+              >
+                Actions
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -1090,13 +1138,20 @@ export default function CandidatesTable({
                     </button>
                     {/* Email button + persistent "Email Sent" badge */}
                     {(() => {
-                      const sentAt = emailSentMap[candidate.id] ?? candidate.emailSentAt;
+                      const sentAt =
+                        emailSentMap[candidate.id] ?? candidate.emailSentAt;
                       const sentDate = sentAt ? new Date(sentAt) : null;
                       const shortTs = sentDate
                         ? `${String(sentDate.getDate()).padStart(2, "0")}/${String(sentDate.getMonth() + 1).padStart(2, "0")} · ${String(sentDate.getHours()).padStart(2, "0")}:${String(sentDate.getMinutes()).padStart(2, "0")}`
                         : null;
                       const fullTs = sentDate
-                        ? sentDate.toLocaleString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })
+                        ? sentDate.toLocaleString("en-GB", {
+                            day: "2-digit",
+                            month: "2-digit",
+                            year: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })
                         : null;
 
                       return (
@@ -1108,7 +1163,11 @@ export default function CandidatesTable({
                                 ? "text-emerald-700 bg-emerald-50 hover:bg-emerald-100"
                                 : "text-nuanu-gray-400 hover:text-blue-600 bg-nuanu-gray-50 hover:bg-blue-50"
                             }`}
-                            title={sentAt ? `Email sent on ${fullTs}. Click to send another.` : "Send Email"}
+                            title={
+                              sentAt
+                                ? `Email sent on ${fullTs}. Click to send another.`
+                                : "Send Email"
+                            }
                           >
                             {sentAt ? (
                               <CheckCircle2 className="w-4 h-4" />
@@ -1288,1073 +1347,1135 @@ export default function CandidatesTable({
 
       {/* Profile Modal — portaled above sidebar (z-50) */}
       <Portal>
-      <AnimatePresence>
-        {selectedProfile && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-              onClick={() => setSelectedProfile(null)}
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden relative z-10 max-h-[95vh] flex flex-col"
-            >
-              <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-100 to-teal-100 text-emerald-700 flex items-center justify-center font-bold text-lg shadow-sm">
-                    {selectedProfile.name
-                      .split(" ")
-                      .map((n) => n[0])
-                      .join("")
-                      .substring(0, 2)
-                      .toUpperCase()}
+        <AnimatePresence>
+          {selectedProfile && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+                onClick={() => setSelectedProfile(null)}
+              />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden relative z-10 max-h-[95vh] flex flex-col"
+              >
+                <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-100 to-teal-100 text-emerald-700 flex items-center justify-center font-bold text-lg shadow-sm">
+                      {selectedProfile.name
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")
+                        .substring(0, 2)
+                        .toUpperCase()}
+                    </div>
+                    <div>
+                      <h2 className="text-3xl font-extrabold text-nuanu-navy leading-tight">
+                        {selectedProfile.name}
+                      </h2>
+                      <p className="text-base text-nuanu-gray-500 font-medium">
+                        {selectedProfile.email}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h2 className="text-3xl font-extrabold text-nuanu-navy leading-tight">
-                      {selectedProfile.name}
-                    </h2>
-                    <p className="text-base text-nuanu-gray-500 font-medium">
-                      {selectedProfile.email}
-                    </p>
-                  </div>
+                  <button
+                    onClick={() => setSelectedProfile(null)}
+                    className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
                 </div>
-                <button
-                  onClick={() => setSelectedProfile(null)}
-                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
 
-              {/* ── Tab Navigation ─────────────────────────────────────── */}
-              <div className="flex border-b border-gray-100 bg-gray-50/50">
-                <button
-                  onClick={() => setProfileTab("overview")}
-                  className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-all border-b-2 ${
-                    profileTab === "overview"
-                      ? "border-emerald-500 text-emerald-700 bg-white"
-                      : "border-transparent text-nuanu-gray-400 hover:text-nuanu-navy hover:bg-white/60"
-                  }`}
-                >
-                  <User className="w-4 h-4" /> Profile Overview
-                </button>
-                <button
-                  onClick={() => setProfileTab("resume")}
-                  className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-all border-b-2 ${
-                    profileTab === "resume"
-                      ? "border-emerald-500 text-emerald-700 bg-white"
-                      : "border-transparent text-nuanu-gray-400 hover:text-nuanu-navy hover:bg-white/60"
-                  }`}
-                >
-                  <FileText className="w-4 h-4" /> Resume / CV
-                  {(selectedProfile.resumeUrl ||
-                    selectedProfile.resumeText) && (
-                    <span className="ml-1 w-2 h-2 rounded-full bg-emerald-500" />
-                  )}
-                </button>
-                <button
-                  onClick={() => setProfileTab("interview_results")}
-                  className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-all border-b-2 ${
-                    profileTab === "interview_results"
-                      ? "border-emerald-500 text-emerald-700 bg-white"
-                      : "border-transparent text-nuanu-gray-400 hover:text-nuanu-navy hover:bg-white/60"
-                  }`}
-                >
-                  <MessageSquare className="w-4 h-4" /> Interview Results
-                  {[interviewFeedback.hr, interviewFeedback.user1, interviewFeedback.user2].filter(Boolean).length > 0 && (
-                    <span className="ml-1 bg-blue-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
-                      {[interviewFeedback.hr, interviewFeedback.user1, interviewFeedback.user2].filter(Boolean).length}
-                    </span>
-                  )}
-                </button>
-                <button
-                  onClick={() => setProfileTab("notes")}
-                  className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-all border-b-2 ${
-                    profileTab === "notes"
-                      ? "border-emerald-500 text-emerald-700 bg-white"
-                      : "border-transparent text-nuanu-gray-400 hover:text-nuanu-navy hover:bg-white/60"
-                  }`}
-                >
-                  <StickyNote className="w-4 h-4" /> Notes
-                  {localNotes.length > 0 && (
-                    <span className="ml-1 bg-emerald-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
-                      {localNotes.length}
-                    </span>
-                  )}
-                </button>
-              </div>
-
-              {/* ── Tab: Profile Overview ──────────────────────────────── */}
-              {profileTab === "overview" && (
-                <div className="p-6 overflow-y-auto flex-1">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
-                    <div>
-                      <p className="text-[11px] font-bold text-nuanu-gray-400 uppercase tracking-[0.1em] mb-2">
-                        Applied For
-                      </p>
-                      <p className="text-lg font-bold text-nuanu-navy leading-snug">
-                        {selectedProfile.referPosition ||
-                          selectedProfile.vacancyTitle}
-                      </p>
-                    </div>
-                    {/* Change 1: Refer As */}
-                    <div>
-                      <p className="text-[11px] font-bold text-nuanu-gray-400 uppercase tracking-[0.1em] mb-2">
-                        Refer As
-                      </p>
-                      <div className="flex gap-2 -ml-2">
-                        <input
-                          type="text"
-                          value={referAsDraft}
-                          onChange={(e) => setReferAsDraft(e.target.value)}
-                          onKeyDown={(e) =>
-                            e.key === "Enter" && handleSaveReferAs()
-                          }
-                          placeholder={selectedProfile.vacancyTitle}
-                          className="flex-1 input-field text-lg font-bold text-nuanu-navy leading-snug py-1 px-2"
-                        />
-                        <button
-                          onClick={handleSaveReferAs}
-                          disabled={
-                            savingReferAs ||
-                            !referAsDraft.trim() ||
-                            referAsDraft.trim() ===
-                              (selectedProfile.referPosition || "")
-                          }
-                          className="btn-primary px-3 py-1.5 text-xs flex items-center gap-1.5 shrink-0"
-                        >
-                          {savingReferAs ? (
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          ) : (
-                            <Check className="w-3.5 h-3.5" />
-                          )}
-                          Apply
-                        </button>
-                      </div>
-                    </div>
-                    <div>
-                      <p className="text-[11px] font-bold text-nuanu-gray-400 uppercase tracking-[0.1em] mb-2">
-                        Current Stage
-                      </p>
-                      <span className="badge bg-blue-100 text-blue-700 px-3 py-1.5 text-xs font-bold uppercase tracking-wider">
-                        {selectedProfile.stage.replace(/_/g, " ")}
-                      </span>
-                    </div>
-                    <div>
-                      <p className="text-[11px] font-bold text-nuanu-gray-400 uppercase tracking-[0.1em] mb-2">
-                        Applied Date
-                      </p>
-                      <DatePickerField
-                        value={
-                          selectedProfile.appliedAt
-                            ? new Date(selectedProfile.appliedAt)
-                                .toISOString()
-                                .split("T")[0]
-                            : ""
+                {/* ── Tab Navigation ─────────────────────────────────────── */}
+                <div className="flex border-b border-gray-100 bg-gray-50/50">
+                  <button
+                    onClick={() => setProfileTab("overview")}
+                    className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-all border-b-2 ${
+                      profileTab === "overview"
+                        ? "border-emerald-500 text-emerald-700 bg-white"
+                        : "border-transparent text-nuanu-gray-400 hover:text-nuanu-navy hover:bg-white/60"
+                    }`}
+                  >
+                    <User className="w-4 h-4" /> Profile Overview
+                  </button>
+                  <button
+                    onClick={() => setProfileTab("resume")}
+                    className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-all border-b-2 ${
+                      profileTab === "resume"
+                        ? "border-emerald-500 text-emerald-700 bg-white"
+                        : "border-transparent text-nuanu-gray-400 hover:text-nuanu-navy hover:bg-white/60"
+                    }`}
+                  >
+                    <FileText className="w-4 h-4" /> Resume / CV
+                    {(selectedProfile.resumeUrl ||
+                      selectedProfile.resumeText) && (
+                      <span className="ml-1 w-2 h-2 rounded-full bg-emerald-500" />
+                    )}
+                  </button>
+                  <button
+                    onClick={() => setProfileTab("interview_results")}
+                    className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-all border-b-2 ${
+                      profileTab === "interview_results"
+                        ? "border-emerald-500 text-emerald-700 bg-white"
+                        : "border-transparent text-nuanu-gray-400 hover:text-nuanu-navy hover:bg-white/60"
+                    }`}
+                  >
+                    <MessageSquare className="w-4 h-4" /> Interview Results
+                    {[
+                      interviewFeedback.hr,
+                      interviewFeedback.user1,
+                      interviewFeedback.user2,
+                    ].filter(Boolean).length > 0 && (
+                      <span className="ml-1 bg-blue-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                        {
+                          [
+                            interviewFeedback.hr,
+                            interviewFeedback.user1,
+                            interviewFeedback.user2,
+                          ].filter(Boolean).length
                         }
-                        onChange={async (val) => {
-                          if (!val) return;
-                          const appliedIso = new Date(val).toISOString();
-                          setSelectedProfile({
-                            ...selectedProfile,
-                            appliedAt: appliedIso,
-                          });
-                          const res = await updateCandidateOverviewDetails(
-                            selectedProfile.id,
-                            selectedProfile.userId,
-                            { appliedAt: appliedIso },
-                          );
-                          if (res.success) toast.success("Applied date updated");
-                          else
-                            toast.error(
-                              res.error || "Failed to update applied date",
-                            );
-                        }}
-                        placeholder="dd/mm/yyyy"
-                      />
-                    </div>
-                    <div>
-                      <p className="text-[11px] font-bold text-nuanu-gray-400 uppercase tracking-[0.1em] mb-2">
-                        Location
-                      </p>
-                      <p className="text-lg font-bold text-nuanu-navy">
-                        {selectedProfile.location}
-                      </p>
-                    </div>
-                    {/* Change 1: Domicile */}
-                    <div>
-                      <p className="text-[11px] font-bold text-nuanu-gray-400 uppercase tracking-[0.1em] mb-2">
-                        Domicile
-                      </p>
-                      <div className="flex gap-2 -ml-2">
-                        <input
-                          type="text"
-                          value={domicileDraft}
-                          onChange={(e) => setDomicileDraft(e.target.value)}
-                          onKeyDown={(e) =>
-                            e.key === "Enter" && handleSaveDomicile()
-                          }
-                          placeholder={
-                            selectedProfile.location || "Enter city/region..."
-                          }
-                          className="flex-1 input-field text-lg font-bold text-nuanu-navy py-1 px-2"
-                        />
-                        <button
-                          onClick={handleSaveDomicile}
-                          disabled={
-                            savingDomicile ||
-                            !domicileDraft.trim() ||
-                            domicileDraft.trim() ===
-                              (selectedProfile.domicile || "")
-                          }
-                          className="btn-primary px-3 py-1.5 text-xs flex items-center gap-1.5 shrink-0"
-                        >
-                          {savingDomicile ? (
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          ) : (
-                            <Check className="w-3.5 h-3.5" />
-                          )}
-                          Apply
-                        </button>
-                      </div>
-                    </div>
-                    <div>
-                      <p className="text-[11px] font-bold text-nuanu-gray-400 uppercase tracking-[0.1em] mb-2">
-                        Salary Expectation
-                      </p>
-                      <div className="flex gap-2 -ml-2">
-                        <input
-                          type="text"
-                          value={salaryExpectationDraft}
-                          onChange={(e) =>
-                            setSalaryExpectationDraft(e.target.value)
-                          }
-                          onKeyDown={(e) =>
-                            e.key === "Enter" && handleSaveSalaryExpectation()
-                          }
-                          placeholder="e.g. Rp 10.000.000 / month"
-                          className="flex-1 input-field text-lg font-bold text-nuanu-navy py-1 px-2"
-                        />
-                        <button
-                          onClick={handleSaveSalaryExpectation}
-                          disabled={
-                            savingSalaryExpectation ||
-                            !salaryExpectationDraft.trim() ||
-                            salaryExpectationDraft.trim() ===
-                              (selectedProfile.salaryExpectation || "")
-                          }
-                          className="btn-primary px-3 py-1.5 text-xs flex items-center gap-1.5 shrink-0"
-                        >
-                          {savingSalaryExpectation ? (
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          ) : (
-                            <Check className="w-3.5 h-3.5" />
-                          )}
-                          Apply
-                        </button>
-                      </div>
-                    </div>
-                    <div>
-                      <p className="text-[11px] font-bold text-nuanu-gray-400 uppercase tracking-[0.1em] mb-2">
-                        Phone Number
-                      </p>
-                      <p className="text-lg font-bold text-nuanu-navy">
-                        {selectedProfile.phone || "Not provided"}
-                      </p>
-                    </div>
-                    {/* Source — preset dropdown + Apply */}
-                    <div>
-                      <p className="text-[11px] font-bold text-nuanu-gray-400 uppercase tracking-[0.1em] mb-2">
-                        Source
-                      </p>
-                      <div className="flex gap-2 -ml-2">
-                        <select
-                          className="flex-1 input-field py-1.5 px-2 text-xs font-bold bg-nuanu-gray-50 text-nuanu-gray-600 cursor-pointer"
-                          value={sourcePreset}
-                          onChange={(e) => setSourcePreset(e.target.value)}
-                        >
-                          {SOURCE_PRESET_OPTIONS.map((opt) => (
-                            <option key={opt.value} value={opt.value}>
-                              {opt.label}
-                            </option>
-                          ))}
-                        </select>
-                        <button
-                          onClick={handleSaveSource}
-                          disabled={
-                            savingSource ||
-                            sourcePreset ===
-                              normalizeSourcePreset(selectedProfile.source)
-                          }
-                          className="btn-primary px-3 py-1.5 text-xs flex items-center gap-1.5 shrink-0"
-                        >
-                          {savingSource ? (
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          ) : (
-                            <Check className="w-3.5 h-3.5" />
-                          )}
-                          Apply
-                        </button>
-                      </div>
-                    </div>
-                    {/* Email sent indicator */}
-                    {selectedProfile.emailSentAt && (
+                      </span>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => setProfileTab("notes")}
+                    className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-all border-b-2 ${
+                      profileTab === "notes"
+                        ? "border-emerald-500 text-emerald-700 bg-white"
+                        : "border-transparent text-nuanu-gray-400 hover:text-nuanu-navy hover:bg-white/60"
+                    }`}
+                  >
+                    <StickyNote className="w-4 h-4" /> Notes
+                    {localNotes.length > 0 && (
+                      <span className="ml-1 bg-emerald-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                        {localNotes.length}
+                      </span>
+                    )}
+                  </button>
+                </div>
+
+                {/* ── Tab: Profile Overview ──────────────────────────────── */}
+                {profileTab === "overview" && (
+                  <div className="p-6 overflow-y-auto flex-1">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
                       <div>
                         <p className="text-[11px] font-bold text-nuanu-gray-400 uppercase tracking-[0.1em] mb-2">
-                          Last Email Sent
+                          Applied For
                         </p>
-                        <p className="text-sm font-semibold text-emerald-600">
-                          {formatDate(selectedProfile.emailSentAt)}
+                        <p className="text-lg font-bold text-nuanu-navy leading-snug">
+                          {selectedProfile.referPosition ||
+                            selectedProfile.vacancyTitle}
                         </p>
-                        {selectedProfile.emailSentSubject && (
-                          <p className="text-xs text-nuanu-gray-400 mt-0.5 truncate max-w-[180px]">
-                            {selectedProfile.emailSentSubject}
-                          </p>
-                        )}
                       </div>
-                    )}
-                  </div>
-
-                  <div className="mb-8">
-                    <div className="flex items-center gap-2 mb-3">
-                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                        AI Match Analysis
-                      </p>
-                      {normalizeRecommendations(selectedProfile.recommendations).includes(
-                        "Fallback Mode: CV Only Analysis",
-                      ) && (
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700 uppercase tracking-widest">
-                          Fallback: CV Only
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-4 bg-gray-50 p-4 rounded-xl border border-gray-100">
-                      <div className="relative w-16 h-16 flex-shrink-0">
-                        <svg className="w-full h-full -rotate-90">
-                          <circle
-                            cx="32"
-                            cy="32"
-                            r="28"
-                            fill="none"
-                            stroke="#E2E8F0"
-                            strokeWidth="6"
-                          />
-                          <circle
-                            cx="32"
-                            cy="32"
-                            r="28"
-                            fill="none"
-                            stroke={
-                              selectedProfile.score >= 80
-                                ? "#10B981"
-                                : selectedProfile.score >= 60
-                                  ? "#F59E0B"
-                                  : "#EF4444"
+                      {/* Change 1: Refer As */}
+                      <div>
+                        <p className="text-[11px] font-bold text-nuanu-gray-400 uppercase tracking-[0.1em] mb-2">
+                          Refer As
+                        </p>
+                        <div className="flex gap-2 -ml-2">
+                          <input
+                            type="text"
+                            value={referAsDraft}
+                            onChange={(e) => setReferAsDraft(e.target.value)}
+                            onKeyDown={(e) =>
+                              e.key === "Enter" && handleSaveReferAs()
                             }
-                            strokeWidth="6"
-                            strokeDasharray="175.9"
-                            strokeDashoffset={
-                              175.9 - (selectedProfile.score / 100) * 175.9
-                            }
-                            strokeLinecap="round"
+                            placeholder={selectedProfile.vacancyTitle}
+                            className="flex-1 input-field text-lg font-bold text-nuanu-navy leading-snug py-1 px-2"
                           />
-                        </svg>
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <span className="text-sm font-bold text-nuanu-navy">
-                            {Math.round(selectedProfile.score)}%
-                          </span>
+                          <button
+                            onClick={handleSaveReferAs}
+                            disabled={
+                              savingReferAs ||
+                              !referAsDraft.trim() ||
+                              referAsDraft.trim() ===
+                                (selectedProfile.referPosition || "")
+                            }
+                            className="btn-primary px-3 py-1.5 text-xs flex items-center gap-1.5 shrink-0"
+                          >
+                            {savingReferAs ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Check className="w-3.5 h-3.5" />
+                            )}
+                            Apply
+                          </button>
                         </div>
                       </div>
                       <div>
-                        <p className="font-medium text-nuanu-navy mb-1">
-                          {selectedProfile.score >= 80
-                            ? "Strong Match"
-                            : selectedProfile.score >= 60
-                              ? "Potential Match"
-                              : "Weak Match"}
+                        <p className="text-[11px] font-bold text-nuanu-gray-400 uppercase tracking-[0.1em] mb-2">
+                          Current Stage
                         </p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {selectedProfile.skills?.map((skill) => (
-                            <span
-                              key={skill}
-                              className="px-2 py-0.5 bg-emerald-50 text-emerald-700 text-xs rounded border border-emerald-100"
-                            >
-                              {skill}
+                        <span className="badge bg-blue-100 text-blue-700 px-3 py-1.5 text-xs font-bold uppercase tracking-wider">
+                          {selectedProfile.stage.replace(/_/g, " ")}
+                        </span>
+                      </div>
+                      <div>
+                        <p className="text-[11px] font-bold text-nuanu-gray-400 uppercase tracking-[0.1em] mb-2">
+                          Applied Date
+                        </p>
+                        <DatePickerField
+                          value={
+                            selectedProfile.appliedAt
+                              ? new Date(selectedProfile.appliedAt)
+                                  .toISOString()
+                                  .split("T")[0]
+                              : ""
+                          }
+                          onChange={async (val) => {
+                            if (!val) return;
+                            const appliedIso = new Date(val).toISOString();
+                            setSelectedProfile({
+                              ...selectedProfile,
+                              appliedAt: appliedIso,
+                            });
+                            const res = await updateCandidateOverviewDetails(
+                              selectedProfile.id,
+                              selectedProfile.userId,
+                              { appliedAt: appliedIso },
+                            );
+                            if (res.success)
+                              toast.success("Applied date updated");
+                            else
+                              toast.error(
+                                res.error || "Failed to update applied date",
+                              );
+                          }}
+                          placeholder="dd/mm/yyyy"
+                        />
+                      </div>
+                      <div>
+                        <p className="text-[11px] font-bold text-nuanu-gray-400 uppercase tracking-[0.1em] mb-2">
+                          Location
+                        </p>
+                        <p className="text-lg font-bold text-nuanu-navy">
+                          {selectedProfile.location}
+                        </p>
+                      </div>
+                      {/* Change 1: Domicile */}
+                      <div>
+                        <p className="text-[11px] font-bold text-nuanu-gray-400 uppercase tracking-[0.1em] mb-2">
+                          Domicile
+                        </p>
+                        <div className="flex gap-2 -ml-2">
+                          <input
+                            type="text"
+                            value={domicileDraft}
+                            onChange={(e) => setDomicileDraft(e.target.value)}
+                            onKeyDown={(e) =>
+                              e.key === "Enter" && handleSaveDomicile()
+                            }
+                            placeholder={
+                              selectedProfile.location || "Enter city/region..."
+                            }
+                            className="flex-1 input-field text-lg font-bold text-nuanu-navy py-1 px-2"
+                          />
+                          <button
+                            onClick={handleSaveDomicile}
+                            disabled={
+                              savingDomicile ||
+                              !domicileDraft.trim() ||
+                              domicileDraft.trim() ===
+                                (selectedProfile.domicile || "")
+                            }
+                            className="btn-primary px-3 py-1.5 text-xs flex items-center gap-1.5 shrink-0"
+                          >
+                            {savingDomicile ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Check className="w-3.5 h-3.5" />
+                            )}
+                            Apply
+                          </button>
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-[11px] font-bold text-nuanu-gray-400 uppercase tracking-[0.1em] mb-2">
+                          Salary Expectation
+                        </p>
+                        <div className="flex gap-2 -ml-2">
+                          <input
+                            type="text"
+                            value={salaryExpectationDraft}
+                            onChange={(e) =>
+                              setSalaryExpectationDraft(e.target.value)
+                            }
+                            onKeyDown={(e) =>
+                              e.key === "Enter" && handleSaveSalaryExpectation()
+                            }
+                            placeholder="e.g. Rp 10.000.000 / month"
+                            className="flex-1 input-field text-lg font-bold text-nuanu-navy py-1 px-2"
+                          />
+                          <button
+                            onClick={handleSaveSalaryExpectation}
+                            disabled={
+                              savingSalaryExpectation ||
+                              !salaryExpectationDraft.trim() ||
+                              salaryExpectationDraft.trim() ===
+                                (selectedProfile.salaryExpectation || "")
+                            }
+                            className="btn-primary px-3 py-1.5 text-xs flex items-center gap-1.5 shrink-0"
+                          >
+                            {savingSalaryExpectation ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Check className="w-3.5 h-3.5" />
+                            )}
+                            Apply
+                          </button>
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-[11px] font-bold text-nuanu-gray-400 uppercase tracking-[0.1em] mb-2">
+                          Phone Number
+                        </p>
+                        <p className="text-lg font-bold text-nuanu-navy">
+                          {selectedProfile.phone || "Not provided"}
+                        </p>
+                      </div>
+                      {/* Source — preset dropdown + Apply */}
+                      <div>
+                        <p className="text-[11px] font-bold text-nuanu-gray-400 uppercase tracking-[0.1em] mb-2">
+                          Source
+                        </p>
+                        <div className="flex gap-2 -ml-2">
+                          <select
+                            className="flex-1 input-field py-1.5 px-2 text-xs font-bold bg-nuanu-gray-50 text-nuanu-gray-600 cursor-pointer"
+                            value={sourcePreset}
+                            onChange={(e) => setSourcePreset(e.target.value)}
+                          >
+                            {SOURCE_PRESET_OPTIONS.map((opt) => (
+                              <option key={opt.value} value={opt.value}>
+                                {opt.label}
+                              </option>
+                            ))}
+                          </select>
+                          <button
+                            onClick={handleSaveSource}
+                            disabled={
+                              savingSource ||
+                              sourcePreset ===
+                                normalizeSourcePreset(selectedProfile.source)
+                            }
+                            className="btn-primary px-3 py-1.5 text-xs flex items-center gap-1.5 shrink-0"
+                          >
+                            {savingSource ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Check className="w-3.5 h-3.5" />
+                            )}
+                            Apply
+                          </button>
+                        </div>
+                      </div>
+                      {/* Email sent indicator */}
+                      {selectedProfile.emailSentAt && (
+                        <div>
+                          <p className="text-[11px] font-bold text-nuanu-gray-400 uppercase tracking-[0.1em] mb-2">
+                            Last Email Sent
+                          </p>
+                          <p className="text-sm font-semibold text-emerald-600">
+                            {formatDate(selectedProfile.emailSentAt)}
+                          </p>
+                          {selectedProfile.emailSentSubject && (
+                            <p className="text-xs text-nuanu-gray-400 mt-0.5 truncate max-w-[180px]">
+                              {selectedProfile.emailSentSubject}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="mb-8">
+                      <div className="flex items-center gap-2 mb-3">
+                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                          AI Match Analysis
+                        </p>
+                        {normalizeRecommendations(
+                          selectedProfile.recommendations,
+                        ).includes("Fallback Mode: CV Only Analysis") && (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700 uppercase tracking-widest">
+                            Fallback: CV Only
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-4 bg-gray-50 p-4 rounded-xl border border-gray-100">
+                        <div className="relative w-16 h-16 flex-shrink-0">
+                          <svg className="w-full h-full -rotate-90">
+                            <circle
+                              cx="32"
+                              cy="32"
+                              r="28"
+                              fill="none"
+                              stroke="#E2E8F0"
+                              strokeWidth="6"
+                            />
+                            <circle
+                              cx="32"
+                              cy="32"
+                              r="28"
+                              fill="none"
+                              stroke={
+                                selectedProfile.score >= 80
+                                  ? "#10B981"
+                                  : selectedProfile.score >= 60
+                                    ? "#F59E0B"
+                                    : "#EF4444"
+                              }
+                              strokeWidth="6"
+                              strokeDasharray="175.9"
+                              strokeDashoffset={
+                                175.9 - (selectedProfile.score / 100) * 175.9
+                              }
+                              strokeLinecap="round"
+                            />
+                          </svg>
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <span className="text-sm font-bold text-nuanu-navy">
+                              {Math.round(selectedProfile.score)}%
                             </span>
-                          ))}
+                          </div>
+                        </div>
+                        <div>
+                          <p className="font-medium text-nuanu-navy mb-1">
+                            {selectedProfile.score >= 80
+                              ? "Strong Match"
+                              : selectedProfile.score >= 60
+                                ? "Potential Match"
+                                : "Weak Match"}
+                          </p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {selectedProfile.skills?.map((skill) => (
+                              <span
+                                key={skill}
+                                className="px-2 py-0.5 bg-emerald-50 text-emerald-700 text-xs rounded border border-emerald-100"
+                              >
+                                {skill}
+                              </span>
+                            ))}
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
 
-                  {selectedProfile.coverLetter && (
-                    <div>
-                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-                        Cover Letter
+                    {selectedProfile.coverLetter && (
+                      <div>
+                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+                          Cover Letter
+                        </p>
+                        <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 text-sm text-gray-700 whitespace-pre-wrap">
+                          {selectedProfile.coverLetter}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* ── Tab: Resume / CV ───────────────────────────────────── */}
+                {profileTab === "resume" && (
+                  <div className="flex-1 flex flex-col overflow-hidden">
+                    {/* Action bar */}
+                    <div className="flex items-center justify-between px-6 py-3 border-b border-gray-100 bg-white">
+                      <p className="text-sm text-nuanu-gray-500 font-medium">
+                        {selectedProfile.resumeUrl
+                          ? "Resume file attached — view or download below"
+                          : selectedProfile.resumeText
+                            ? "Extracted resume text from uploaded document"
+                            : "No resume on file for this candidate"}
                       </p>
-                      <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 text-sm text-gray-700 whitespace-pre-wrap">
-                        {selectedProfile.coverLetter}
+                      <div className="flex items-center gap-2">
+                        {selectedProfile.resumeUrl && (
+                          <>
+                            <a
+                              href={selectedProfile.resumeUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="btn-secondary py-1.5 px-4 text-xs flex items-center gap-1.5"
+                            >
+                              <ExternalLink className="w-3.5 h-3.5" /> Open in
+                              new tab
+                            </a>
+                            <a
+                              href={selectedProfile.resumeUrl}
+                              download
+                              className="btn-primary py-1.5 px-4 text-xs flex items-center gap-1.5"
+                            >
+                              <Download className="w-3.5 h-3.5" /> Download
+                            </a>
+                          </>
+                        )}
                       </div>
                     </div>
-                  )}
-                </div>
-              )}
 
-              {/* ── Tab: Resume / CV ───────────────────────────────────── */}
-              {profileTab === "resume" && (
-                <div className="flex-1 flex flex-col overflow-hidden">
-                  {/* Action bar */}
-                  <div className="flex items-center justify-between px-6 py-3 border-b border-gray-100 bg-white">
-                    <p className="text-sm text-nuanu-gray-500 font-medium">
-                      {selectedProfile.resumeUrl
-                        ? "Resume file attached — view or download below"
-                        : selectedProfile.resumeText
-                          ? "Extracted resume text from uploaded document"
-                          : "No resume on file for this candidate"}
-                    </p>
-                    <div className="flex items-center gap-2">
-                      {selectedProfile.resumeUrl && (
-                        <>
-                          <a
-                            href={selectedProfile.resumeUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="btn-secondary py-1.5 px-4 text-xs flex items-center gap-1.5"
+                    {/* PDF embed — shown only when a file URL exists */}
+                    {selectedProfile.resumeUrl && (
+                      <div className="flex-1 min-h-0 bg-gray-100">
+                        <iframe
+                          src={`${selectedProfile.resumeUrl}#toolbar=1&view=FitH`}
+                          className="w-full h-full min-h-[460px]"
+                          title={`Resume — ${selectedProfile.name}`}
+                          style={{ border: "none" }}
+                        />
+                      </div>
+                    )}
+
+                    {/* Extracted text — shown when no direct URL but text was parsed */}
+                    {!selectedProfile.resumeUrl &&
+                      selectedProfile.resumeText && (
+                        <div className="flex-1 overflow-y-auto p-6">
+                          <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+                            {/* Fake document header */}
+                            <div className="bg-gradient-to-r from-nuanu-navy to-[#0D2040] px-8 py-5 flex items-center gap-3">
+                              <FileText className="w-6 h-6 text-emerald-400" />
+                              <div>
+                                <p className="text-white font-bold text-base leading-tight">
+                                  {selectedProfile.name}
+                                </p>
+                                <p className="text-emerald-400/70 text-xs font-medium mt-0.5">
+                                  Resume / Curriculum Vitae
+                                </p>
+                              </div>
+                            </div>
+                            {/* Text content */}
+                            <div className="p-8">
+                              <pre className="font-sans text-sm text-gray-700 leading-relaxed whitespace-pre-wrap break-words">
+                                {selectedProfile.resumeText}
+                              </pre>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                    {/* Empty state — no resume at all, show upload option */}
+                    {!selectedProfile.resumeUrl &&
+                      !selectedProfile.resumeText && (
+                        <div className="flex-1 flex flex-col items-center justify-center gap-4 p-12 text-center">
+                          <div className="w-20 h-20 rounded-2xl bg-nuanu-gray-50 border-2 border-dashed border-nuanu-gray-200 flex items-center justify-center">
+                            <FileText className="w-9 h-9 text-nuanu-gray-300" />
+                          </div>
+                          <div>
+                            <p className="text-lg font-bold text-nuanu-navy mb-1">
+                              No Resume on File
+                            </p>
+                            <p className="text-sm text-nuanu-gray-400 max-w-xs">
+                              This candidate did not attach a resume during
+                              their application, or the file could not be
+                              processed.
+                            </p>
+                          </div>
+
+                          {/* CV Upload UI */}
+                          <div className="mt-2">
+                            {cvFile ? (
+                              <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-100 rounded-xl px-4 py-3">
+                                <FileText className="w-5 h-5 text-emerald-600" />
+                                <span className="text-sm font-medium text-emerald-700">
+                                  {cvFile.name}
+                                </span>
+                                <button
+                                  onClick={() => setCvFile(null)}
+                                  className="p-1 text-emerald-500 hover:text-emerald-700"
+                                >
+                                  <X className="w-4 h-4" />
+                                </button>
+                              </div>
+                            ) : (
+                              <label className="cursor-pointer btn-primary px-6 py-3 flex items-center gap-2">
+                                <UploadCloud className="w-5 h-5" />
+                                <span>Upload CV / Resume</span>
+                                <input
+                                  type="file"
+                                  accept=".pdf,.doc,.docx"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) setCvFile(file);
+                                  }}
+                                  className="hidden"
+                                />
+                              </label>
+                            )}
+                            {cvFile && (
+                              <button
+                                onClick={handleCvUpload}
+                                disabled={uploadingCv}
+                                className="btn-primary w-full mt-3 flex items-center justify-center gap-2"
+                              >
+                                {uploadingCv ? (
+                                  <>
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                    Uploading...
+                                  </>
+                                ) : (
+                                  <>
+                                    <UploadCloud className="w-4 h-4" />
+                                    Upload Resume
+                                  </>
+                                )}
+                              </button>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-2 text-xs text-amber-600 bg-amber-50 border border-amber-100 rounded-xl px-4 py-2.5">
+                            <AlertCircle className="w-4 h-4 shrink-0" />
+                            Resume storage requires Supabase to be configured
+                            (NEXT_PUBLIC_SUPABASE_URL).
+                          </div>
+                        </div>
+                      )}
+                  </div>
+                )}
+
+                {/* ── Tab: Interview Results ──────────────────────────────── */}
+                {profileTab === "interview_results" && (
+                  <div className="flex-1 flex flex-col overflow-hidden">
+                    {loadingProfileDetails && (
+                      <div className="flex items-center justify-center gap-2 border-b border-gray-100 bg-white px-6 py-3 text-sm text-nuanu-gray-500">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Loading interview results...
+                      </div>
+                    )}
+                    <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50/40">
+                      {feedbackPermissions.canAssignReviewers && (
+                        <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm space-y-4">
+                          <div>
+                            <p className="font-bold text-nuanu-navy">
+                              Assign interview reviewers
+                            </p>
+                            <p className="text-xs text-nuanu-gray-400 mt-1">
+                              Choose who can fill User 1 and User 2 comments for
+                              this candidate.
+                            </p>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="text-xs text-nuanu-gray-400 mb-1 block">
+                                User 1 reviewer
+                              </label>
+                              <select
+                                value={reviewerAssignmentDraft.user1ReviewerId}
+                                onChange={(e) =>
+                                  setReviewerAssignmentDraft((prev) => ({
+                                    ...prev,
+                                    user1ReviewerId: e.target.value,
+                                  }))
+                                }
+                                className="w-full input-field py-2 text-sm"
+                              >
+                                <option value="">Unassigned</option>
+                                {assignableReviewers
+                                  .filter(
+                                    (user) =>
+                                      user.id !==
+                                      reviewerAssignmentDraft.user2ReviewerId,
+                                  )
+                                  .map((user) => (
+                                    <option
+                                      key={`u1-${user.id}`}
+                                      value={user.id}
+                                    >
+                                      {user.name} ({user.roleLabel})
+                                    </option>
+                                  ))}
+                              </select>
+                            </div>
+                            <div>
+                              <label className="text-xs text-nuanu-gray-400 mb-1 block">
+                                User 2 reviewer
+                              </label>
+                              <select
+                                value={reviewerAssignmentDraft.user2ReviewerId}
+                                onChange={(e) =>
+                                  setReviewerAssignmentDraft((prev) => ({
+                                    ...prev,
+                                    user2ReviewerId: e.target.value,
+                                  }))
+                                }
+                                className="w-full input-field py-2 text-sm"
+                              >
+                                <option value="">Unassigned</option>
+                                {assignableReviewers
+                                  .filter(
+                                    (user) =>
+                                      user.id !==
+                                      reviewerAssignmentDraft.user1ReviewerId,
+                                  )
+                                  .map((user) => (
+                                    <option
+                                      key={`u2-${user.id}`}
+                                      value={user.id}
+                                    >
+                                      {user.name} ({user.roleLabel})
+                                    </option>
+                                  ))}
+                              </select>
+                            </div>
+                          </div>
+                          <div className="flex justify-end">
+                            <button
+                              type="button"
+                              onClick={saveReviewerAssignments}
+                              disabled={savingReviewerAssignments}
+                              className="btn-primary px-4 py-2 text-sm"
+                            >
+                              {savingReviewerAssignments
+                                ? "Saving..."
+                                : "Save assignments"}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {(() => {
+                        const sections = [
+                          {
+                            key: "HR" as ReviewerType,
+                            title: "HR Manager Comment",
+                            assignedTo: null as string | null,
+                            data: interviewFeedback.hr,
+                            canEdit: feedbackPermissions.canEditHR,
+                            canView: feedbackPermissions.canViewHR,
+                          },
+                          {
+                            key: "USER_1" as ReviewerType,
+                            title: "User 1 Comment",
+                            assignedTo: feedbackAssignments.user1ReviewerName,
+                            data: interviewFeedback.user1,
+                            canEdit: feedbackPermissions.canEditUser1,
+                            canView: feedbackPermissions.canViewUser1,
+                          },
+                          {
+                            key: "USER_2" as ReviewerType,
+                            title: "User 2 Comment",
+                            assignedTo: feedbackAssignments.user2ReviewerName,
+                            data: interviewFeedback.user2,
+                            canEdit: feedbackPermissions.canEditUser2,
+                            canView: feedbackPermissions.canViewUser2,
+                          },
+                        ].filter((section) => section.canView);
+
+                        if (sections.length === 0) {
+                          return (
+                            <div className="bg-white border border-gray-100 rounded-2xl p-6 text-center text-sm text-nuanu-gray-500 space-y-2">
+                              {feedbackLoadError ? (
+                                <>
+                                  <p className="font-medium text-amber-700">
+                                    Could not load interview results
+                                  </p>
+                                  <p>{feedbackLoadError}</p>
+                                </>
+                              ) : (
+                                <p>
+                                  No interview comment sections are visible for
+                                  your account. HR Manager, Admin, and Super
+                                  Admin users see all three sections; User 1 and
+                                  User 2 reviewers only see their assigned
+                                  section.
+                                </p>
+                              )}
+                            </div>
+                          );
+                        }
+
+                        return sections.map((section) => (
+                          <div
+                            key={section.key}
+                            className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm"
                           >
-                            <ExternalLink className="w-3.5 h-3.5" /> Open in new
-                            tab
-                          </a>
-                          <a
-                            href={selectedProfile.resumeUrl}
-                            download
-                            className="btn-primary py-1.5 px-4 text-xs flex items-center gap-1.5"
+                            <div className="flex items-start justify-between gap-3 mb-4">
+                              <div>
+                                <p className="font-bold text-nuanu-navy">
+                                  {section.title}
+                                </p>
+                                {section.key !== "HR" && (
+                                  <p className="text-xs text-nuanu-gray-400 mt-1">
+                                    {section.assignedTo
+                                      ? `Assigned to ${section.assignedTo}`
+                                      : "No reviewer assigned yet"}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+
+                            <div>
+                              <p className="text-xs text-nuanu-gray-400 mb-1">
+                                Comment
+                              </p>
+                              <textarea
+                                value={feedbackDrafts[section.key].comments}
+                                onChange={(e) =>
+                                  setFeedbackDrafts((prev) => ({
+                                    ...prev,
+                                    [section.key]: {
+                                      ...prev[section.key],
+                                      comments: e.target.value,
+                                    },
+                                  }))
+                                }
+                                disabled={!section.canEdit}
+                                rows={3}
+                                className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 resize-none"
+                                placeholder="Write comment"
+                              />
+                            </div>
+
+                            {section.data && (
+                              <p className="text-xs text-nuanu-gray-400 mt-3">
+                                {section.data.authorName} ·{" "}
+                                {formatDate(section.data.updatedAt)}
+                              </p>
+                            )}
+
+                            <div className="flex justify-end mt-4">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  saveStructuredFeedback(section.key)
+                                }
+                                disabled={
+                                  !section.canEdit ||
+                                  savingFeedbackType === section.key
+                                }
+                                className="btn-primary px-4 py-2 text-sm"
+                              >
+                                {savingFeedbackType === section.key
+                                  ? "Saving..."
+                                  : "Save Comment"}
+                              </button>
+                            </div>
+                          </div>
+                        ));
+                      })()}
+                    </div>
+                  </div>
+                )}
+
+                {/* ── Tab: Notes ──────────────────────────────────────────── */}
+                {profileTab === "notes" && (
+                  <div className="flex-1 flex flex-col overflow-hidden">
+                    {loadingProfileDetails && (
+                      <div className="flex items-center justify-center gap-2 border-b border-gray-100 bg-white px-6 py-3 text-sm text-nuanu-gray-500">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Loading notes...
+                      </div>
+                    )}
+                    <div className="p-6 border-b border-gray-100 bg-white">
+                      <div className="flex gap-3">
+                        <input
+                          type="text"
+                          value={noteText}
+                          onChange={(e) => setNoteText(e.target.value)}
+                          onKeyDown={(e) =>
+                            e.key === "Enter" && handleAddNote()
+                          }
+                          placeholder="Add a new note..."
+                          className="flex-1 input-field"
+                        />
+                        <button
+                          onClick={handleAddNote}
+                          disabled={!noteText.trim() || savingNote}
+                          className="btn-primary px-4 py-2 flex items-center gap-2"
+                        >
+                          {savingNote ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Plus className="w-4 h-4" />
+                          )}
+                          Add Note
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                      {localNotes.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-12 text-center">
+                          <div className="w-16 h-16 rounded-full bg-amber-50 flex items-center justify-center mb-4">
+                            <StickyNote className="w-8 h-8 text-amber-400" />
+                          </div>
+                          <p className="text-lg font-bold text-nuanu-navy mb-1">
+                            No Notes Yet
+                          </p>
+                          <p className="text-sm text-nuanu-gray-400 max-w-xs">
+                            Add notes to keep track of important information
+                            about this candidate.
+                          </p>
+                        </div>
+                      ) : (
+                        localNotes.map((note) => (
+                          <div
+                            key={note.id}
+                            className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm"
                           >
-                            <Download className="w-3.5 h-3.5" /> Download
-                          </a>
-                        </>
+                            {editingNoteId === note.id ? (
+                              <div className="space-y-3">
+                                <textarea
+                                  value={editNoteText}
+                                  onChange={(e) =>
+                                    setEditNoteText(e.target.value)
+                                  }
+                                  className="w-full input-field min-h-[100px]"
+                                  autoFocus
+                                />
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={() => handleEditNote(note.id)}
+                                    disabled={
+                                      savingNote || !editNoteText.trim()
+                                    }
+                                    className="btn-primary px-3 py-1.5 text-xs"
+                                  >
+                                    {savingNote ? "Saving..." : "Save"}
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      setEditingNoteId(null);
+                                      setEditNoteText("");
+                                    }}
+                                    className="btn-secondary px-3 py-1.5 text-xs"
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <>
+                                <div className="flex items-start justify-between mb-3">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-xs font-bold">
+                                      {note.authorName
+                                        .split(" ")
+                                        .map((n) => n[0])
+                                        .join("")
+                                        .substring(0, 2)
+                                        .toUpperCase()}
+                                    </div>
+                                    <div>
+                                      <p className="text-sm font-bold text-nuanu-navy">
+                                        {note.authorName}
+                                      </p>
+                                      <p className="text-xs text-nuanu-gray-400">
+                                        {formatDate(note.createdAt)}
+                                        {note.updatedAt !== note.createdAt &&
+                                          ` (edited ${formatDate(note.updatedAt)})`}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <button
+                                      onClick={() => {
+                                        setEditingNoteId(note.id);
+                                        setEditNoteText(note.content);
+                                      }}
+                                      className="p-1.5 text-nuanu-gray-400 hover:text-nuanu-navy hover:bg-gray-100 rounded-lg transition-colors"
+                                    >
+                                      <Edit className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeleteNote(note.id)}
+                                      className="p-1.5 text-nuanu-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  </div>
+                                </div>
+                                <div className="text-sm text-nuanu-gray-700 whitespace-pre-wrap">
+                                  {note.content}
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        ))
                       )}
                     </div>
                   </div>
+                )}
 
-                  {/* PDF embed — shown only when a file URL exists */}
-                  {selectedProfile.resumeUrl && (
-                    <div className="flex-1 min-h-0 bg-gray-100">
-                      <iframe
-                        src={`${selectedProfile.resumeUrl}#toolbar=1&view=FitH`}
-                        className="w-full h-full min-h-[460px]"
-                        title={`Resume — ${selectedProfile.name}`}
-                        style={{ border: "none" }}
-                      />
-                    </div>
-                  )}
-
-                  {/* Extracted text — shown when no direct URL but text was parsed */}
-                  {!selectedProfile.resumeUrl && selectedProfile.resumeText && (
-                    <div className="flex-1 overflow-y-auto p-6">
-                      <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
-                        {/* Fake document header */}
-                        <div className="bg-gradient-to-r from-nuanu-navy to-[#0D2040] px-8 py-5 flex items-center gap-3">
-                          <FileText className="w-6 h-6 text-emerald-400" />
-                          <div>
-                            <p className="text-white font-bold text-base leading-tight">
-                              {selectedProfile.name}
-                            </p>
-                            <p className="text-emerald-400/70 text-xs font-medium mt-0.5">
-                              Resume / Curriculum Vitae
-                            </p>
-                          </div>
-                        </div>
-                        {/* Text content */}
-                        <div className="p-8">
-                          <pre className="font-sans text-sm text-gray-700 leading-relaxed whitespace-pre-wrap break-words">
-                            {selectedProfile.resumeText}
-                          </pre>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Empty state — no resume at all, show upload option */}
-                  {!selectedProfile.resumeUrl &&
-                    !selectedProfile.resumeText && (
-                      <div className="flex-1 flex flex-col items-center justify-center gap-4 p-12 text-center">
-                        <div className="w-20 h-20 rounded-2xl bg-nuanu-gray-50 border-2 border-dashed border-nuanu-gray-200 flex items-center justify-center">
-                          <FileText className="w-9 h-9 text-nuanu-gray-300" />
-                        </div>
-                        <div>
-                          <p className="text-lg font-bold text-nuanu-navy mb-1">
-                            No Resume on File
-                          </p>
-                          <p className="text-sm text-nuanu-gray-400 max-w-xs">
-                            This candidate did not attach a resume during their
-                            application, or the file could not be processed.
-                          </p>
-                        </div>
-
-                        {/* CV Upload UI */}
-                        <div className="mt-2">
-                          {cvFile ? (
-                            <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-100 rounded-xl px-4 py-3">
-                              <FileText className="w-5 h-5 text-emerald-600" />
-                              <span className="text-sm font-medium text-emerald-700">
-                                {cvFile.name}
-                              </span>
-                              <button
-                                onClick={() => setCvFile(null)}
-                                className="p-1 text-emerald-500 hover:text-emerald-700"
-                              >
-                                <X className="w-4 h-4" />
-                              </button>
-                            </div>
-                          ) : (
-                            <label className="cursor-pointer btn-primary px-6 py-3 flex items-center gap-2">
-                              <UploadCloud className="w-5 h-5" />
-                              <span>Upload CV / Resume</span>
-                              <input
-                                type="file"
-                                accept=".pdf,.doc,.docx"
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) setCvFile(file);
-                                }}
-                                className="hidden"
-                              />
-                            </label>
-                          )}
-                          {cvFile && (
-                            <button
-                              onClick={handleCvUpload}
-                              disabled={uploadingCv}
-                              className="btn-primary w-full mt-3 flex items-center justify-center gap-2"
-                            >
-                              {uploadingCv ? (
-                                <>
-                                  <Loader2 className="w-4 h-4 animate-spin" />
-                                  Uploading...
-                                </>
-                              ) : (
-                                <>
-                                  <UploadCloud className="w-4 h-4" />
-                                  Upload Resume
-                                </>
-                              )}
-                            </button>
-                          )}
-                        </div>
-
-                        <div className="flex items-center gap-2 text-xs text-amber-600 bg-amber-50 border border-amber-100 rounded-xl px-4 py-2.5">
-                          <AlertCircle className="w-4 h-4 shrink-0" />
-                          Resume storage requires Supabase to be configured
-                          (NEXT_PUBLIC_SUPABASE_URL).
-                        </div>
-                      </div>
-                    )}
+                <div className="p-5 border-t border-gray-100 flex justify-end gap-3 bg-gray-50/50">
+                  <button
+                    onClick={() => setSelectedProfile(null)}
+                    className="btn-secondary px-6 py-2.5 text-sm"
+                  >
+                    Close
+                  </button>
+                  <button
+                    onClick={() => setShow360(true)}
+                    className="btn-secondary px-6 py-2.5 text-sm flex items-center gap-2"
+                  >
+                    <LayoutGrid className="w-4 h-4" /> Full Profile
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelectedProfile(null);
+                      openEmailModal(selectedProfile);
+                    }}
+                    className="btn-primary px-6 py-2.5 text-sm shadow-lg shadow-emerald-500/20"
+                  >
+                    <Mail className="w-4 h-4" /> Message Candidate
+                  </button>
                 </div>
-              )}
-
-              {/* ── Tab: Interview Results ──────────────────────────────── */}
-              {profileTab === "interview_results" && (
-                <div className="flex-1 flex flex-col overflow-hidden">
-                  {loadingProfileDetails && (
-                    <div className="flex items-center justify-center gap-2 border-b border-gray-100 bg-white px-6 py-3 text-sm text-nuanu-gray-500">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Loading interview results...
-                    </div>
-                  )}
-                  <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50/40">
-                    {feedbackPermissions.canAssignReviewers && (
-                      <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm space-y-4">
-                        <div>
-                          <p className="font-bold text-nuanu-navy">Assign interview reviewers</p>
-                          <p className="text-xs text-nuanu-gray-400 mt-1">
-                            Choose who can fill User 1 and User 2 comments for this candidate.
-                          </p>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div>
-                            <label className="text-xs text-nuanu-gray-400 mb-1 block">
-                              User 1 reviewer
-                            </label>
-                            <select
-                              value={reviewerAssignmentDraft.user1ReviewerId}
-                              onChange={(e) =>
-                                setReviewerAssignmentDraft((prev) => ({
-                                  ...prev,
-                                  user1ReviewerId: e.target.value,
-                                }))
-                              }
-                              className="w-full input-field py-2 text-sm"
-                            >
-                              <option value="">Unassigned</option>
-                              {assignableReviewers
-                                .filter(
-                                  (user) =>
-                                    user.id !== reviewerAssignmentDraft.user2ReviewerId,
-                                )
-                                .map((user) => (
-                                <option key={`u1-${user.id}`} value={user.id}>
-                                  {user.name} ({user.roleLabel})
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                          <div>
-                            <label className="text-xs text-nuanu-gray-400 mb-1 block">
-                              User 2 reviewer
-                            </label>
-                            <select
-                              value={reviewerAssignmentDraft.user2ReviewerId}
-                              onChange={(e) =>
-                                setReviewerAssignmentDraft((prev) => ({
-                                  ...prev,
-                                  user2ReviewerId: e.target.value,
-                                }))
-                              }
-                              className="w-full input-field py-2 text-sm"
-                            >
-                              <option value="">Unassigned</option>
-                              {assignableReviewers
-                                .filter(
-                                  (user) =>
-                                    user.id !== reviewerAssignmentDraft.user1ReviewerId,
-                                )
-                                .map((user) => (
-                                <option key={`u2-${user.id}`} value={user.id}>
-                                  {user.name} ({user.roleLabel})
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                        </div>
-                        <div className="flex justify-end">
-                          <button
-                            type="button"
-                            onClick={saveReviewerAssignments}
-                            disabled={savingReviewerAssignments}
-                            className="btn-primary px-4 py-2 text-sm"
-                          >
-                            {savingReviewerAssignments ? "Saving..." : "Save assignments"}
-                          </button>
-                        </div>
-                      </div>
-                    )}
-
-                    {(() => {
-                      const sections = [
-                        {
-                          key: "HR" as ReviewerType,
-                          title: "HR Manager Comment",
-                          assignedTo: null as string | null,
-                          data: interviewFeedback.hr,
-                          canEdit: feedbackPermissions.canEditHR,
-                          canView: feedbackPermissions.canViewHR,
-                        },
-                        {
-                          key: "USER_1" as ReviewerType,
-                          title: "User 1 Comment",
-                          assignedTo: feedbackAssignments.user1ReviewerName,
-                          data: interviewFeedback.user1,
-                          canEdit: feedbackPermissions.canEditUser1,
-                          canView: feedbackPermissions.canViewUser1,
-                        },
-                        {
-                          key: "USER_2" as ReviewerType,
-                          title: "User 2 Comment",
-                          assignedTo: feedbackAssignments.user2ReviewerName,
-                          data: interviewFeedback.user2,
-                          canEdit: feedbackPermissions.canEditUser2,
-                          canView: feedbackPermissions.canViewUser2,
-                        },
-                      ].filter((section) => section.canView);
-
-                      if (sections.length === 0) {
-                        return (
-                          <div className="bg-white border border-gray-100 rounded-2xl p-6 text-center text-sm text-nuanu-gray-500 space-y-2">
-                            {feedbackLoadError ? (
-                              <>
-                                <p className="font-medium text-amber-700">
-                                  Could not load interview results
-                                </p>
-                                <p>{feedbackLoadError}</p>
-                              </>
-                            ) : (
-                              <p>
-                                No interview comment sections are visible for your
-                                account. HR Manager, Admin, and Super Admin users see
-                                all three sections; User 1 and User 2 reviewers only
-                                see their assigned section.
-                              </p>
-                            )}
-                          </div>
-                        );
-                      }
-
-                      return sections.map((section) => (
-                      <div key={section.key} className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
-                        <div className="flex items-start justify-between gap-3 mb-4">
-                          <div>
-                            <p className="font-bold text-nuanu-navy">{section.title}</p>
-                            {section.key !== "HR" && (
-                              <p className="text-xs text-nuanu-gray-400 mt-1">
-                                {section.assignedTo
-                                  ? `Assigned to ${section.assignedTo}`
-                                  : "No reviewer assigned yet"}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-
-                        <div>
-                          <p className="text-xs text-nuanu-gray-400 mb-1">Comment</p>
-                          <textarea
-                            value={feedbackDrafts[section.key].comments}
-                            onChange={(e) =>
-                              setFeedbackDrafts((prev) => ({
-                                ...prev,
-                                [section.key]: { ...prev[section.key], comments: e.target.value },
-                              }))
-                            }
-                            disabled={!section.canEdit}
-                            rows={3}
-                            className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 resize-none"
-                            placeholder="Write comment"
-                          />
-                        </div>
-
-                        {section.data && (
-                          <p className="text-xs text-nuanu-gray-400 mt-3">
-                            {section.data.authorName} · {formatDate(section.data.updatedAt)}
-                          </p>
-                        )}
-
-                        <div className="flex justify-end mt-4">
-                          <button
-                            type="button"
-                            onClick={() => saveStructuredFeedback(section.key)}
-                            disabled={!section.canEdit || savingFeedbackType === section.key}
-                            className="btn-primary px-4 py-2 text-sm"
-                          >
-                            {savingFeedbackType === section.key ? "Saving..." : "Save Comment"}
-                          </button>
-                        </div>
-                      </div>
-                    ));
-                    })()}
-                  </div>
-                </div>
-              )}
-
-              {/* ── Tab: Notes ──────────────────────────────────────────── */}
-              {profileTab === "notes" && (
-                <div className="flex-1 flex flex-col overflow-hidden">
-                  {loadingProfileDetails && (
-                    <div className="flex items-center justify-center gap-2 border-b border-gray-100 bg-white px-6 py-3 text-sm text-nuanu-gray-500">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Loading notes...
-                    </div>
-                  )}
-                  <div className="p-6 border-b border-gray-100 bg-white">
-                    <div className="flex gap-3">
-                      <input
-                        type="text"
-                        value={noteText}
-                        onChange={(e) => setNoteText(e.target.value)}
-                        onKeyDown={(e) => e.key === "Enter" && handleAddNote()}
-                        placeholder="Add a new note..."
-                        className="flex-1 input-field"
-                      />
-                      <button
-                        onClick={handleAddNote}
-                        disabled={!noteText.trim() || savingNote}
-                        className="btn-primary px-4 py-2 flex items-center gap-2"
-                      >
-                        {savingNote ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <Plus className="w-4 h-4" />
-                        )}
-                        Add Note
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="flex-1 overflow-y-auto p-6 space-y-4">
-                    {localNotes.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center py-12 text-center">
-                        <div className="w-16 h-16 rounded-full bg-amber-50 flex items-center justify-center mb-4">
-                          <StickyNote className="w-8 h-8 text-amber-400" />
-                        </div>
-                        <p className="text-lg font-bold text-nuanu-navy mb-1">
-                          No Notes Yet
-                        </p>
-                        <p className="text-sm text-nuanu-gray-400 max-w-xs">
-                          Add notes to keep track of important information about
-                          this candidate.
-                        </p>
-                      </div>
-                    ) : (
-                      localNotes.map((note) => (
-                        <div
-                          key={note.id}
-                          className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm"
-                        >
-                          {editingNoteId === note.id ? (
-                            <div className="space-y-3">
-                              <textarea
-                                value={editNoteText}
-                                onChange={(e) =>
-                                  setEditNoteText(e.target.value)
-                                }
-                                className="w-full input-field min-h-[100px]"
-                                autoFocus
-                              />
-                              <div className="flex gap-2">
-                                <button
-                                  onClick={() => handleEditNote(note.id)}
-                                  disabled={savingNote || !editNoteText.trim()}
-                                  className="btn-primary px-3 py-1.5 text-xs"
-                                >
-                                  {savingNote ? "Saving..." : "Save"}
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    setEditingNoteId(null);
-                                    setEditNoteText("");
-                                  }}
-                                  className="btn-secondary px-3 py-1.5 text-xs"
-                                >
-                                  Cancel
-                                </button>
-                              </div>
-                            </div>
-                          ) : (
-                            <>
-                              <div className="flex items-start justify-between mb-3">
-                                <div className="flex items-center gap-2">
-                                  <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-xs font-bold">
-                                    {note.authorName
-                                      .split(" ")
-                                      .map((n) => n[0])
-                                      .join("")
-                                      .substring(0, 2)
-                                      .toUpperCase()}
-                                  </div>
-                                  <div>
-                                    <p className="text-sm font-bold text-nuanu-navy">
-                                      {note.authorName}
-                                    </p>
-                                    <p className="text-xs text-nuanu-gray-400">
-                                      {formatDate(note.createdAt)}
-                                      {note.updatedAt !== note.createdAt &&
-                                        ` (edited ${formatDate(note.updatedAt)})`}
-                                    </p>
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                  <button
-                                    onClick={() => {
-                                      setEditingNoteId(note.id);
-                                      setEditNoteText(note.content);
-                                    }}
-                                    className="p-1.5 text-nuanu-gray-400 hover:text-nuanu-navy hover:bg-gray-100 rounded-lg transition-colors"
-                                  >
-                                    <Edit className="w-4 h-4" />
-                                  </button>
-                                  <button
-                                    onClick={() => handleDeleteNote(note.id)}
-                                    className="p-1.5 text-nuanu-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </button>
-                                </div>
-                              </div>
-                              <div className="text-sm text-nuanu-gray-700 whitespace-pre-wrap">
-                                {note.content}
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              )}
-
-              <div className="p-5 border-t border-gray-100 flex justify-end gap-3 bg-gray-50/50">
-                <button
-                  onClick={() => setSelectedProfile(null)}
-                  className="btn-secondary px-6 py-2.5 text-sm"
-                >
-                  Close
-                </button>
-                <button
-                  onClick={() => setShow360(true)}
-                  className="btn-secondary px-6 py-2.5 text-sm flex items-center gap-2"
-                >
-                  <LayoutGrid className="w-4 h-4" /> Full Profile
-                </button>
-                <button
-                  onClick={() => {
-                    setSelectedProfile(null);
-                    openEmailModal(selectedProfile);
-                  }}
-                  className="btn-primary px-6 py-2.5 text-sm shadow-lg shadow-emerald-500/20"
-                >
-                  <Mail className="w-4 h-4" /> Message Candidate
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
       </Portal>
 
       {/* Draft Email Modal */}
       <Portal>
-      <AnimatePresence>
-        {selectedEmail && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-              onClick={() => !isSendingEmail && setSelectedEmail(null)}
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden relative z-10"
-            >
-              <div className="p-8 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
-                <h2 className="text-xl font-bold text-nuanu-navy flex items-center gap-2">
-                  <Mail className="w-6 h-6 text-nuanu-emerald" /> New Message
-                </h2>
-                <button
-                  onClick={() => !isSendingEmail && setSelectedEmail(null)}
-                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
-                  disabled={isSendingEmail}
-                >
-                  <X className="w-6 h-6" />
-                </button>
-              </div>
-
-              {emailSent ? (
-                <div className="p-12 flex flex-col items-center justify-center text-center">
-                  <div className="w-16 h-16 bg-emerald-100 text-emerald-500 rounded-full flex items-center justify-center mb-4">
-                    <Check className="w-8 h-8" />
-                  </div>
-                  <h3 className="text-xl font-bold text-nuanu-navy mb-2">
-                    Message Sent!
-                  </h3>
-                  <p className="text-gray-500">
-                    Your email has been sent to {selectedEmail.email}
-                  </p>
+        <AnimatePresence>
+          {selectedEmail && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+                onClick={() => !isSendingEmail && setSelectedEmail(null)}
+              />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden relative z-10"
+              >
+                <div className="p-8 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+                  <h2 className="text-xl font-bold text-nuanu-navy flex items-center gap-2">
+                    <Mail className="w-6 h-6 text-nuanu-emerald" /> New Message
+                  </h2>
+                  <button
+                    onClick={() => !isSendingEmail && setSelectedEmail(null)}
+                    className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+                    disabled={isSendingEmail}
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
                 </div>
-              ) : (
-                <>
-                  <div className="p-8 space-y-5">
-                    {/* To */}
-                    <div>
-                      <label className="block text-xs font-bold text-nuanu-gray-400 uppercase tracking-widest mb-2">To:</label>
-                      <div className="input-field bg-gray-50 text-nuanu-navy font-bold text-lg py-3 px-4">
-                        {selectedEmail.name} &lt;{selectedEmail.email}&gt;
+
+                {emailSent ? (
+                  <div className="p-12 flex flex-col items-center justify-center text-center">
+                    <div className="w-16 h-16 bg-emerald-100 text-emerald-500 rounded-full flex items-center justify-center mb-4">
+                      <Check className="w-8 h-8" />
+                    </div>
+                    <h3 className="text-xl font-bold text-nuanu-navy mb-2">
+                      Message Sent!
+                    </h3>
+                    <p className="text-gray-500">
+                      Your email has been sent to {selectedEmail.email}
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="p-8 space-y-5">
+                      {/* To */}
+                      <div>
+                        <label className="block text-xs font-bold text-nuanu-gray-400 uppercase tracking-widest mb-2">
+                          To:
+                        </label>
+                        <div className="input-field bg-gray-50 text-nuanu-navy font-bold text-lg py-3 px-4">
+                          {selectedEmail.name} &lt;{selectedEmail.email}&gt;
+                        </div>
+                      </div>
+                      {/* Change 3: Template selector */}
+                      <div>
+                        <label className="block text-xs font-bold text-nuanu-gray-400 uppercase tracking-widest mb-2">
+                          Template:
+                        </label>
+                        <select
+                          value={emailTemplate}
+                          onChange={(e) => {
+                            const key = e.target.value;
+                            setEmailTemplate(key);
+                            if (key && EMAIL_TEMPLATES[key]) {
+                              applyEmailTemplate(
+                                EMAIL_TEMPLATES[key],
+                                selectedEmail,
+                              );
+                            }
+                          }}
+                          className="input-field py-2.5"
+                        >
+                          <option value="">
+                            — Select a template (optional) —
+                          </option>
+                          <option value="rejected">Rejected</option>
+                          <option value="on_hold">On Hold</option>
+                          <option value="not_open">Not Open</option>
+                          <option value="process_slow">Process Slow</option>
+                          <option value="been_fulfilled">Been Fulfilled</option>
+                        </select>
+                      </div>
+                      {/* Subject */}
+                      <div>
+                        <label className="block text-xs font-bold text-nuanu-gray-400 uppercase tracking-widest mb-2">
+                          Subject:
+                        </label>
+                        <input
+                          type="text"
+                          value={emailSubject}
+                          onChange={(e) => setEmailSubject(e.target.value)}
+                          className="input-field text-lg font-medium py-3 px-4"
+                          placeholder="Email subject"
+                        />
+                      </div>
+                      {/* Body */}
+                      <div>
+                        <label className="block text-xs font-bold text-nuanu-gray-400 uppercase tracking-widest mb-2">
+                          Message:
+                        </label>
+                        <textarea
+                          value={emailBody}
+                          onChange={(e) => setEmailBody(e.target.value)}
+                          className="input-field min-h-[220px] resize-y text-base leading-relaxed py-3 px-4"
+                          placeholder="Type your message here..."
+                        />
                       </div>
                     </div>
-                    {/* Change 3: Template selector */}
-                    <div>
-                      <label className="block text-xs font-bold text-nuanu-gray-400 uppercase tracking-widest mb-2">Template:</label>
-                      <select
-                        value={emailTemplate}
-                        onChange={(e) => {
-                          const key = e.target.value;
-                          setEmailTemplate(key);
-                          if (key && EMAIL_TEMPLATES[key]) {
-                            applyEmailTemplate(EMAIL_TEMPLATES[key], selectedEmail);
-                          }
-                        }}
-                        className="input-field py-2.5"
+                    <div className="p-8 border-t border-gray-100 flex justify-end gap-4 bg-gray-50/50">
+                      <button
+                        onClick={() => setSelectedEmail(null)}
+                        className="btn-secondary px-8 py-3 text-base"
+                        disabled={isSendingEmail}
                       >
-                        <option value="">— Select a template (optional) —</option>
-                        <option value="rejected">Rejected</option>
-                        <option value="on_hold">On Hold</option>
-                        <option value="not_open">Not Open</option>
-                        <option value="process_slow">Process Slow</option>
-                        <option value="been_fulfilled">Been Fulfilled</option>
-                      </select>
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleSendEmail}
+                        className="btn-primary px-8 py-3 text-base shadow-lg shadow-emerald-500/20"
+                        disabled={isSendingEmail}
+                      >
+                        {isSendingEmail ? (
+                          <>
+                            <Loader2 className="w-5 h-5 animate-spin" />{" "}
+                            Sending...
+                          </>
+                        ) : (
+                          <>
+                            <Send className="w-5 h-5" /> Send Email
+                          </>
+                        )}
+                      </button>
                     </div>
-                    {/* Subject */}
-                    <div>
-                      <label className="block text-xs font-bold text-nuanu-gray-400 uppercase tracking-widest mb-2">Subject:</label>
-                      <input
-                        type="text"
-                        value={emailSubject}
-                        onChange={(e) => setEmailSubject(e.target.value)}
-                        className="input-field text-lg font-medium py-3 px-4"
-                        placeholder="Email subject"
-                      />
-                    </div>
-                    {/* Body */}
-                    <div>
-                      <label className="block text-xs font-bold text-nuanu-gray-400 uppercase tracking-widest mb-2">Message:</label>
-                      <textarea
-                        value={emailBody}
-                        onChange={(e) => setEmailBody(e.target.value)}
-                        className="input-field min-h-[220px] resize-y text-base leading-relaxed py-3 px-4"
-                        placeholder="Type your message here..."
-                      />
-                    </div>
-                  </div>
-                  <div className="p-8 border-t border-gray-100 flex justify-end gap-4 bg-gray-50/50">
-                    <button
-                      onClick={() => setSelectedEmail(null)}
-                      className="btn-secondary px-8 py-3 text-base"
-                      disabled={isSendingEmail}
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handleSendEmail}
-                      className="btn-primary px-8 py-3 text-base shadow-lg shadow-emerald-500/20"
-                      disabled={isSendingEmail}
-                    >
-                      {isSendingEmail ? (
-                        <>
-                          <Loader2 className="w-5 h-5 animate-spin" />{" "}
-                          Sending...
-                        </>
-                      ) : (
-                        <>
-                          <Send className="w-5 h-5" /> Send Email
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </>
-              )}
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+                  </>
+                )}
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
       </Portal>
 
       {/* 360° Profile Modal */}
       <Portal>
-      <AnimatePresence>
-        {show360 && selectedProfile && (
-          <CandidateProfile360
-            candidate={selectedProfile}
-            vacancyTitle={vacancyTitle ?? selectedProfile.vacancyTitle}
-            onClose={() => setShow360(false)}
-          />
-        )}
-      </AnimatePresence>
+        <AnimatePresence>
+          {show360 && selectedProfile && (
+            <CandidateProfile360
+              candidate={selectedProfile}
+              vacancyTitle={vacancyTitle ?? selectedProfile.vacancyTitle}
+              onCloseAction={() => setShow360(false)}
+            />
+          )}
+        </AnimatePresence>
       </Portal>
     </div>
   );

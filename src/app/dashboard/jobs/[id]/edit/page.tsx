@@ -5,6 +5,8 @@ import { notFound } from "next/navigation";
 import { updateVacancy } from "@/app/actions/jobs";
 import DepartmentCombobox from "../../create/DepartmentCombobox";
 
+export const dynamic = "force-dynamic";
+
 export default async function EditVacancyPage({
   params,
 }: {

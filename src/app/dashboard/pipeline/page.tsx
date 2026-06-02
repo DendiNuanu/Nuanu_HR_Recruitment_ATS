@@ -3,6 +3,8 @@ import { unstable_cache } from "next/cache";
 import PipelineBoard from "./PipelineBoard";
 import { PIPELINE_STAGES, resolvePipelineColumn } from "@/lib/utils";
 
+export const dynamic = "force-dynamic";
+
 const getCachedPipelineData = unstable_cache(
   async () => {
     const vacancies = await prisma.vacancy.findMany({

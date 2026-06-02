@@ -1,7 +1,7 @@
 CREATE TABLE IF NOT EXISTS "reference_checks" (
   "id"                    TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   "candidate_id"          TEXT NOT NULL REFERENCES "applications"("id") ON DELETE CASCADE,
-  "reference_no"          INTEGER NOT NULL CHECK (reference_no BETWEEN 1 AND 3),
+  "reference_no"          INTEGER NOT NULL CHECK (reference_no BETWEEN 1 AND 5),
   "agency_name"           TEXT,
   "telephone"             TEXT,
   "city_state"            TEXT,
@@ -82,7 +82,7 @@ BEGIN
     FROM pg_constraint
     WHERE conname = 'reference_checks_reference_no_check'
   ) THEN
-    EXECUTE 'ALTER TABLE "reference_checks" ADD CONSTRAINT "reference_checks_reference_no_check" CHECK ("reference_no" BETWEEN 1 AND 3)';
+    EXECUTE 'ALTER TABLE "reference_checks" ADD CONSTRAINT "reference_checks_reference_no_check" CHECK ("reference_no" BETWEEN 1 AND 5)';
   END IF;
 END $$;
 
@@ -102,3 +102,19 @@ CREATE INDEX IF NOT EXISTS "idx_reference_checks_candidate_id"
 
 CREATE UNIQUE INDEX IF NOT EXISTS "reference_checks_candidate_id_reference_no_key"
   ON "reference_checks"("candidate_id", "reference_no");
+
+CREATE TABLE IF NOT EXISTS "reference_check_shares" (
+  "id"             TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  "application_id" TEXT NOT NULL UNIQUE REFERENCES "applications"("id") ON DELETE CASCADE,
+  "shared_with_id" TEXT NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
+  "shared_by_id"   TEXT NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
+  "share_token"    TEXT NOT NULL UNIQUE,
+  "shared_at"      TIMESTAMP NOT NULL DEFAULT NOW(),
+  "updated_at"     TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS "idx_reference_check_shares_shared_with_id"
+  ON "reference_check_shares"("shared_with_id");
+
+CREATE INDEX IF NOT EXISTS "idx_reference_check_shares_shared_by_id"
+  ON "reference_check_shares"("shared_by_id");

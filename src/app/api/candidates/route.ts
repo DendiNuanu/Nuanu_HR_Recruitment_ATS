@@ -13,7 +13,8 @@ import { delCache } from "@/lib/cache";
 
 export async function GET(request: Request) {
   const session = await getSession();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { searchParams } = new URL(request.url);
   const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10));
@@ -74,7 +75,8 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const session = await getSession();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   let body: Record<string, unknown>;
   try {
@@ -84,34 +86,65 @@ export async function POST(request: Request) {
   }
 
   const {
-    fullName, email, phone, vacancyId, location,
-    yearsOfExperience, stage = "applied", cvUrl, cvText,
-    skills, summary, aiMatch = 50,
+    fullName,
+    email,
+    phone,
+    vacancyId,
+    location,
+    yearsOfExperience,
+    stage = "new",
+    cvUrl,
+    cvText,
+    skills,
+    summary,
+    aiMatch = 50,
   } = body as {
-    fullName: string; email: string; phone?: string; vacancyId?: string;
-    location?: string; yearsOfExperience?: number; stage?: string;
-    cvUrl?: string; cvText?: string; skills?: string[];
-    summary?: string; aiMatch?: number;
+    fullName: string;
+    email: string;
+    phone?: string;
+    vacancyId?: string;
+    location?: string;
+    yearsOfExperience?: number;
+    stage?: string;
+    cvUrl?: string;
+    cvText?: string;
+    skills?: string[];
+    summary?: string;
+    aiMatch?: number;
   };
 
   if (!fullName?.trim() || !email?.trim()) {
-    return NextResponse.json({ error: "Full name and email are required" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Full name and email are required" },
+      { status: 400 },
+    );
   }
 
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email.trim())) {
-    return NextResponse.json({ error: "Invalid email address" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid email address" },
+      { status: 400 },
+    );
   }
 
   try {
-    const randomPassword = await bcrypt.hash(Math.random().toString(36).slice(-10), 10);
+    const randomPassword = await bcrypt.hash(
+      Math.random().toString(36).slice(-10),
+      10,
+    );
 
     const user = await prisma.user.upsert({
       where: { email: email.trim().toLowerCase() },
-      update: { name: fullName.trim(), ...(phone ? { phone: phone.trim() } : {}) },
+      update: {
+        name: fullName.trim(),
+        ...(phone ? { phone: phone.trim() } : {}),
+      },
       create: {
-        email: email.trim().toLowerCase(), password: randomPassword,
-        name: fullName.trim(), ...(phone ? { phone: phone.trim() } : {}),
+        email: email.trim().toLowerCase(),
+        password: randomPassword,
+        name: fullName.trim(),
+        ...(phone ? { phone: phone.trim() } : {}),
       },
     });
 
@@ -121,7 +154,9 @@ export async function POST(request: Request) {
         ...(cvUrl ? { resumeUrl: cvUrl } : {}),
         ...(cvText ? { resumeText: cvText } : {}),
         ...(location ? { location: location.trim() } : {}),
-        ...(yearsOfExperience != null ? { experienceYears: Number(yearsOfExperience) } : {}),
+        ...(yearsOfExperience != null
+          ? { experienceYears: Number(yearsOfExperience) }
+          : {}),
         ...(skills?.length ? { skills } : {}),
         ...(summary ? { summary: summary.trim() } : {}),
       },
@@ -130,7 +165,9 @@ export async function POST(request: Request) {
         ...(cvUrl ? { resumeUrl: cvUrl } : {}),
         ...(cvText ? { resumeText: cvText } : {}),
         ...(location ? { location: location.trim() } : {}),
-        ...(yearsOfExperience != null ? { experienceYears: Number(yearsOfExperience) } : {}),
+        ...(yearsOfExperience != null
+          ? { experienceYears: Number(yearsOfExperience) }
+          : {}),
         ...(skills?.length ? { skills } : {}),
         ...(summary ? { summary: summary.trim() } : {}),
       },
@@ -139,26 +176,40 @@ export async function POST(request: Request) {
     let resolvedVacancyId = vacancyId;
     if (!resolvedVacancyId) {
       const fallback = await prisma.vacancy.findFirst({
-        where: { status: "published" }, orderBy: { createdAt: "desc" }, select: { id: true },
+        where: { status: "published" },
+        orderBy: { createdAt: "desc" },
+        select: { id: true },
       });
       resolvedVacancyId = fallback?.id;
     }
 
     if (!resolvedVacancyId) {
-      return NextResponse.json({ error: "No vacancy selected and no published vacancies found." }, { status: 400 });
+      return NextResponse.json(
+        { error: "No vacancy selected and no published vacancies found." },
+        { status: 400 },
+      );
     }
 
     const existing = await prisma.application.findFirst({
       where: { candidateId: user.id, vacancyId: resolvedVacancyId },
     });
     if (existing) {
-      return NextResponse.json({ error: "This candidate has already applied for the selected position." }, { status: 409 });
+      return NextResponse.json(
+        {
+          error:
+            "This candidate has already applied for the selected position.",
+        },
+        { status: 409 },
+      );
     }
 
-    const normalizedStage = (stage as string).toLowerCase().replace(" ", "_");
+    const normalizedStage = String(stage || "new")
+      .toLowerCase()
+      .replace(/\s+/g, "_");
     const application = await prisma.application.create({
       data: {
-        vacancyId: resolvedVacancyId, candidateId: user.id,
+        vacancyId: resolvedVacancyId,
+        candidateId: user.id,
         source: "HR Upload",
         status: normalizedStage === "rejected" ? "rejected" : "active",
         currentStage: normalizedStage,
@@ -167,14 +218,20 @@ export async function POST(request: Request) {
     });
 
     await prisma.candidateScore.create({
-      data: { applicationId: application.id, overallScore: Number(aiMatch) || 50 },
+      data: {
+        applicationId: application.id,
+        overallScore: Number(aiMatch) || 50,
+      },
     });
 
     if (cvUrl) {
       await prisma.document.create({
         data: {
-          applicationId: application.id, name: `CV - ${fullName.trim()}`,
-          type: "resume", fileUrl: cvUrl, mimeType: "application/pdf",
+          applicationId: application.id,
+          name: `CV - ${fullName.trim()}`,
+          type: "resume",
+          fileUrl: cvUrl,
+          mimeType: "application/pdf",
         },
       });
     }
@@ -183,12 +240,30 @@ export async function POST(request: Request) {
     revalidatePath("/dashboard/candidates");
     revalidatePath("/dashboard");
 
-    return NextResponse.json({ success: true, applicationId: application.id, candidateName: user.name }, { status: 201 });
+    return NextResponse.json(
+      {
+        success: true,
+        applicationId: application.id,
+        candidateName: user.name,
+      },
+      { status: 201 },
+    );
   } catch (error: unknown) {
-    if (typeof error === "object" && error !== null && "code" in error && (error as { code: string }).code === "P2002") {
-      return NextResponse.json({ error: "This candidate has already applied for this position." }, { status: 409 });
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      (error as { code: string }).code === "P2002"
+    ) {
+      return NextResponse.json(
+        { error: "This candidate has already applied for this position." },
+        { status: 409 },
+      );
     }
     console.error("Create candidate error:", error);
-    return NextResponse.json({ error: "Failed to create candidate. Please try again." }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to create candidate. Please try again." },
+      { status: 500 },
+    );
   }
 }

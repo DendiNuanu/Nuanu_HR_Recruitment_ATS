@@ -4,6 +4,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { unstable_cache } from "next/cache";
 
+export const dynamic = "force-dynamic";
+
 const getPublishedVacancies = unstable_cache(
   async () =>
     prisma.vacancy.findMany({

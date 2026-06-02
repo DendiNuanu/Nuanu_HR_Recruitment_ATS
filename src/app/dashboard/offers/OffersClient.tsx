@@ -135,7 +135,9 @@ export default function OffersClient({
     department: "",
     probationPeriod: "3_months",
   });
-  const [convertErrors, setConvertErrors] = useState<Record<string, string>>({});
+  const [convertErrors, setConvertErrors] = useState<Record<string, string>>(
+    {},
+  );
   const [isConverting, setIsConverting] = useState(false);
 
   const [editFormData, setEditFormData] = useState(defaultEditForm);
@@ -178,6 +180,8 @@ export default function OffersClient({
     ? (offers.find((o) => o.id === openMenuId) ?? null)
     : null;
 
+  const [renderNow] = useState(() => Date.now());
+
   // ── Helpers ───────────────────────────────────────────────────
   const getStatusBadge = (status: string) => {
     const styles: Record<string, string> = {
@@ -208,7 +212,7 @@ export default function OffersClient({
   const getExpiryBadge = (expiresAt: string | null, status: string) => {
     if (!expiresAt || status !== "sent") return null;
     const days = Math.ceil(
-      (new Date(expiresAt).getTime() - Date.now()) / 86_400_000,
+      (new Date(expiresAt).getTime() - renderNow) / 86_400_000,
     );
     if (days < 0)
       return (
@@ -352,11 +356,15 @@ export default function OffersClient({
     // Validate
     const errors: Record<string, string> = {};
     if (!convertForm.startDate) errors.startDate = "Start date is required";
-    else if (new Date(convertForm.startDate) < new Date(new Date().toDateString()))
+    else if (
+      new Date(convertForm.startDate) < new Date(new Date().toDateString())
+    )
       errors.startDate = "Start date cannot be in the past";
     if (!convertForm.entity.trim()) errors.entity = "Entity is required";
-    if (!convertForm.employmentType) errors.employmentType = "Employment type is required";
-    if (!convertForm.department.trim()) errors.department = "Department is required";
+    if (!convertForm.employmentType)
+      errors.employmentType = "Employment type is required";
+    if (!convertForm.department.trim())
+      errors.department = "Department is required";
 
     if (Object.keys(errors).length > 0) {
       setConvertErrors(errors);
@@ -383,13 +391,16 @@ export default function OffersClient({
       const data = await res.json();
 
       if (res.ok) {
-        toast.success(`Employee ${data.employeeCode} created! Onboarding record ready.`, {
-          action: {
-            label: "View Onboarding →",
-            onClick: () => window.location.href = "/dashboard/onboarding",
+        toast.success(
+          `Employee ${data.employeeCode} created! Onboarding record ready.`,
+          {
+            action: {
+              label: "View Onboarding →",
+              onClick: () => (window.location.href = "/dashboard/onboarding"),
+            },
+            duration: 8000,
           },
-          duration: 8000,
-        });
+        );
         setShowConvertModal(false);
         setSelectedOffer(null);
         // Refresh page data
@@ -801,7 +812,9 @@ export default function OffersClient({
                     setSelectedOffer(activeMenuOffer);
                     setConvertForm({
                       startDate: activeMenuOffer.startDate
-                        ? new Date(activeMenuOffer.startDate).toISOString().split("T")[0]
+                        ? new Date(activeMenuOffer.startDate)
+                            .toISOString()
+                            .split("T")[0]
                         : new Date().toISOString().split("T")[0],
                       entity: "Nuanu",
                       employmentType: "Full Time",
@@ -821,7 +834,8 @@ export default function OffersClient({
             )}
 
             {/* Group 3: Danger */}
-            {activeMenuOffer.status === "draft" && (              <>
+            {activeMenuOffer.status === "draft" && (
+              <>
                 <div className="border-t border-gray-100 my-1.5" />
                 <p className="px-3 pb-1.5 text-[10px] font-bold text-red-400 uppercase tracking-widest">
                   Danger
@@ -1202,7 +1216,9 @@ export default function OffersClient({
                     <UserCheck className="w-5 h-5 text-teal-600" />
                   </div>
                   <div>
-                    <h2 className="text-lg font-bold text-gray-900">Convert to Employee</h2>
+                    <h2 className="text-lg font-bold text-gray-900">
+                      Convert to Employee
+                    </h2>
                     <p className="text-sm text-gray-500 mt-0.5">
                       {selectedOffer.candidateName} — {selectedOffer.position}
                     </p>
@@ -1230,13 +1246,18 @@ export default function OffersClient({
                       required
                       value={convertForm.startDate}
                       onChange={(e) => {
-                        setConvertForm({ ...convertForm, startDate: e.target.value });
+                        setConvertForm({
+                          ...convertForm,
+                          startDate: e.target.value,
+                        });
                         setConvertErrors({ ...convertErrors, startDate: "" });
                       }}
                       className="input-field py-3"
                     />
                     {convertErrors.startDate && (
-                      <p className="text-xs text-red-500 mt-1">{convertErrors.startDate}</p>
+                      <p className="text-xs text-red-500 mt-1">
+                        {convertErrors.startDate}
+                      </p>
                     )}
                   </div>
 
@@ -1249,8 +1270,14 @@ export default function OffersClient({
                       required
                       value={convertForm.employmentType}
                       onChange={(e) => {
-                        setConvertForm({ ...convertForm, employmentType: e.target.value });
-                        setConvertErrors({ ...convertErrors, employmentType: "" });
+                        setConvertForm({
+                          ...convertForm,
+                          employmentType: e.target.value,
+                        });
+                        setConvertErrors({
+                          ...convertErrors,
+                          employmentType: "",
+                        });
                       }}
                       className="input-field py-3"
                     >
@@ -1261,7 +1288,9 @@ export default function OffersClient({
                       <option value="Internship">Internship</option>
                     </select>
                     {convertErrors.employmentType && (
-                      <p className="text-xs text-red-500 mt-1">{convertErrors.employmentType}</p>
+                      <p className="text-xs text-red-500 mt-1">
+                        {convertErrors.employmentType}
+                      </p>
                     )}
                   </div>
                 </div>
@@ -1277,14 +1306,19 @@ export default function OffersClient({
                       required
                       value={convertForm.entity}
                       onChange={(e) => {
-                        setConvertForm({ ...convertForm, entity: e.target.value });
+                        setConvertForm({
+                          ...convertForm,
+                          entity: e.target.value,
+                        });
                         setConvertErrors({ ...convertErrors, entity: "" });
                       }}
                       className="input-field py-3"
                       placeholder="e.g. Nuanu Creative City"
                     />
                     {convertErrors.entity && (
-                      <p className="text-xs text-red-500 mt-1">{convertErrors.entity}</p>
+                      <p className="text-xs text-red-500 mt-1">
+                        {convertErrors.entity}
+                      </p>
                     )}
                   </div>
 
@@ -1298,14 +1332,19 @@ export default function OffersClient({
                       required
                       value={convertForm.department}
                       onChange={(e) => {
-                        setConvertForm({ ...convertForm, department: e.target.value });
+                        setConvertForm({
+                          ...convertForm,
+                          department: e.target.value,
+                        });
                         setConvertErrors({ ...convertErrors, department: "" });
                       }}
                       className="input-field py-3"
                       placeholder="e.g. Engineering"
                     />
                     {convertErrors.department && (
-                      <p className="text-xs text-red-500 mt-1">{convertErrors.department}</p>
+                      <p className="text-xs text-red-500 mt-1">
+                        {convertErrors.department}
+                      </p>
                     )}
                   </div>
                 </div>
@@ -1325,7 +1364,12 @@ export default function OffersClient({
                       <button
                         key={opt.value}
                         type="button"
-                        onClick={() => setConvertForm({ ...convertForm, probationPeriod: opt.value })}
+                        onClick={() =>
+                          setConvertForm({
+                            ...convertForm,
+                            probationPeriod: opt.value,
+                          })
+                        }
                         className={`py-2.5 rounded-xl text-sm font-semibold border-2 transition-all ${
                           convertForm.probationPeriod === opt.value
                             ? "bg-teal-600 text-white border-teal-600"
@@ -1344,8 +1388,13 @@ export default function OffersClient({
                   <div>
                     <p className="font-semibold">What happens next:</p>
                     <ul className="mt-1 space-y-0.5 text-xs text-blue-600">
-                      <li>• Employee record created with auto-generated code (EMP-{new Date().getFullYear()}-XXX)</li>
-                      <li>• Onboarding checklist created with 8 default tasks</li>
+                      <li>
+                        • Employee record created with auto-generated code (EMP-
+                        {new Date().getFullYear()}-XXX)
+                      </li>
+                      <li>
+                        • Onboarding checklist created with 8 default tasks
+                      </li>
                       <li>• Offer status updated to "Converted to Employee"</li>
                       <li>• Candidate application moved to Hired stage</li>
                     </ul>
@@ -1368,9 +1417,15 @@ export default function OffersClient({
                     disabled={isConverting}
                   >
                     {isConverting ? (
-                      <><Loader2 className="w-4 h-4 animate-spin" /> Converting...</>
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />{" "}
+                        Converting...
+                      </>
                     ) : (
-                      <><UserCheck className="w-4 h-4" /> Confirm &amp; Convert →</>
+                      <>
+                        <UserCheck className="w-4 h-4" /> Confirm &amp; Convert
+                        →
+                      </>
                     )}
                   </button>
                 </div>

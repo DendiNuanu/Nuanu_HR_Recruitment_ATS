@@ -2,6 +2,8 @@ import { prisma } from "@/lib/prisma";
 import { unstable_cache } from "next/cache";
 import InterviewsClient, { InterviewData } from "./InterviewsClient";
 
+export const dynamic = "force-dynamic";
+
 const getCachedInterviewsData = unstable_cache(
   async () => {
     const interviewsDb = await prisma.interview.findMany({

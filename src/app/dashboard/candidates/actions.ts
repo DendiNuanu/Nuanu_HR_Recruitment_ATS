@@ -38,7 +38,9 @@ export async function updateCandidateOverviewDetails(
         await tx.candidateProfile.upsert({
           where: { userId },
           update: {
-            ...(data.referPosition !== undefined && { referPosition: data.referPosition }),
+            ...(data.referPosition !== undefined && {
+              referPosition: data.referPosition,
+            }),
             ...(data.domicile !== undefined && { domicile: data.domicile }),
             ...(data.salaryExpectation !== undefined && {
               salaryExpectation: data.salaryExpectation,
@@ -58,7 +60,9 @@ export async function updateCandidateOverviewDetails(
           where: { id: applicationId },
           data: {
             ...(data.source !== undefined && { source: data.source }),
-            ...(data.appliedAt !== undefined && { appliedAt: new Date(data.appliedAt) }),
+            ...(data.appliedAt !== undefined && {
+              appliedAt: new Date(data.appliedAt),
+            }),
           },
         });
       }
@@ -92,7 +96,7 @@ export async function updateCandidateStage(
       newStage = "rejected";
     } else if (actionOrStageId === "next") {
       // Fallback for any legacy calls
-      newStage = "assessment"; 
+      newStage = "assessment";
     } else {
       newStage = actionOrStageId;
     }
@@ -119,7 +123,10 @@ export async function updateCandidateStage(
             where: { id: application.vacancyId },
             data: { filledCount: { increment: 1 } },
           });
-        } else if (application.currentStage === "hired" && newStage !== "hired") {
+        } else if (
+          application.currentStage === "hired" &&
+          newStage !== "hired"
+        ) {
           await tx.vacancy.update({
             where: { id: application.vacancyId },
             data: { filledCount: { decrement: 1 } },
@@ -157,6 +164,7 @@ export async function updateCandidateStage(
     }
 
     // ── Auto rejection email to candidate ─────────────────────────────────
+    let rejectionEmailSentTo: string | null = null;
     if ((newStage === "rejected" || newStage === "withdrawn") && candidate) {
       try {
         const appWithVacancy = await prisma.application.findUnique({
@@ -210,9 +218,13 @@ export async function updateCandidateStage(
 </body>
 </html>`,
         });
+        rejectionEmailSentTo = candidate.email;
       } catch (emailErr) {
         // Non-fatal — rejection email failure must never break stage update
-        console.warn("[updateCandidateStage] Rejection email failed:", emailErr);
+        console.warn(
+          "[updateCandidateStage] Rejection email failed:",
+          emailErr,
+        );
       }
     }
 
@@ -223,7 +235,9 @@ export async function updateCandidateStage(
           where: { id: applicationId },
           include: { vacancy: { select: { title: true, departmentId: true } } },
         });
-        const existing = await prisma.employee.findUnique({ where: { userId: candidate.id } });
+        const existing = await prisma.employee.findUnique({
+          where: { userId: candidate.id },
+        });
         if (!existing) {
           const empCode = `EMP-${Date.now().toString(36).toUpperCase()}`;
           const startDate = new Date();
@@ -241,7 +255,10 @@ export async function updateCandidateStage(
           });
         }
       } catch (empErr) {
-        console.warn("[updateCandidateStage] Employee transfer failed (non-fatal):", empErr);
+        console.warn(
+          "[updateCandidateStage] Employee transfer failed (non-fatal):",
+          empErr,
+        );
       }
     }
 
@@ -252,7 +269,8 @@ export async function updateCandidateStage(
     revalidatePath("/dashboard/candidates");
     revalidatePath("/dashboard");
     revalidatePath("/dashboard/pipeline");
-    return { success: true, newStage };
+    revalidatePath("/dashboard/talent-bank");
+    return { success: true, newStage, rejectionEmailSentTo };
   } catch (error) {
     console.error("Failed to update candidate stage:", error);
     return { success: false, error: "Failed to update stage" };

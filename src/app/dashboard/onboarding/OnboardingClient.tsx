@@ -280,7 +280,7 @@ export default function OnboardingClient({
         // Memos
         if (!employeeMemos[expandedId] && !loadingMemos[expandedId]) {
           setLoadingMemos((p) => ({ ...p, [expandedId]: true }));
-          fetch(`/api/memo-hire/${empId}`)
+          fetch(`/api/memo-hire/employee/${empId}`)
             .then((res) => res.json())
             .then((data) => {
               if (data.memos) setEmployeeMemos((p) => ({ ...p, [expandedId]: data.memos }));
@@ -290,7 +290,7 @@ export default function OnboardingClient({
         // Documents
         if (!employeeDocs[expandedId] && !loadingDocs[expandedId]) {
           setLoadingDocs((p) => ({ ...p, [expandedId]: true }));
-          fetch(`/api/employee-documents/${empId}`)
+          fetch(`/api/employee-documents/employee/${empId}`)
             .then((res) => res.json())
             .then((data) => {
               if (data.documents) setEmployeeDocs((p) => ({ ...p, [expandedId]: data.documents }));
@@ -538,7 +538,7 @@ export default function OnboardingClient({
       if (res.ok) {
         toast.success("Document uploaded successfully!");
         // Refresh docs
-        const docRes = await fetch(`/api/employee-documents/${employeeId}`);
+        const docRes = await fetch(`/api/employee-documents/employee/${employeeId}`);
         const docData = await docRes.json();
         if (docData.documents) {
           setEmployeeDocs(p => ({ ...p, [onboardingId]: docData.documents }));
@@ -567,7 +567,7 @@ export default function OnboardingClient({
         setRejectModalDoc(null);
         setRejectionReason("");
         // Refresh docs
-        const docRes = await fetch(`/api/employee-documents/${employeeId}`);
+        const docRes = await fetch(`/api/employee-documents/employee/${employeeId}`);
         const docData = await docRes.json();
         if (docData.documents) {
           setEmployeeDocs(p => ({ ...p, [onboardingId]: docData.documents }));
@@ -1466,7 +1466,7 @@ export default function OnboardingClient({
                                         toast.success("Memo generated successfully!", { id: "genMemo" });
                                         // Refetch memos for this employee
                                         setLoadingMemos((p) => ({ ...p, [item.id]: true }));
-                                        const memoRes = await fetch(`/api/memo-hire/${item.employeeId}`);
+                                        const memoRes = await fetch(`/api/memo-hire/employee/${item.employeeId}`);
                                         const memoData = await memoRes.json();
                                         if (memoData.memos) setEmployeeMemos((p) => ({ ...p, [item.id]: memoData.memos }));
                                         setLoadingMemos((p) => ({ ...p, [item.id]: false }));

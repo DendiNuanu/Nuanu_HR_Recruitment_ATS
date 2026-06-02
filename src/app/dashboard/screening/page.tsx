@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import ScreeningClient, { AssessmentData } from "./ScreeningClient";
 
+export const dynamic = "force-dynamic";
+
 export default async function ScreeningPage() {
   const [templates, assessmentsDb, allAssessments, applicationsDb] =
     await Promise.all([

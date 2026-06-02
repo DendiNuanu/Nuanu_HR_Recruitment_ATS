@@ -1,53 +1,58 @@
 import { prisma } from "@/lib/prisma";
 import OnboardingClient from "./OnboardingClient";
 
+export const dynamic = "force-dynamic";
+
 export default async function OnboardingPage() {
   const now = new Date();
 
-  const [users, applicationsDb, departments, pendingConfirmations] = await Promise.all([
-    prisma.user.findMany({
-      where: { onboardingTasks: { some: {} } },
-      include: {
-        department: true,
-        employeeRecord: {
-          include: { employeeContract: true }
-        },
-        onboardingTasks: { orderBy: { priority: "asc" } },
-        applications: {
-          where: { currentStage: { in: ["hired", "onboarding"] } },
-          include: { vacancy: true },
-          orderBy: { updatedAt: "desc" },
-          take: 1,
-        },
-      },
-      orderBy: { createdAt: "desc" },
-    }),
-    // Show candidates in offer, hired, OR onboarding stage for the dropdown
-    prisma.application.findMany({
-      where: { currentStage: { in: ["offer", "hired", "onboarding"] } },
-      include: { candidate: true, vacancy: true },
-      orderBy: { createdAt: "desc" },
-    }),
-    prisma.department.findMany({ select: { id: true, name: true } }),
-    prisma.onboarding.findMany({
-      where: {
-        onboardingStatus: { in: ["document_collection", "new_hire_confirmation"] },
-        employee: {
-          employeeContract: {
-            is: null,
+  const [users, applicationsDb, departments, pendingConfirmations] =
+    await Promise.all([
+      prisma.user.findMany({
+        where: { onboardingTasks: { some: {} } },
+        include: {
+          department: true,
+          employeeRecord: {
+            include: { employeeContract: true },
+          },
+          onboardingTasks: { orderBy: { priority: "asc" } },
+          applications: {
+            where: { currentStage: { in: ["hired", "onboarding"] } },
+            include: { vacancy: true },
+            orderBy: { updatedAt: "desc" },
+            take: 1,
           },
         },
-      },
-      include: {
-        employee: {
-          include: {
-            user: true,
+        orderBy: { createdAt: "desc" },
+      }),
+      // Show candidates in offer, hired, OR onboarding stage for the dropdown
+      prisma.application.findMany({
+        where: { currentStage: { in: ["offer", "hired", "onboarding"] } },
+        include: { candidate: true, vacancy: true },
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.department.findMany({ select: { id: true, name: true } }),
+      prisma.onboarding.findMany({
+        where: {
+          onboardingStatus: {
+            in: ["document_collection", "new_hire_confirmation"],
+          },
+          employee: {
+            employeeContract: {
+              is: null,
+            },
           },
         },
-      },
-      orderBy: { createdAt: "desc" },
-    }),
-  ]);
+        include: {
+          employee: {
+            include: {
+              user: true,
+            },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+      }),
+    ]);
 
   const onboardings = users.map((u) => {
     const total = u.onboardingTasks.length;

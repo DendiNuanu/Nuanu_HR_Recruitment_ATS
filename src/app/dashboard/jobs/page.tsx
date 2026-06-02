@@ -4,6 +4,8 @@ import { Plus } from "lucide-react";
 import Link from "next/link";
 import JobsClient from "./JobsClient";
 
+export const dynamic = "force-dynamic";
+
 const getCachedJobsData = unstable_cache(
   async () => {
     const [vacancies, departments] = await Promise.all([

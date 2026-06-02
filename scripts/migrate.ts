@@ -13,7 +13,8 @@ async function main() {
     await prisma.$executeRawUnsafe(`
       ALTER TABLE applications
         ADD COLUMN IF NOT EXISTS "emailSentAt" TIMESTAMP,
-        ADD COLUMN IF NOT EXISTS "emailSentSubject" VARCHAR
+        ADD COLUMN IF NOT EXISTS "emailSentSubject" VARCHAR,
+        ALTER COLUMN "currentStage" SET DEFAULT 'new'
     `);
     console.log("[migrate] ✅ applications columns OK");
   } catch (e) {
@@ -107,26 +108,114 @@ async function main() {
     await prisma.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS reference_checks (
         id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-        "applicationId" TEXT NOT NULL,
-        "refereeName" TEXT NOT NULL,
-        relationship TEXT NOT NULL,
-        company TEXT,
-        phone TEXT,
-        email TEXT,
-        feedback TEXT,
-        rating INTEGER,
-        status TEXT NOT NULL DEFAULT 'pending',
-        "checkedById" TEXT,
-        "checkedAt" TIMESTAMP,
-        notes TEXT,
+        candidate_id TEXT NOT NULL,
+        reference_no INTEGER NOT NULL DEFAULT 1,
+        agency_name TEXT,
+        telephone TEXT,
+        city_state TEXT,
+        job_title TEXT,
+        employment_from TEXT,
+        employment_to TEXT,
+        reason_for_leaving TEXT,
+        eligible_for_rehire TEXT,
+        rehire_remarks TEXT,
+        person_providing_info TEXT,
+        person_title TEXT,
+        work_performance TEXT,
+        strengths TEXT,
+        areas_to_improve TEXT,
+        additional_notes TEXT,
+        overall_rating INTEGER,
         recommendation TEXT,
-        "createdAt" TIMESTAMP NOT NULL DEFAULT NOW(),
-        "updatedAt" TIMESTAMP NOT NULL DEFAULT NOW()
+        conducted_by TEXT,
+        conducted_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP NOT NULL DEFAULT NOW()
       )
+    `);
+    await prisma.$executeRawUnsafe(`
+      ALTER TABLE reference_checks
+        ADD COLUMN IF NOT EXISTS candidate_id TEXT,
+        ADD COLUMN IF NOT EXISTS reference_no INTEGER DEFAULT 1,
+        ADD COLUMN IF NOT EXISTS agency_name TEXT,
+        ADD COLUMN IF NOT EXISTS telephone TEXT,
+        ADD COLUMN IF NOT EXISTS city_state TEXT,
+        ADD COLUMN IF NOT EXISTS job_title TEXT,
+        ADD COLUMN IF NOT EXISTS employment_from TEXT,
+        ADD COLUMN IF NOT EXISTS employment_to TEXT,
+        ADD COLUMN IF NOT EXISTS reason_for_leaving TEXT,
+        ADD COLUMN IF NOT EXISTS eligible_for_rehire TEXT,
+        ADD COLUMN IF NOT EXISTS rehire_remarks TEXT,
+        ADD COLUMN IF NOT EXISTS person_providing_info TEXT,
+        ADD COLUMN IF NOT EXISTS person_title TEXT,
+        ADD COLUMN IF NOT EXISTS work_performance TEXT,
+        ADD COLUMN IF NOT EXISTS strengths TEXT,
+        ADD COLUMN IF NOT EXISTS areas_to_improve TEXT,
+        ADD COLUMN IF NOT EXISTS additional_notes TEXT,
+        ADD COLUMN IF NOT EXISTS overall_rating INTEGER,
+        ADD COLUMN IF NOT EXISTS recommendation TEXT,
+        ADD COLUMN IF NOT EXISTS conducted_by TEXT,
+        ADD COLUMN IF NOT EXISTS conducted_at TIMESTAMP DEFAULT NOW(),
+        ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+    `);
+    await prisma.$executeRawUnsafe(`
+      DO $$
+      BEGIN
+        IF EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_name = 'reference_checks' AND column_name = 'applicationId'
+        ) AND NOT EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_name = 'reference_checks' AND column_name = 'candidate_id'
+        ) THEN
+          EXECUTE 'ALTER TABLE reference_checks RENAME COLUMN "applicationId" TO candidate_id';
+        END IF;
+      END $$;
+    `);
+    await prisma
+      .$executeRawUnsafe(
+        `
+      UPDATE reference_checks
+      SET candidate_id = COALESCE(candidate_id, "applicationId")
+      WHERE candidate_id IS NULL
+    `,
+      )
+      .catch(() => undefined);
+    await prisma.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS idx_reference_checks_candidate_id
+      ON reference_checks(candidate_id)
+    `);
+    await prisma.$executeRawUnsafe(`
+      CREATE UNIQUE INDEX IF NOT EXISTS reference_checks_candidate_id_reference_no_key
+      ON reference_checks(candidate_id, reference_no)
     `);
     console.log("[migrate] ✅ reference_checks table OK");
   } catch (e) {
     console.warn("[migrate] reference_checks table (non-fatal):", e);
+  }
+
+  try {
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS reference_check_shares (
+        id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+        application_id TEXT NOT NULL UNIQUE,
+        shared_with_id TEXT NOT NULL,
+        shared_by_id TEXT NOT NULL,
+        share_token TEXT NOT NULL UNIQUE,
+        shared_at TIMESTAMP NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+      )
+    `);
+    await prisma.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS idx_reference_check_shares_shared_with_id
+      ON reference_check_shares(shared_with_id)
+    `);
+    await prisma.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS idx_reference_check_shares_shared_by_id
+      ON reference_check_shares(shared_by_id)
+    `);
+    console.log("[migrate] ✅ reference_check_shares table OK");
+  } catch (e) {
+    console.warn("[migrate] reference_check_shares table (non-fatal):", e);
   }
 
   try {

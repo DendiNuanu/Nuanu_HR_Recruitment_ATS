@@ -3,6 +3,8 @@ import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import ReportsClient from "./ReportsClient";
 
+export const dynamic = "force-dynamic";
+
 export default async function ReportsPage() {
   const session = await getSession();
   if (!session) redirect("/login");
@@ -15,9 +17,15 @@ export default async function ReportsPage() {
     prisma.application.findMany({
       where: { deletedAt: null, createdAt: { gte: startOfYear } },
       select: {
-        id: true, currentStage: true, status: true, source: true,
-        createdAt: true, vacancyId: true,
-        vacancy: { select: { title: true, department: { select: { name: true } } } },
+        id: true,
+        currentStage: true,
+        status: true,
+        source: true,
+        createdAt: true,
+        vacancyId: true,
+        vacancy: {
+          select: { title: true, department: { select: { name: true } } },
+        },
       },
     }),
     prisma.interview.findMany({
@@ -34,7 +42,10 @@ export default async function ReportsPage() {
     prisma.vacancy.findMany({
       where: { deletedAt: null },
       select: {
-        title: true, headcount: true, filledCount: true, status: true,
+        title: true,
+        headcount: true,
+        filledCount: true,
+        status: true,
         department: { select: { name: true } },
       },
     }),
@@ -44,13 +55,27 @@ export default async function ReportsPage() {
   const months = Array.from({ length: 12 }, (_, i) => {
     const m = new Date(year, i, 1);
     const label = m.toLocaleString("en-US", { month: "short" });
-    const apps = applications.filter((a) => a.createdAt.getMonth() === i).length;
-    const ivs = interviews.filter((iv) => iv.scheduledAt.getMonth() === i).length;
-    const hires = applications.filter((a) =>
-      (a.currentStage === "hired" || a.status === "hired") && a.createdAt.getMonth() === i
+    const apps = applications.filter(
+      (a) => a.createdAt.getMonth() === i,
     ).length;
-    const ofrs = offers.filter((o) => o.sentAt && new Date(o.sentAt).getMonth() === i).length;
-    return { month: label, applications: apps, interviews: ivs, hires, offers: ofrs };
+    const ivs = interviews.filter(
+      (iv) => iv.scheduledAt.getMonth() === i,
+    ).length;
+    const hires = applications.filter(
+      (a) =>
+        (a.currentStage === "hired" || a.status === "hired") &&
+        a.createdAt.getMonth() === i,
+    ).length;
+    const ofrs = offers.filter(
+      (o) => o.sentAt && new Date(o.sentAt).getMonth() === i,
+    ).length;
+    return {
+      month: label,
+      applications: apps,
+      interviews: ivs,
+      hires,
+      offers: ofrs,
+    };
   });
 
   // Pipeline stage report
@@ -72,14 +97,26 @@ export default async function ReportsPage() {
     channelMap.set(src, e);
   }
   const channelReport = Array.from(channelMap.entries())
-    .map(([channel, d]) => ({ channel, ...d, conversionRate: d.applications > 0 ? Math.round((d.hires / d.applications) * 100) : 0 }))
+    .map(([channel, d]) => ({
+      channel,
+      ...d,
+      conversionRate:
+        d.applications > 0 ? Math.round((d.hires / d.applications) * 100) : 0,
+    }))
     .sort((a, b) => b.applications - a.applications);
 
   // Interviewer performance
-  const interviewerMap = new Map<string, { count: number; totalRating: number; ratingCount: number }>();
+  const interviewerMap = new Map<
+    string,
+    { count: number; totalRating: number; ratingCount: number }
+  >();
   for (const iv of interviews) {
     const name = iv.interviewer.name;
-    const e = interviewerMap.get(name) ?? { count: 0, totalRating: 0, ratingCount: 0 };
+    const e = interviewerMap.get(name) ?? {
+      count: 0,
+      totalRating: 0,
+      ratingCount: 0,
+    };
     e.count++;
     for (const f of iv.feedback) {
       e.totalRating += f.overallRating;
@@ -89,13 +126,20 @@ export default async function ReportsPage() {
   }
   const interviewerReport = Array.from(interviewerMap.entries())
     .map(([name, d]) => ({
-      name, interviews: d.count,
-      avgRating: d.ratingCount > 0 ? Math.round((d.totalRating / d.ratingCount) * 10) / 10 : null,
+      name,
+      interviews: d.count,
+      avgRating:
+        d.ratingCount > 0
+          ? Math.round((d.totalRating / d.ratingCount) * 10) / 10
+          : null,
     }))
     .sort((a, b) => b.interviews - a.interviews);
 
   // Headcount report
-  const deptMap = new Map<string, { open: number; filled: number; total: number }>();
+  const deptMap = new Map<
+    string,
+    { open: number; filled: number; total: number }
+  >();
   for (const v of vacancies) {
     const dept = v.department?.name ?? "Unknown";
     const e = deptMap.get(dept) ?? { open: 0, filled: 0, total: 0 };

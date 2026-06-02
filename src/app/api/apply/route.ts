@@ -197,7 +197,7 @@ export async function POST(request: Request) {
         candidateId: user.id,
         source: "Careers Page",
         status: "applied",
-        currentStage: "applied",
+        currentStage: "new",
       },
     });
 
@@ -205,10 +205,8 @@ export async function POST(request: Request) {
     Promise.resolve()
       .then(async () => {
         try {
-          // eslint-disable-next-line @typescript-eslint/no-require-imports
-          const {
-            appendCandidateToSheet,
-          } = require("@/lib/integrations/google-sheets");
+          const { appendCandidateToSheet } =
+            await import("@/lib/integrations/google-sheets");
           await appendCandidateToSheet(null, [
             new Date().toISOString(),
             vacancy.title,
@@ -216,7 +214,7 @@ export async function POST(request: Request) {
             email,
             phone || "-",
             `${process.env.NEXT_PUBLIC_APP_URL || ""}/dashboard/candidates`,
-            "applied",
+            "new",
           ]);
         } catch {
           // Non-fatal — sheet sync failure must never break submissions
