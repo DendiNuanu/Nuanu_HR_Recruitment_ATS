@@ -7,10 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import bcrypt from "bcryptjs";
 import { delCache } from "@/lib/cache";
-import {
-  guessResumeMimeType,
-  uploadResumeBase64,
-} from "@/lib/resume-storage";
+import { guessResumeMimeType, uploadResumeBase64 } from "@/lib/resume-storage";
 
 const IMPORT_SECRET = process.env.SEEK_IMPORT_KEY;
 
@@ -42,8 +39,11 @@ type ImportResults = {
 };
 
 const SEEK_STAGE_MAP: Record<string, string> = {
-  New: "talent_bank",
-  Inbox: "talent_bank",
+  New: "new",
+  Inbox: "new",
+  "Talent Bank": "talent_bank",
+  "Talent bank": "talent_bank",
+  TalentBank: "talent_bank",
   Prescreen: "screening",
   Shortlist: "screening",
   Suitable: "screening",
@@ -64,12 +64,12 @@ function isAuthorized(request: NextRequest): boolean {
 }
 
 function mapSeekStatus(seekStatus: string | undefined): string {
-  if (!seekStatus) return "talent_bank";
+  if (!seekStatus) return "new";
   const trimmed = seekStatus.trim();
   return (
     SEEK_STAGE_MAP[trimmed] ??
     SEEK_STAGE_MAP[trimmed.replace(/\s+/g, " ")] ??
-    "talent_bank"
+    "new"
   );
 }
 
@@ -106,9 +106,12 @@ function normalizePhone(phone: string | null | undefined): string | null {
   return cleaned || null;
 }
 
-function parseExperienceYears(experience: string | number | undefined): number | undefined {
+function parseExperienceYears(
+  experience: string | number | undefined,
+): number | undefined {
   if (experience == null) return undefined;
-  if (typeof experience === "number" && !Number.isNaN(experience)) return experience;
+  if (typeof experience === "number" && !Number.isNaN(experience))
+    return experience;
   const match = String(experience).match(/(\d+)/);
   return match ? parseInt(match[1], 10) : undefined;
 }
@@ -125,7 +128,8 @@ const SEEK_ROLE_VACANCY_ENV: Record<string, string | undefined> = {
   "safety officer": process.env.SEEK_VACANCY_SAFETY_OFFICER,
 };
 
-const SEEK_AUTO_CREATE_VACANCIES = process.env.SEEK_AUTO_CREATE_VACANCIES !== "false";
+const SEEK_AUTO_CREATE_VACANCIES =
+  process.env.SEEK_AUTO_CREATE_VACANCIES !== "false";
 
 function seekVacancyCode(role: string): string {
   const slug = role
@@ -230,7 +234,11 @@ async function ensureVacancyForSeekRole(
       where: { id: fallback, deletedAt: null },
       select: { title: true },
     });
-    return { vacancyId: fallback, created: false, title: row?.title ?? "Vacancy" };
+    return {
+      vacancyId: fallback,
+      created: false,
+      title: row?.title ?? "Vacancy",
+    };
   }
 
   if (!SEEK_AUTO_CREATE_VACANCIES) return null;
@@ -312,7 +320,9 @@ async function findExistingUser(
   return null;
 }
 
-async function resolveSeekResumeUrl(raw: SeekCandidateInput): Promise<string | null> {
+async function resolveSeekResumeUrl(
+  raw: SeekCandidateInput,
+): Promise<string | null> {
   if (raw.resumeUrl?.trim()) return raw.resumeUrl.trim();
 
   if (!raw.resumeBase64?.trim()) return null;
@@ -364,9 +374,16 @@ async function attachResumeToCandidate(
 }
 
 /** Stable id from phone when SEEK list has no email — not a random throwaway per import. */
-function resolveImportEmail(raw: SeekCandidateInput, phone: string | null): string | null {
+function resolveImportEmail(
+  raw: SeekCandidateInput,
+  phone: string | null,
+): string | null {
   const explicit = raw.email?.trim().toLowerCase();
-  if (explicit && !explicit.includes("@noemail") && !explicit.includes("@import.")) {
+  if (
+    explicit &&
+    !explicit.includes("@noemail") &&
+    !explicit.includes("@import.")
+  ) {
     return explicit;
   }
   if (phone) {
@@ -376,9 +393,7 @@ function resolveImportEmail(raw: SeekCandidateInput, phone: string | null): stri
   return null;
 }
 
-async function importOneCandidate(
-  raw: SeekCandidateInput,
-): Promise<
+async function importOneCandidate(raw: SeekCandidateInput): Promise<
   | {
       status: "imported";
       vacancyCreated: boolean;
@@ -392,12 +407,13 @@ async function importOneCandidate(
   const email = resolveImportEmail(raw, phone);
 
   if (!email) {
-    throw new Error("Candidate needs a phone number (email not shown on SEEK list page)");
+    throw new Error(
+      "Candidate needs a phone number (email not shown on SEEK list page)",
+    );
   }
-  const stage = mapSeekStatus(raw.seekStatus);
+  const mappedStage = mapSeekStatus(raw.seekStatus);
   const appliedAt = parseSeekAppliedAt(raw.appliedAt);
-  const seekLocation =
-    raw.domicile?.trim() || raw.location?.trim() || null;
+  const seekLocation = raw.domicile?.trim() || raw.location?.trim() || null;
   const seekAppliedRole = raw.appliedRole?.trim() || null;
   const currentEmployment = raw.mostRecentRole?.trim() || null;
   const experienceYears = parseExperienceYears(raw.experience);
@@ -436,10 +452,10 @@ async function importOneCandidate(
       await prisma.application.update({
         where: { id: existingApp.id },
         data: {
-          currentStage: stage,
-          status: applicationStatusForStage(stage),
+          currentStage: mappedStage,
+          status: applicationStatusForStage(mappedStage),
           appliedAt,
-          ...(stage === "rejected" ? { rejectedAt: new Date() } : {}),
+          ...(mappedStage === "rejected" ? { rejectedAt: new Date() } : {}),
         },
       });
       if (seekLocation) {
@@ -474,7 +490,10 @@ async function importOneCandidate(
     }
   }
 
-  const randomPassword = await bcrypt.hash(Math.random().toString(36).slice(-10), 10);
+  const randomPassword = await bcrypt.hash(
+    Math.random().toString(36).slice(-10),
+    10,
+  );
 
   const user = await prisma.user.upsert({
     where: { email },
@@ -500,7 +519,9 @@ async function importOneCandidate(
       ...(resumeUrl ? { resumeUrl } : {}),
       ...(currentEmployment ? { currentTitle: currentEmployment } : {}),
       ...(seekAppliedRole ? { referPosition: seekAppliedRole } : {}),
-      ...(raw.mostRecentRole ? { currentCompany: raw.mostRecentRole.trim() } : {}),
+      ...(raw.mostRecentRole
+        ? { currentCompany: raw.mostRecentRole.trim() }
+        : {}),
       ...(experienceYears != null ? { experienceYears } : {}),
       ...(typeof raw.experience === "string" && raw.experience.trim()
         ? { summary: raw.experience.trim() }
@@ -513,7 +534,9 @@ async function importOneCandidate(
       ...(resumeUrl ? { resumeUrl } : {}),
       ...(currentEmployment ? { currentTitle: currentEmployment } : {}),
       ...(seekAppliedRole ? { referPosition: seekAppliedRole } : {}),
-      ...(raw.mostRecentRole ? { currentCompany: raw.mostRecentRole.trim() } : {}),
+      ...(raw.mostRecentRole
+        ? { currentCompany: raw.mostRecentRole.trim() }
+        : {}),
       ...(experienceYears != null ? { experienceYears } : {}),
       ...(typeof raw.experience === "string" && raw.experience.trim()
         ? { summary: raw.experience.trim() }
@@ -526,10 +549,10 @@ async function importOneCandidate(
       vacancyId,
       candidateId: user.id,
       source: "SEEK",
-      status: applicationStatusForStage(stage),
-      currentStage: stage,
+      status: applicationStatusForStage("new"),
+      currentStage: "new",
       appliedAt: Number.isNaN(appliedAt.getTime()) ? new Date() : appliedAt,
-      ...(stage === "rejected" ? { rejectedAt: new Date() } : {}),
+      ...(mappedStage === "rejected" ? { rejectedAt: new Date() } : {}),
     },
   });
 
@@ -587,7 +610,10 @@ export async function POST(request: NextRequest) {
 
   const candidates = body.candidates;
   if (!Array.isArray(candidates) || candidates.length === 0) {
-    return NextResponse.json({ error: "No candidates provided" }, { status: 400 });
+    return NextResponse.json(
+      { error: "No candidates provided" },
+      { status: 400 },
+    );
   }
 
   const results: ImportResults = {
@@ -616,7 +642,9 @@ export async function POST(request: NextRequest) {
           : candidate.resumeBase64
             ? ", CV missing (configure Supabase on Vercel)"
             : "";
-        results.details.push(`OK: ${label} → stage: ${stage}${vacancyNote}${cvNote}`);
+        results.details.push(
+          `OK: ${label} → stage: ${stage}${vacancyNote}${cvNote}`,
+        );
       }
     } catch (err: unknown) {
       results.errors++;
