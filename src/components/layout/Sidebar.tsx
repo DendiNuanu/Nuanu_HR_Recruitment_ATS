@@ -27,6 +27,7 @@ import {
   UserCheck,
   BarChart2,
   Gift,
+  Bookmark,
 } from "lucide-react";
 
 const menuItems = [
@@ -52,12 +53,25 @@ const menuItems = [
     label: "Candidates",
     href: "/dashboard/candidates",
     icon: Users,
-    allowed: ["admin", "super-admin", "hr", "recruiter", "interviewer", "manager"],
+    allowed: [
+      "admin",
+      "super-admin",
+      "hr",
+      "recruiter",
+      "interviewer",
+      "manager",
+    ],
   },
   {
     label: "Pipeline",
     href: "/dashboard/pipeline",
     icon: Kanban,
+    allowed: ["admin", "super-admin", "hr", "recruiter"],
+  },
+  {
+    label: "Talent Bank",
+    href: "/dashboard/talent-bank",
+    icon: Bookmark,
     allowed: ["admin", "super-admin", "hr", "recruiter"],
   },
   {
@@ -112,7 +126,15 @@ const menuItems = [
     label: "Notifications",
     href: "/dashboard/notifications",
     icon: Bell,
-    allowed: ["admin", "super-admin", "hr", "recruiter", "manager", "interviewer", "finance"],
+    allowed: [
+      "admin",
+      "super-admin",
+      "hr",
+      "recruiter",
+      "manager",
+      "interviewer",
+      "finance",
+    ],
   },
   {
     label: "Settings",
@@ -122,6 +144,23 @@ const menuItems = [
   },
 ];
 
+type SidebarUser = {
+  name?: string;
+  email?: string;
+  roles?: string[];
+};
+
+function readStoredUser(): SidebarUser | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const storedUser = window.localStorage.getItem("nuanu_user");
+    if (!storedUser) return null;
+    return JSON.parse(storedUser) as SidebarUser;
+  } catch {
+    return null;
+  }
+}
+
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
@@ -129,16 +168,12 @@ export default function Sidebar() {
     useSidebarStore();
   const [logo, setLogo] = useState<string | null>(null);
   const [companyName, setCompanyName] = useState("Nuanu");
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<SidebarUser | null>(null);
+  const [isClientLoaded, setIsClientLoaded] = useState(false);
 
   useEffect(() => {
-    // Hydrate user immediately from localStorage (no network wait)
-    try {
-      const storedUser = localStorage.getItem("nuanu_user");
-      if (storedUser) setUser(JSON.parse(storedUser));
-    } catch {
-      // ignore malformed cache
-    }
+    setUser(readStoredUser());
+    setIsClientLoaded(true);
 
     async function loadBranding() {
       const CACHE_TTL = 10 * 60 * 1000;
@@ -160,7 +195,8 @@ export default function Sidebar() {
       const brandData = {
         logo: (settings?.config as { logo?: string })?.logo ?? null,
         companyName:
-          (settings?.config as { companyName?: string })?.companyName ?? "Nuanu",
+          (settings?.config as { companyName?: string })?.companyName ??
+          "Nuanu",
       };
       try {
         localStorage.setItem(
@@ -188,9 +224,12 @@ export default function Sidebar() {
     return pathname.startsWith(href);
   };
 
-  const userRoles = user?.roles?.map((r: string) => r.toLowerCase()) || [];
+  const userRoles = isClientLoaded
+    ? user?.roles?.map((r: string) => r.toLowerCase()) || []
+    : [];
 
   const filteredMenuItems = menuItems.filter((item) => {
+    if (!isClientLoaded) return true;
     if (userRoles.includes("super-admin")) return true;
     return item.allowed.some((role) => userRoles.includes(role));
   });
