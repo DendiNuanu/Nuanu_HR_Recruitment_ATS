@@ -41,6 +41,7 @@ import {
 } from "./actions";
 import {
   formatDate,
+  formatDateTime,
   PIPELINE_STAGES,
   SOURCE_PRESET_OPTIONS,
   normalizePipelineStage,
@@ -189,9 +190,9 @@ function getEmailSentTimestamp(
 }
 
 function formatEmailSentShort(sentAt: string) {
-  const sentDate = new Date(sentAt);
-  if (Number.isNaN(sentDate.getTime())) return null;
-  return `${String(sentDate.getDate()).padStart(2, "0")}/${String(sentDate.getMonth() + 1).padStart(2, "0")} · ${String(sentDate.getHours()).padStart(2, "0")}:${String(sentDate.getMinutes()).padStart(2, "0")}`;
+  const formatted = formatDateTime(sentAt);
+  if (formatted === "—") return null;
+  return formatted.replace(",", " ·");
 }
 
 function timestampMs(iso: string | undefined) {
@@ -1255,17 +1256,8 @@ export default function CandidatesTable({
                     {/* Email button + persistent sent badge */}
                     {(() => {
                       const sentAt = emailSentTimestamp;
-                      const sentDate = sentAt ? new Date(sentAt) : null;
                       const shortTs = rejectionEmailSentShort;
-                      const fullTs = sentDate
-                        ? sentDate.toLocaleString("en-GB", {
-                            day: "2-digit",
-                            month: "2-digit",
-                            year: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })
-                        : null;
+                      const fullTs = sentAt ? formatDateTime(sentAt) : null;
                       const sentLabel = rejectionEmailSent
                         ? "Rejection sent"
                         : "Email sent";

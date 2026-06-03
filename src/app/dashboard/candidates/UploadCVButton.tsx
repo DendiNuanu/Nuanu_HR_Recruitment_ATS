@@ -55,6 +55,17 @@ const STAGES = PIPELINE_STAGES.map((s) => ({ value: s.id, label: s.label }));
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
+async function apiFetch(url: string, init?: RequestInit) {
+  const res = await fetch(url, {
+    ...init,
+    credentials: "same-origin",
+  });
+  if (res.status === 401) {
+    throw new Error("Session expired. Please sign in again.");
+  }
+  return res;
+}
+
 // ── Component ──────────────────────────────────────────────────────────────
 
 export default function UploadCVButton({
@@ -169,7 +180,7 @@ export default function UploadCVButton({
         `Creating candidate profile via ${engine.toUpperCase()}...`,
       );
 
-      const res = await fetch("/api/candidates", {
+      const res = await apiFetch("/api/candidates", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -238,7 +249,7 @@ export default function UploadCVButton({
       const fd = new FormData();
       fd.append("cv", f);
 
-      const res = await fetch("/api/candidates/upload-cv", {
+      const res = await apiFetch("/api/candidates/upload-cv", {
         method: "POST",
         body: fd,
       });
@@ -333,7 +344,7 @@ export default function UploadCVButton({
     setStep("submitting");
 
     try {
-      const res = await fetch("/api/candidates", {
+      const res = await apiFetch("/api/candidates", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

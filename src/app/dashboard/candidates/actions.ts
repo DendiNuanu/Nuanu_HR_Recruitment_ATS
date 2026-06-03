@@ -8,6 +8,7 @@ import { delCache } from "@/lib/cache";
 import { getSession } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { normalizePipelineStage } from "@/lib/utils";
+import { deleteCandidatesByEmails } from "@/lib/delete-candidate";
 
 function buildRejectionEmailBodies(params: {
   candidateName: string;
@@ -347,6 +348,50 @@ export async function updateCandidateStage(
   } catch (error) {
     console.error("Failed to update candidate stage:", error);
     return { success: false, error: "Failed to update stage" };
+  }
+}
+
+/** Permanently remove a duplicate candidate (and applications) by email — admin only. */
+export async function deleteCandidateByEmail(email: string) {
+  try {
+    const session = await getSession();
+    if (!session) return { success: false, error: "Unauthorized" };
+
+    const roles = session.roles ?? [];
+    if (!roles.some((r) => r === "admin" || r === "super_admin")) {
+      return { success: false, error: "Forbidden" };
+    }
+
+    const trimmed = email.trim();
+    if (!trimmed) {
+      return { success: false, error: "Email is required" };
+    }
+
+    const result = await deleteCandidatesByEmails(prisma, [trimmed], {
+      execute: true,
+    });
+
+    if (result.deleted.length === 0) {
+      return { success: false, error: "No candidate found with that email" };
+    }
+
+    await delCache("dashboard_metrics");
+    updateTag("applications");
+    updateTag("candidates");
+    updateTag("dashboard");
+    revalidatePath("/dashboard/candidates");
+    revalidatePath("/dashboard/pipeline");
+    revalidatePath("/dashboard/talent-bank");
+
+    return {
+      success: true,
+      deleted: result.deleted,
+    };
+  } catch (error) {
+    console.error("deleteCandidateByEmail error:", error);
+    const message =
+      error instanceof Error ? error.message : "Failed to delete candidate";
+    return { success: false, error: message };
   }
 }
 
