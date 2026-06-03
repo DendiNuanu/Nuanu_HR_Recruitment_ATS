@@ -393,8 +393,7 @@ export default function CandidatesTable({
       const rejectionSentAt = result.rejectionEmailSentAt;
       const leftRejected =
         result.clearedRejectionEmail ||
-        (isRejectedStage(previousStage) &&
-          !isRejectedStage(result.newStage));
+        (isRejectedStage(previousStage) && !isRejectedStage(result.newStage));
 
       if (leftRejected) {
         setEmailSentMap((prev) => {
@@ -424,8 +423,7 @@ export default function CandidatesTable({
                     ? {
                         emailSentAt: rejectionSentAt,
                         emailSentSubject:
-                          result.rejectionEmailSubject ??
-                          "Rejection email",
+                          result.rejectionEmailSubject ?? "Rejection email",
                       }
                     : {}),
               }
@@ -531,10 +529,7 @@ export default function CandidatesTable({
       ),
     );
     try {
-      const result = await updateCandidateStage(
-        applicationId,
-        targetCanonical,
-      );
+      const result = await updateCandidateStage(applicationId, targetCanonical);
       applyStageUpdateResult(
         applicationId,
         result,
@@ -1132,7 +1127,11 @@ export default function CandidatesTable({
               <th>Stage</th>
               <th>AI Match</th>
               <th>Applied</th>
-              <th className="min-w-[300px] text-right pr-4">Actions</th>
+              <th className="min-w-[300px] pr-4">
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                  Actions
+                </div>
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -1149,195 +1148,196 @@ export default function CandidatesTable({
                 : null;
 
               return (
-              <tr key={candidate.id}>
-                <td className="pl-6">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-100 to-teal-100 text-emerald-700 flex items-center justify-center font-bold text-sm shadow-sm border border-emerald-200">
-                      {candidate.name
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")
-                        .substring(0, 2)
-                        .toUpperCase()}
+                <tr key={candidate.id}>
+                  <td className="pl-6">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-100 to-teal-100 text-emerald-700 flex items-center justify-center font-bold text-sm shadow-sm border border-emerald-200">
+                        {candidate.name
+                          .split(" ")
+                          .map((n) => n[0])
+                          .join("")
+                          .substring(0, 2)
+                          .toUpperCase()}
+                      </div>
+                      <div>
+                        <p className="font-semibold text-nuanu-navy leading-tight">
+                          {candidate.name}
+                        </p>
+                        <p className="text-xs text-nuanu-gray-500">
+                          {candidate.email}
+                        </p>
+                        {candidate.source?.toLowerCase() === "seek" && (
+                          <span className="inline-block mt-1 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-100">
+                            SEEK
+                          </span>
+                        )}
+                        {rejectionEmailSent && (
+                          <span
+                            className="mt-1.5 inline-flex items-center gap-1 rounded-full border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-800"
+                            title={`Rejection email sent${rejectionEmailSentShort ? ` on ${rejectionEmailSentShort}` : ""}`}
+                          >
+                            <CheckCircle2 className="h-3 w-3 flex-shrink-0" />
+                            Rejection email sent
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-semibold text-nuanu-navy leading-tight">
-                        {candidate.name}
+                  </td>
+                  <td>
+                    <p className="font-medium text-nuanu-navy leading-tight">
+                      {candidate.vacancyTitle}
+                    </p>
+                    {candidate.location && candidate.location !== "—" ? (
+                      <p className="text-[11px] text-nuanu-gray-400 mt-0.5">
+                        {candidate.location}
                       </p>
-                      <p className="text-xs text-nuanu-gray-500">
-                        {candidate.email}
-                      </p>
-                      {candidate.source?.toLowerCase() === "seek" && (
-                        <span className="inline-block mt-1 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-100">
-                          SEEK
-                        </span>
-                      )}
+                    ) : null}
+                  </td>
+                  <td>
+                    <div className="flex flex-col items-start gap-1.5">
+                      <span
+                        className={`badge ${
+                          resolvePipelineColumn(candidate.stage) === "hired"
+                            ? "bg-emerald-100 text-emerald-700 border-emerald-200"
+                            : resolvePipelineColumn(candidate.stage) ===
+                                "rejected"
+                              ? "bg-red-100 text-red-700 border-red-200"
+                              : resolvePipelineColumn(candidate.stage) ===
+                                  "talent_bank"
+                                ? "bg-slate-100 text-slate-700 border-slate-200"
+                                : "bg-blue-50 text-blue-700 border-blue-100"
+                        } border uppercase tracking-wider text-[9px] font-bold px-2 py-1`}
+                      >
+                        {stageLabel(candidate.stage)}
+                      </span>
                       {rejectionEmailSent && (
                         <span
-                          className="mt-1.5 inline-flex items-center gap-1 rounded-full border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-800"
-                          title={`Rejection email sent${rejectionEmailSentShort ? ` on ${rejectionEmailSentShort}` : ""}`}
+                          className="inline-flex items-center gap-1 rounded-md bg-emerald-600 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm"
+                          title={`Rejection email delivered${rejectionEmailSentShort ? ` · ${rejectionEmailSentShort}` : ""}`}
                         >
-                          <CheckCircle2 className="h-3 w-3 flex-shrink-0" />
-                          Rejection email sent
+                          <Mail className="h-3 w-3 flex-shrink-0" />
+                          Email sent
                         </span>
                       )}
                     </div>
-                  </div>
-                </td>
-                <td>
-                  <p className="font-medium text-nuanu-navy leading-tight">
-                    {candidate.vacancyTitle}
-                  </p>
-                  {candidate.location && candidate.location !== "—" ? (
-                    <p className="text-[11px] text-nuanu-gray-400 mt-0.5">
-                      {candidate.location}
-                    </p>
-                  ) : null}
-                </td>
-                <td>
-                  <div className="flex flex-col items-start gap-1.5">
-                    <span
-                      className={`badge ${
-                        resolvePipelineColumn(candidate.stage) === "hired"
-                          ? "bg-emerald-100 text-emerald-700 border-emerald-200"
-                          : resolvePipelineColumn(candidate.stage) === "rejected"
-                            ? "bg-red-100 text-red-700 border-red-200"
-                            : resolvePipelineColumn(candidate.stage) ===
-                                "talent_bank"
-                              ? "bg-slate-100 text-slate-700 border-slate-200"
-                              : "bg-blue-50 text-blue-700 border-blue-100"
-                      } border uppercase tracking-wider text-[9px] font-bold px-2 py-1`}
-                    >
-                      {stageLabel(candidate.stage)}
-                    </span>
-                    {rejectionEmailSent && (
-                      <span
-                        className="inline-flex items-center gap-1 rounded-md bg-emerald-600 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm"
-                        title={`Rejection email delivered${rejectionEmailSentShort ? ` · ${rejectionEmailSentShort}` : ""}`}
-                      >
-                        <Mail className="h-3 w-3 flex-shrink-0" />
-                        Email sent
+                  </td>
+                  <td>
+                    <div className="flex items-center gap-2">
+                      <div className="w-full max-w-[80px] h-1.5 bg-nuanu-gray-100 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-500 ${candidate.score >= 80 ? "bg-nuanu-emerald shadow-[0_0_8px_rgba(16,185,129,0.3)]" : candidate.score >= 60 ? "bg-nuanu-warning" : "bg-nuanu-error"}`}
+                          style={{ width: `${candidate.score}%` }}
+                        />
+                      </div>
+                      <span className="text-xs font-bold text-nuanu-navy min-w-[30px]">
+                        {Math.round(candidate.score)}%
                       </span>
-                    )}
-                  </div>
-                </td>
-                <td>
-                  <div className="flex items-center gap-2">
-                    <div className="w-full max-w-[80px] h-1.5 bg-nuanu-gray-100 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full rounded-full transition-all duration-500 ${candidate.score >= 80 ? "bg-nuanu-emerald shadow-[0_0_8px_rgba(16,185,129,0.3)]" : candidate.score >= 60 ? "bg-nuanu-warning" : "bg-nuanu-error"}`}
-                        style={{ width: `${candidate.score}%` }}
-                      />
                     </div>
-                    <span className="text-xs font-bold text-nuanu-navy min-w-[30px]">
-                      {Math.round(candidate.score)}%
+                  </td>
+                  <td>
+                    <span className="text-sm font-medium text-nuanu-navy whitespace-nowrap">
+                      {formatDate(candidate.appliedAt)}
                     </span>
-                  </div>
-                </td>
-                <td>
-                  <span className="text-sm font-medium text-nuanu-navy whitespace-nowrap">
-                    {formatDate(candidate.appliedAt)}
-                  </span>
-                </td>
-                <td className="min-w-[300px] text-right pr-4">
-                  <div className="flex flex-wrap items-center justify-end gap-2">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openProfile(candidate);
-                      }}
-                      className="p-2 text-nuanu-gray-400 hover:text-nuanu-emerald bg-nuanu-gray-50 hover:bg-emerald-50 rounded-lg transition-all hover:scale-110"
-                      title="View Profile"
-                      aria-label={`View profile for ${candidate.name}`}
-                    >
-                      <Eye className="w-4 h-4" />
-                    </button>
-                    {/* Email button + persistent sent badge */}
-                    {(() => {
-                      const sentAt = emailSentTimestamp;
-                      const shortTs = rejectionEmailSentShort;
-                      const fullTs = sentAt ? formatDateTime(sentAt) : null;
-                      const sentLabel = rejectionEmailSent
-                        ? "Rejection sent"
-                        : "Email sent";
+                  </td>
+                  <td className="min-w-[300px] text-right pr-4">
+                    <div className="flex flex-wrap items-center justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openProfile(candidate);
+                        }}
+                        className="p-2 text-nuanu-gray-400 hover:text-nuanu-emerald bg-nuanu-gray-50 hover:bg-emerald-50 rounded-lg transition-all hover:scale-110"
+                        title="View Profile"
+                        aria-label={`View profile for ${candidate.name}`}
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
+                      {/* Email button + persistent sent badge */}
+                      {(() => {
+                        const sentAt = emailSentTimestamp;
+                        const shortTs = rejectionEmailSentShort;
+                        const fullTs = sentAt ? formatDateTime(sentAt) : null;
+                        const sentLabel = rejectionEmailSent
+                          ? "Rejection sent"
+                          : "Email sent";
 
-                      return (
-                        <div className="flex flex-wrap items-center justify-end gap-1.5">
-                          <button
-                            onClick={() => openEmailModal(candidate)}
-                            className={`p-2 rounded-lg transition-all hover:scale-110 flex-shrink-0 ${
-                              sentAt
-                                ? "text-emerald-700 bg-emerald-50 hover:bg-emerald-100"
-                                : "text-nuanu-gray-400 hover:text-blue-600 bg-nuanu-gray-50 hover:bg-blue-50"
-                            }`}
-                            title={
-                              sentAt
-                                ? `Email sent on ${fullTs}. Click to send another.`
-                                : "Send Email"
-                            }
-                          >
-                            {sentAt ? (
-                              <CheckCircle2 className="w-4 h-4" />
-                            ) : (
-                              <Mail className="w-4 h-4" />
-                            )}
-                          </button>
-
-                          {sentAt && (
-                            <div
-                              className="flex items-center gap-1.5 flex-shrink-0"
-                              title={`${sentLabel} on ${fullTs}. Click icon to send another.`}
+                        return (
+                          <div className="flex flex-wrap items-center justify-end gap-1.5">
+                            <button
+                              onClick={() => openEmailModal(candidate)}
+                              className={`p-2 rounded-lg transition-all hover:scale-110 flex-shrink-0 ${
+                                sentAt
+                                  ? "text-emerald-700 bg-emerald-50 hover:bg-emerald-100"
+                                  : "text-nuanu-gray-400 hover:text-blue-600 bg-nuanu-gray-50 hover:bg-blue-50"
+                              }`}
+                              title={
+                                sentAt
+                                  ? `Email sent on ${fullTs}. Click to send another.`
+                                  : "Send Email"
+                              }
                             >
-                              <span
-                                className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold shadow-sm ${
-                                  rejectionEmailSent
-                                    ? "border border-emerald-400 bg-emerald-600 text-white"
-                                    : "border border-[#5DCAA5] bg-[#E1F5EE] text-[#085041]"
-                                }`}
-                              >
-                                <Check className="h-3 w-3 flex-shrink-0" />
-                                {sentLabel}
-                              </span>
-                              {shortTs && (
-                                <span className="text-[11px] font-medium text-nuanu-gray-500 whitespace-nowrap">
-                                  {shortTs}
-                                </span>
+                              {sentAt ? (
+                                <CheckCircle2 className="w-4 h-4" />
+                              ) : (
+                                <Mail className="w-4 h-4" />
                               )}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })()}
-                    <div className="relative">
-                      {loadingActionId === candidate.id ? (
-                        <div className="p-2 text-nuanu-emerald">
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        </div>
-                      ) : (
-                        <select
-                          className="py-2 px-3 text-xs font-semibold bg-nuanu-gray-50 hover:bg-nuanu-gray-100 border border-nuanu-gray-200 text-nuanu-navy rounded-lg cursor-pointer outline-none transition-colors"
-                          value={resolvePipelineColumn(candidate.stage)}
-                          onChange={(e) =>
-                            handleStageSelect(
-                              candidate.id,
-                              e.target.value,
-                              resolvePipelineColumn(candidate.stage),
-                            )
-                          }
-                          title="Change Stage"
-                        >
-                          {PIPELINE_STAGES.map((s) => (
-                            <option key={s.id} value={s.id}>
-                              {s.label}
-                            </option>
-                          ))}
-                        </select>
-                      )}
+                            </button>
+
+                            {sentAt && (
+                              <div
+                                className="flex items-center gap-1.5 flex-shrink-0"
+                                title={`${sentLabel} on ${fullTs}. Click icon to send another.`}
+                              >
+                                <span
+                                  className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold shadow-sm ${
+                                    rejectionEmailSent
+                                      ? "border border-emerald-400 bg-emerald-600 text-white"
+                                      : "border border-[#5DCAA5] bg-[#E1F5EE] text-[#085041]"
+                                  }`}
+                                >
+                                  <Check className="h-3 w-3 flex-shrink-0" />
+                                  {sentLabel}
+                                </span>
+                                {shortTs && (
+                                  <span className="text-[11px] font-medium text-nuanu-gray-500 whitespace-nowrap">
+                                    {shortTs}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
+                      <div className="relative">
+                        {loadingActionId === candidate.id ? (
+                          <div className="p-2 text-nuanu-emerald">
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          </div>
+                        ) : (
+                          <select
+                            className="py-2 px-3 text-xs font-semibold bg-nuanu-gray-50 hover:bg-nuanu-gray-100 border border-nuanu-gray-200 text-nuanu-navy rounded-lg cursor-pointer outline-none transition-colors"
+                            value={resolvePipelineColumn(candidate.stage)}
+                            onChange={(e) =>
+                              handleStageSelect(
+                                candidate.id,
+                                e.target.value,
+                                resolvePipelineColumn(candidate.stage),
+                              )
+                            }
+                            title="Change Stage"
+                          >
+                            {PIPELINE_STAGES.map((s) => (
+                              <option key={s.id} value={s.id}>
+                                {s.label}
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </td>
-              </tr>
+                  </td>
+                </tr>
               );
             })}
           </tbody>
