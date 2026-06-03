@@ -20,6 +20,12 @@ export async function moveApplication(applicationId: string, toStage: string) {
       return { success: false, error: "Invalid stage" };
     }
 
+    const beforeMove = await prisma.application.findUnique({
+      where: { id: applicationId },
+      select: { currentStage: true },
+    });
+    const previousStage = beforeMove?.currentStage ?? null;
+
     const app = await prisma.application.update({
       where: { id: applicationId },
       data: {
@@ -94,11 +100,14 @@ export async function moveApplication(applicationId: string, toStage: string) {
     }
 
     let rejectionEmailSentTo: string | null = null;
-    if (stage === "rejected") {
+    const shouldSendRejectionEmail =
+      stage === "rejected" && previousStage !== "rejected";
+    if (shouldSendRejectionEmail) {
       try {
-        await sendEmail({
+        const rejectionSubject = `Application Update — ${app.vacancy.title}`;
+        const emailResult = await sendEmail({
           to: app.candidate.email,
-          subject: `Application Update — ${app.vacancy.title}`,
+          subject: rejectionSubject,
           html: `
             <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:32px;">
               <h2>Thank you for your interest in Nuanu</h2>
@@ -111,7 +120,22 @@ export async function moveApplication(applicationId: string, toStage: string) {
             </div>
           `,
         });
-        rejectionEmailSentTo = app.candidate.email;
+        if (emailResult.success) {
+          rejectionEmailSentTo = app.candidate.email;
+          const sentAt = new Date();
+          await prisma.application.update({
+            where: { id: applicationId },
+            data: {
+              emailSentAt: sentAt,
+              emailSentSubject: rejectionSubject,
+            },
+          });
+        } else {
+          console.error(
+            "Rejection email failed (non-blocking):",
+            emailResult.error,
+          );
+        }
       } catch (emailErr) {
         console.error("Rejection email failed (non-blocking):", emailErr);
       }

@@ -23,7 +23,7 @@ interface AssessmentResult {
   maxScore: number;
   passThreshold: number;
   isPassed: boolean | null;
-  completedAt: string | null;
+  completedAt: string | null; 
   createdAt: string;
 }
 
@@ -98,19 +98,19 @@ export default function CandidateProfile360({
   }, [activeTab, fetchTabData]);
 
   return (
-    <div className="fixed inset-0 z-[110] flex">
+    <div className="fixed inset-0 z-[110]">
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
         onClick={onCloseAction}
       />
       <motion.div
-        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="relative z-10 my-auto mx-auto flex h-[96vh] w-[98vw] flex-col overflow-hidden rounded-2xl bg-white shadow-2xl"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="absolute inset-0 z-10 flex flex-col overflow-hidden bg-white"
       >
         <div className="flex flex-shrink-0 items-center justify-between border-b border-gray-100 bg-gradient-to-r from-nuanu-navy to-[#0D2040] p-6">
           <div className="flex items-center gap-4">
@@ -155,7 +155,13 @@ export default function CandidateProfile360({
           ))}
         </div>
 
-        <div className="flex-1 overflow-y-auto bg-gray-50/30">
+        <div
+          className={`min-h-0 flex-1 bg-gray-50/30 ${
+            activeTab === "references"
+              ? "flex flex-col overflow-hidden"
+              : "overflow-y-auto"
+          }`}
+        >
           {activeTab !== "references" && loading ? (
             <div className="flex items-center justify-center py-20">
               <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />

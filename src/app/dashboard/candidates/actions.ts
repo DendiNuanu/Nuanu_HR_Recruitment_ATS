@@ -90,6 +90,7 @@ export async function updateCandidateStage(
       throw new Error("Application not found");
     }
 
+    const previousStage = application.currentStage;
     let newStage = application.currentStage;
 
     if (actionOrStageId === "reject") {
@@ -218,7 +219,40 @@ export async function updateCandidateStage(
 </body>
 </html>`,
         });
-        rejectionEmailSentTo = candidate.email;
+
+        if (emailResult.success) {
+          const sentAt = new Date();
+          rejectionEmailSentTo = candidate.email;
+          rejectionEmailSentAt = sentAt.toISOString();
+          rejectionEmailSubject = rejectionSubject;
+
+          await prisma.application.update({
+            where: { id: applicationId },
+            data: {
+              emailSentAt: sentAt,
+              emailSentSubject: rejectionSubject,
+            },
+          });
+
+          try {
+            await prisma.activityLog.create({
+              data: {
+                userId: application.candidateId,
+                action: `Rejection email sent: ${rejectionSubject}`,
+                resource: "Application",
+                resourceId: applicationId,
+                metadata: { subject: rejectionSubject, type: "rejection_auto" },
+              },
+            });
+          } catch {
+            // Non-fatal
+          }
+        } else {
+          console.warn(
+            "[updateCandidateStage] Rejection email failed:",
+            emailResult.error,
+          );
+        }
       } catch (emailErr) {
         // Non-fatal — rejection email failure must never break stage update
         console.warn(
@@ -270,7 +304,15 @@ export async function updateCandidateStage(
     revalidatePath("/dashboard");
     revalidatePath("/dashboard/pipeline");
     revalidatePath("/dashboard/talent-bank");
-    return { success: true, newStage, rejectionEmailSentTo };
+    return {
+      success: true,
+      newStage,
+      rejectionEmailSentTo,
+      rejectionEmailSentAt,
+      rejectionEmailSubject,
+      rejectionEmailFailed:
+        shouldSendRejectionEmail && !rejectionEmailSentTo,
+    };
   } catch (error) {
     console.error("Failed to update candidate stage:", error);
     return { success: false, error: "Failed to update stage" };

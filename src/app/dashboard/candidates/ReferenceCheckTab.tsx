@@ -421,10 +421,12 @@ export default function ReferenceCheckTab({
   }
 
   return (
-    <div className="space-y-5 p-6">
+    <div className="flex min-h-0 w-full flex-1 flex-col">
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="space-y-5 p-6 pb-4">
       <div className="rounded-3xl border border-gray-100 bg-white p-5 shadow-sm">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div>
+        <div className="flex flex-col flex-wrap gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="min-w-0 flex-1">
             <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-emerald-600">
               Reference Check
             </p>
@@ -446,7 +448,7 @@ export default function ReferenceCheckTab({
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-shrink-0 flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={saveAll}
@@ -496,7 +498,7 @@ export default function ReferenceCheckTab({
             return (
               <div
                 key={referenceNo}
-                className="overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm"
+                className="w-full rounded-3xl border border-gray-100 bg-white shadow-sm"
               >
                 <button
                   type="button"
@@ -506,10 +508,10 @@ export default function ReferenceCheckTab({
                       [referenceNo]: !isExpanded,
                     }))
                   }
-                  className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left"
+                  className="flex w-full items-start justify-between gap-4 px-6 py-5 text-left"
                 >
-                  <div>
-                    <div className="flex items-center gap-3">
+                  <div className="min-w-0 flex-1 pr-2">
+                    <div className="flex flex-wrap items-center gap-3">
                       <h4 className="text-base font-bold text-nuanu-navy">
                         Reference {referenceNo}
                       </h4>
@@ -519,21 +521,21 @@ export default function ReferenceCheckTab({
                         {status}
                       </span>
                     </div>
-                    <p className="mt-1 text-sm text-nuanu-gray-500">
+                    <p className="mt-1 break-words text-sm text-nuanu-gray-500">
                       {draft.agencyName?.trim() ||
                         "Employment verification details"}
                     </p>
                   </div>
                   {isExpanded ? (
-                    <ChevronUp className="h-5 w-5 text-gray-400" />
+                    <ChevronUp className="h-5 w-5 flex-shrink-0 text-gray-400" />
                   ) : (
-                    <ChevronDown className="h-5 w-5 text-gray-400" />
+                    <ChevronDown className="h-5 w-5 flex-shrink-0 text-gray-400" />
                   )}
                 </button>
 
                 {isExpanded && (
-                  <div className="border-t border-gray-100 px-5 pb-5 pt-4">
-                    <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
+                  <div className="border-t border-gray-100 px-6 pb-6 pt-5">
+                    <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
                       <div className="rounded-2xl border border-gray-100 bg-gray-50/50 p-4">
                         <p className="mb-4 text-xs font-bold uppercase tracking-[0.18em] text-nuanu-gray-400">
                           Section I — Employment History Verification
@@ -888,8 +890,10 @@ export default function ReferenceCheckTab({
           },
         )}
       </div>
+        </div>
+      </div>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-shrink-0 flex-col gap-3 border-t border-gray-100 bg-white px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
         <button
           type="button"
           onClick={handleAddReference}

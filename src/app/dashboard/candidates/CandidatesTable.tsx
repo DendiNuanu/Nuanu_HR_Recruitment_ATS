@@ -173,6 +173,26 @@ function stageLabel(stageId: string) {
   );
 }
 
+function isRejectedStage(stageId: string) {
+  const canonical = resolvePipelineColumn(stageId);
+  const normalized = stageId.toLowerCase().trim();
+  return canonical === "rejected" || normalized === "withdrawn";
+}
+
+function getEmailSentTimestamp(
+  candidateId: string,
+  emailSentAt: string | undefined,
+  emailSentMap: Record<string, string>,
+) {
+  return emailSentMap[candidateId] ?? emailSentAt;
+}
+
+function formatEmailSentShort(sentAt: string) {
+  const sentDate = new Date(sentAt);
+  if (Number.isNaN(sentDate.getTime())) return null;
+  return `${String(sentDate.getDate()).padStart(2, "0")}/${String(sentDate.getMonth() + 1).padStart(2, "0")} · ${String(sentDate.getHours()).padStart(2, "0")}:${String(sentDate.getMinutes()).padStart(2, "0")}`;
+}
+
 function timestampMs(iso: string | undefined) {
   if (!iso) return 0;
   const t = new Date(iso).getTime();
@@ -206,6 +226,13 @@ export default function CandidatesTable({
 
   useEffect(() => {
     setLocalCandidates(candidates);
+    setEmailSentMap((prev) => {
+      const next = { ...prev };
+      for (const c of candidates) {
+        if (c.emailSentAt) next[c.id] = c.emailSentAt;
+      }
+      return next;
+    });
   }, [candidates]);
 
   useEffect(() => {
@@ -309,8 +336,10 @@ export default function CandidatesTable({
   // Optimistic email sent tracking (candidateId → ISO timestamp)
   const [emailSentMap, setEmailSentMap] = useState<Record<string, string>>(
     () => {
-      // Pre-populate from initial candidate data
       const map: Record<string, string> = {};
+      for (const c of candidates) {
+        if (c.emailSentAt) map[c.id] = c.emailSentAt;
+      }
       return map;
     },
   );
@@ -358,9 +387,36 @@ export default function CandidatesTable({
     previousStage: string,
   ) => {
     if (result.success && result.newStage) {
+      const rejectionSentAt =
+        result.rejectionEmailSentAt ??
+        (result.rejectionEmailSentTo &&
+        (result.newStage === "rejected" || result.newStage === "withdrawn")
+          ? new Date().toISOString()
+          : undefined);
+
+      if (rejectionSentAt) {
+        setEmailSentMap((prev) => ({
+          ...prev,
+          [applicationId]: rejectionSentAt,
+        }));
+      }
       setLocalCandidates((prev) =>
         prev.map((c) =>
-          c.id === applicationId ? { ...c, stage: result.newStage! } : c,
+          c.id === applicationId
+            ? {
+                ...c,
+                stage: result.newStage!,
+                ...(rejectionSentAt
+                  ? {
+                      emailSentAt: rejectionSentAt,
+                      emailSentSubject:
+                        result.rejectionEmailSubject ??
+                        c.emailSentSubject ??
+                        "Rejection email",
+                    }
+                  : {}),
+              }
+            : c,
         ),
       );
       const rejectionMessage =
@@ -374,6 +430,13 @@ export default function CandidatesTable({
       });
       if (result.newStage === "rejected" && result.rejectionEmailSentTo) {
         toast.success(`Rejection email sent to ${result.rejectionEmailSentTo}`);
+      } else if (
+        (result.newStage === "rejected" || result.newStage === "withdrawn") &&
+        result.rejectionEmailFailed
+      ) {
+        toast.error(
+          "Stage updated, but rejection email could not be sent. Check email settings or use Send Email manually.",
+        );
       }
       return;
     }
@@ -1039,19 +1102,23 @@ export default function CandidatesTable({
               <th>Stage</th>
               <th>AI Match</th>
               <th>Applied</th>
-              <th
-                style={{
-                  textAlign: "right",
-                  paddingRight: "16px",
-                  paddingLeft: 0,
-                }}
-              >
-                Actions
-              </th>
+              <th className="min-w-[300px] text-right pr-4">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {paginatedCandidates.map((candidate) => (
+            {paginatedCandidates.map((candidate) => {
+              const emailSentTimestamp = getEmailSentTimestamp(
+                candidate.id,
+                candidate.emailSentAt,
+                emailSentMap,
+              );
+              const rejectionEmailSent =
+                isRejectedStage(candidate.stage) && !!emailSentTimestamp;
+              const rejectionEmailSentShort = emailSentTimestamp
+                ? formatEmailSentShort(emailSentTimestamp)
+                : null;
+
+              return (
               <tr key={candidate.id}>
                 <td className="pl-6">
                   <div className="flex items-center gap-3">
@@ -1075,6 +1142,15 @@ export default function CandidatesTable({
                           SEEK
                         </span>
                       )}
+                      {rejectionEmailSent && (
+                        <span
+                          className="mt-1.5 inline-flex items-center gap-1 rounded-full border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-800"
+                          title={`Rejection email sent${rejectionEmailSentShort ? ` on ${rejectionEmailSentShort}` : ""}`}
+                        >
+                          <CheckCircle2 className="h-3 w-3 flex-shrink-0" />
+                          Rejection email sent
+                        </span>
+                      )}
                     </div>
                   </div>
                 </td>
@@ -1089,20 +1165,31 @@ export default function CandidatesTable({
                   ) : null}
                 </td>
                 <td>
-                  <span
-                    className={`badge ${
-                      resolvePipelineColumn(candidate.stage) === "hired"
-                        ? "bg-emerald-100 text-emerald-700 border-emerald-200"
-                        : resolvePipelineColumn(candidate.stage) === "rejected"
-                          ? "bg-red-100 text-red-700 border-red-200"
-                          : resolvePipelineColumn(candidate.stage) ===
-                              "talent_bank"
-                            ? "bg-slate-100 text-slate-700 border-slate-200"
-                            : "bg-blue-50 text-blue-700 border-blue-100"
-                    } border uppercase tracking-wider text-[9px] font-bold px-2 py-1`}
-                  >
-                    {stageLabel(candidate.stage)}
-                  </span>
+                  <div className="flex flex-col items-start gap-1.5">
+                    <span
+                      className={`badge ${
+                        resolvePipelineColumn(candidate.stage) === "hired"
+                          ? "bg-emerald-100 text-emerald-700 border-emerald-200"
+                          : resolvePipelineColumn(candidate.stage) === "rejected"
+                            ? "bg-red-100 text-red-700 border-red-200"
+                            : resolvePipelineColumn(candidate.stage) ===
+                                "talent_bank"
+                              ? "bg-slate-100 text-slate-700 border-slate-200"
+                              : "bg-blue-50 text-blue-700 border-blue-100"
+                      } border uppercase tracking-wider text-[9px] font-bold px-2 py-1`}
+                    >
+                      {stageLabel(candidate.stage)}
+                    </span>
+                    {rejectionEmailSent && (
+                      <span
+                        className="inline-flex items-center gap-1 rounded-md bg-emerald-600 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm"
+                        title={`Rejection email delivered${rejectionEmailSentShort ? ` · ${rejectionEmailSentShort}` : ""}`}
+                      >
+                        <Mail className="h-3 w-3 flex-shrink-0" />
+                        Email sent
+                      </span>
+                    )}
+                  </div>
                 </td>
                 <td>
                   <div className="flex items-center gap-2">
@@ -1122,8 +1209,8 @@ export default function CandidatesTable({
                     {formatDate(candidate.appliedAt)}
                   </span>
                 </td>
-                <td className="text-right pr-4">
-                  <div className="flex items-center justify-end gap-2">
+                <td className="min-w-[300px] text-right pr-4">
+                  <div className="flex flex-wrap items-center justify-end gap-2">
                     <button
                       type="button"
                       onClick={(e) => {
@@ -1136,14 +1223,11 @@ export default function CandidatesTable({
                     >
                       <Eye className="w-4 h-4" />
                     </button>
-                    {/* Email button + persistent "Email Sent" badge */}
+                    {/* Email button + persistent sent badge */}
                     {(() => {
-                      const sentAt =
-                        emailSentMap[candidate.id] ?? candidate.emailSentAt;
+                      const sentAt = emailSentTimestamp;
                       const sentDate = sentAt ? new Date(sentAt) : null;
-                      const shortTs = sentDate
-                        ? `${String(sentDate.getDate()).padStart(2, "0")}/${String(sentDate.getMonth() + 1).padStart(2, "0")} · ${String(sentDate.getHours()).padStart(2, "0")}:${String(sentDate.getMinutes()).padStart(2, "0")}`
-                        : null;
+                      const shortTs = rejectionEmailSentShort;
                       const fullTs = sentDate
                         ? sentDate.toLocaleString("en-GB", {
                             day: "2-digit",
@@ -1153,9 +1237,12 @@ export default function CandidatesTable({
                             minute: "2-digit",
                           })
                         : null;
+                      const sentLabel = rejectionEmailSent
+                        ? "Rejection sent"
+                        : "Email sent";
 
                       return (
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex flex-wrap items-center justify-end gap-1.5">
                           <button
                             onClick={() => openEmailModal(candidate)}
                             className={`p-2 rounded-lg transition-all hover:scale-110 flex-shrink-0 ${
@@ -1178,24 +1265,21 @@ export default function CandidatesTable({
 
                           {sentAt && (
                             <div
-                              className="flex items-center gap-1 flex-shrink-0"
-                              title={`Email sent on ${fullTs}. Click icon to send another.`}
+                              className="flex items-center gap-1.5 flex-shrink-0"
+                              title={`${sentLabel} on ${fullTs}. Click icon to send another.`}
                             >
-                              {/* Pill badge */}
                               <span
-                                className="flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[11px] font-medium"
-                                style={{
-                                  background: "#E1F5EE",
-                                  border: "0.5px solid #5DCAA5",
-                                  color: "#085041",
-                                }}
+                                className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold shadow-sm ${
+                                  rejectionEmailSent
+                                    ? "border border-emerald-400 bg-emerald-600 text-white"
+                                    : "border border-[#5DCAA5] bg-[#E1F5EE] text-[#085041]"
+                                }`}
                               >
-                                <Check className="w-2.5 h-2.5 flex-shrink-0" />
-                                Email Sent
+                                <Check className="h-3 w-3 flex-shrink-0" />
+                                {sentLabel}
                               </span>
-                              {/* Timestamp — hidden on very narrow screens */}
                               {shortTs && (
-                                <span className="hidden sm:inline text-[11px] text-nuanu-gray-400 whitespace-nowrap">
+                                <span className="text-[11px] font-medium text-nuanu-gray-500 whitespace-nowrap">
                                   {shortTs}
                                 </span>
                               )}
@@ -1233,7 +1317,8 @@ export default function CandidatesTable({
                   </div>
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
 
