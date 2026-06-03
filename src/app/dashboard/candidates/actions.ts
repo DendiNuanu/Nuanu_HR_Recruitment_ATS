@@ -136,15 +136,19 @@ export async function updateCandidateStage(
       }
     });
 
-    // Log this activity
-    await prisma.activityLog.create({
-      data: {
-        userId: application.candidateId,
-        action: `Candidate moved to ${newStage.replace("_", " ")} stage`,
-        resource: "Application",
-        resourceId: applicationId,
-      },
-    });
+    // Log this activity (non-fatal)
+    try {
+      await prisma.activityLog.create({
+        data: {
+          userId: application.candidateId,
+          action: `Candidate moved to ${newStage.replace(/_/g, " ")} stage`,
+          resource: "Application",
+          resourceId: applicationId,
+        },
+      });
+    } catch (logErr) {
+      console.warn("[updateCandidateStage] Activity log failed:", logErr);
+    }
 
     // Create Real Notification
     const admin = await prisma.user.findFirst({
@@ -164,9 +168,16 @@ export async function updateCandidateStage(
       });
     }
 
-    // ── Auto rejection email to candidate ─────────────────────────────────
+    // ── Auto rejection email when moving into rejected / withdrawn ────────
     let rejectionEmailSentTo: string | null = null;
-    if ((newStage === "rejected" || newStage === "withdrawn") && candidate) {
+    let rejectionEmailSentAt: string | null = null;
+    let rejectionEmailSubject: string | null = null;
+    const shouldSendRejectionEmail =
+      (newStage === "rejected" || newStage === "withdrawn") &&
+      previousStage !== newStage &&
+      !!candidate;
+
+    if (shouldSendRejectionEmail) {
       try {
         const appWithVacancy = await prisma.application.findUnique({
           where: { id: applicationId },
@@ -174,10 +185,11 @@ export async function updateCandidateStage(
         });
         const position = appWithVacancy?.vacancy?.title ?? "the position";
         const companyName = process.env.NEXT_PUBLIC_APP_NAME ?? "Nuanu";
+        const rejectionSubject = `Update on Your Application — ${position}`;
 
-        await sendEmail({
+        const emailResult = await sendEmail({
           to: candidate.email,
-          subject: `Update on Your Application — ${position}`,
+          subject: rejectionSubject,
           html: `
 <!DOCTYPE html>
 <html>
