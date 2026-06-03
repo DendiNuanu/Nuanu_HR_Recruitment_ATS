@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, useDeferredValue } from "react";
+import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import {
   Search,
@@ -214,6 +215,7 @@ export default function CandidatesTable({
   /** When opened from Jobs → Candidates, pins Applied For in 360° profile */
   vacancyTitle?: string;
 }) {
+  const router = useRouter();
   const [localCandidates, setLocalCandidates] = useState(candidates);
   const [search, setSearch] = useState("");
   const deferredSearch = useDeferredValue(search);
@@ -387,40 +389,51 @@ export default function CandidatesTable({
     previousStage: string,
   ) => {
     if (result.success && result.newStage) {
-      const rejectionSentAt =
-        result.rejectionEmailSentAt ??
-        (result.rejectionEmailSentTo &&
-        (result.newStage === "rejected" || result.newStage === "withdrawn")
-          ? new Date().toISOString()
-          : undefined);
+      const rejectionSentAt = result.rejectionEmailSentAt;
+      const leftRejected =
+        result.clearedRejectionEmail ||
+        (isRejectedStage(previousStage) &&
+          !isRejectedStage(result.newStage));
 
-      if (rejectionSentAt) {
+      if (leftRejected) {
+        setEmailSentMap((prev) => {
+          const next = { ...prev };
+          delete next[applicationId];
+          return next;
+        });
+      } else if (rejectionSentAt) {
         setEmailSentMap((prev) => ({
           ...prev,
           [applicationId]: rejectionSentAt,
         }));
       }
+
       setLocalCandidates((prev) =>
         prev.map((c) =>
           c.id === applicationId
             ? {
                 ...c,
                 stage: result.newStage!,
-                ...(rejectionSentAt
+                ...(leftRejected
                   ? {
-                      emailSentAt: rejectionSentAt,
-                      emailSentSubject:
-                        result.rejectionEmailSubject ??
-                        c.emailSentSubject ??
-                        "Rejection email",
+                      emailSentAt: undefined,
+                      emailSentSubject: undefined,
                     }
-                  : {}),
+                  : rejectionSentAt
+                    ? {
+                        emailSentAt: rejectionSentAt,
+                        emailSentSubject:
+                          result.rejectionEmailSubject ??
+                          "Rejection email",
+                      }
+                    : {}),
               }
             : c,
         ),
       );
+
       const rejectionMessage =
-        result.newStage === "rejected" && result.rejectionEmailSentTo
+        isRejectedStage(result.newStage) && result.rejectionEmailSentTo
           ? ` Rejection email sent to ${result.rejectionEmailSentTo}.`
           : "";
       showStageNotice({
@@ -428,16 +441,23 @@ export default function CandidatesTable({
         title: "Stage updated",
         message: `${candidateName} moved to ${stageLabel(result.newStage)}.${rejectionMessage}`,
       });
-      if (result.newStage === "rejected" && result.rejectionEmailSentTo) {
+
+      if (isRejectedStage(result.newStage) && result.rejectionEmailSentTo) {
         toast.success(`Rejection email sent to ${result.rejectionEmailSentTo}`);
       } else if (
-        (result.newStage === "rejected" || result.newStage === "withdrawn") &&
+        isRejectedStage(result.newStage) &&
         result.rejectionEmailFailed
       ) {
+        const detail = result.rejectionEmailError
+          ? ` ${result.rejectionEmailError}`
+          : "";
         toast.error(
-          "Stage updated, but rejection email could not be sent. Check email settings or use Send Email manually.",
+          `Stage updated, but rejection email could not be sent.${detail} Configure SMTP in Settings or use Send Email.`,
+          { duration: 8000 },
         );
       }
+
+      router.refresh();
       return;
     }
 
@@ -493,24 +513,33 @@ export default function CandidatesTable({
   const handleStageSelect = async (
     applicationId: string,
     stageId: string,
-    previousStage: string,
+    previousStageCanonical: string,
   ) => {
     const candidate = localCandidates.find((c) => c.id === applicationId);
-    if (!candidate || stageId === previousStage) return;
+    const targetCanonical = resolvePipelineColumn(stageId);
+    const currentCanonical = candidate
+      ? resolvePipelineColumn(candidate.stage)
+      : previousStageCanonical;
+    if (!candidate || targetCanonical === currentCanonical) return;
 
     setStageSelectorId(null);
     setLoadingActionId(applicationId);
     setLocalCandidates((prev) =>
-      prev.map((c) => (c.id === applicationId ? { ...c, stage: stageId } : c)),
+      prev.map((c) =>
+        c.id === applicationId ? { ...c, stage: targetCanonical } : c,
+      ),
     );
     try {
-      const result = await updateCandidateStage(applicationId, stageId);
+      const result = await updateCandidateStage(
+        applicationId,
+        targetCanonical,
+      );
       applyStageUpdateResult(
         applicationId,
         result,
         candidate.name,
-        stageId,
-        previousStage,
+        targetCanonical,
+        currentCanonical,
       );
     } catch (error) {
       console.error(error);
