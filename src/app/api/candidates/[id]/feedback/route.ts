@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { ensureInterviewSlug } from "@/lib/interview-slug";
 
 type Params = { params: Promise<{ id: string }> };
 type ReviewerType = "HR" | "USER_1" | "USER_2";
@@ -46,7 +47,10 @@ type CommentRow = {
 
 /** Normalize role slugs: `super-admin` and `super_admin` both become `super_admin`. */
 function normalizeRoleSlug(role: string): string {
-  return role.toLowerCase().trim().replace(/[\s-]+/g, "_");
+  return role
+    .toLowerCase()
+    .trim()
+    .replace(/[\s-]+/g, "_");
 }
 
 const HR_VIEWER_SLUGS = new Set(["admin", "super_admin", "hr_manager", "hr"]);
@@ -60,17 +64,22 @@ function computeFeedbackPermissions(
   assignment: ApplicationAssignment,
 ): FeedbackPermissions {
   const hr = isHrViewer(session.roles);
+  // HR/Admin can always edit every section (they often fill in panelist
+  // feedback on behalf of the assigned reviewer). The assigned reviewer
+  // themselves can also edit their own section. Other users are read-only.
+  const isUser1Reviewer =
+    assignment.user1ReviewerId !== null &&
+    session.id === assignment.user1ReviewerId;
+  const isUser2Reviewer =
+    assignment.user2ReviewerId !== null &&
+    session.id === assignment.user2ReviewerId;
   return {
     canViewHR: hr,
-    canViewUser1: hr || session.id === assignment.user1ReviewerId,
-    canViewUser2: hr || session.id === assignment.user2ReviewerId,
+    canViewUser1: hr || isUser1Reviewer,
+    canViewUser2: hr || isUser2Reviewer,
     canEditHR: hr,
-    canEditUser1:
-      assignment.user1ReviewerId !== null &&
-      session.id === assignment.user1ReviewerId,
-    canEditUser2:
-      assignment.user2ReviewerId !== null &&
-      session.id === assignment.user2ReviewerId,
+    canEditUser1: hr || isUser1Reviewer,
+    canEditUser2: hr || isUser2Reviewer,
     canAssignReviewers: hr && assignment.assignmentsAvailable,
   };
 }
@@ -91,7 +100,9 @@ function normalizeReviewerType(value: unknown): ReviewerType {
   return "HR";
 }
 
-async function loadAssignment(applicationId: string): Promise<ApplicationAssignment> {
+async function loadAssignment(
+  applicationId: string,
+): Promise<ApplicationAssignment> {
   const fallback: ApplicationAssignment = {
     user1ReviewerId: null,
     user2ReviewerId: null,
@@ -154,7 +165,11 @@ async function validateReviewerAssignments(
   user1ReviewerId: string | null,
   user2ReviewerId: string | null,
 ): Promise<string | null> {
-  if (user1ReviewerId && user2ReviewerId && user1ReviewerId === user2ReviewerId) {
+  if (
+    user1ReviewerId &&
+    user2ReviewerId &&
+    user1ReviewerId === user2ReviewerId
+  ) {
     return "User 1 and User 2 reviewers must be different people";
   }
   const ids = [user1ReviewerId, user2ReviewerId].filter(
@@ -228,10 +243,33 @@ export async function GET(_req: Request, { params }: Params) {
   const { id: applicationId } = await params;
   const baseApplication = await prisma.application.findUnique({
     where: { id: applicationId },
-    select: { id: true },
+    select: {
+      id: true,
+      candidateId: true,
+      candidate: { select: { name: true } },
+    },
   });
   if (!baseApplication) {
-    return NextResponse.json({ error: "Application not found" }, { status: 404 });
+    return NextResponse.json(
+      { error: "Application not found" },
+      { status: 404 },
+    );
+  }
+
+  // Best-effort: ensure the candidate has a shareable interviewSlug so the
+  // dashboard can render a "Copy Interview Link" button. The helper never
+  // throws, so a failure here cannot break the feedback GET.
+  let interviewSlug: string | null = null;
+  try {
+    interviewSlug = await ensureInterviewSlug(
+      baseApplication.candidateId,
+      baseApplication.candidate?.name,
+    );
+  } catch (slugErr) {
+    console.warn(
+      "[GET /api/candidates/:id/feedback] ensureInterviewSlug failed (ignored):",
+      slugErr,
+    );
   }
 
   const assignment = await loadAssignment(applicationId);
@@ -257,6 +295,7 @@ export async function GET(_req: Request, { params }: Params) {
       permissions,
       assignments: mapAssignmentsResponse(assignment),
       assignableUsers,
+      interviewSlug,
       warning: "Interview comments could not be loaded from the database.",
     });
   }
@@ -290,7 +329,8 @@ export async function GET(_req: Request, { params }: Params) {
         id: user.id,
         name: user.name,
         email: user.email,
-        roleLabel: user.userRoles.map((ur) => ur.role.name).join(", ") || "Staff",
+        roleLabel:
+          user.userRoles.map((ur) => ur.role.name).join(", ") || "Staff",
       }))
     : [];
 
@@ -301,6 +341,7 @@ export async function GET(_req: Request, { params }: Params) {
     permissions,
     assignments: mapAssignmentsResponse(assignment),
     assignableUsers,
+    interviewSlug,
   });
 }
 
@@ -317,7 +358,10 @@ export async function POST(req: Request, { params }: Params) {
     select: { id: true },
   });
   if (!baseApplication) {
-    return NextResponse.json({ error: "Application not found" }, { status: 404 });
+    return NextResponse.json(
+      { error: "Application not found" },
+      { status: 404 },
+    );
   }
 
   const assignment = await loadAssignment(applicationId);
@@ -325,13 +369,17 @@ export async function POST(req: Request, { params }: Params) {
   const rating = typeof body.rating === "number" ? body.rating : null;
   const recommendation =
     typeof body.recommendation === "string" ? body.recommendation : null;
-  const comments = typeof body.comments === "string" ? body.comments.trim() : "";
+  const comments =
+    typeof body.comments === "string" ? body.comments.trim() : "";
 
   if (rating !== null && (rating < 1 || rating > 5)) {
     return NextResponse.json({ error: "rating must be 1-5" }, { status: 400 });
   }
   if (!comments) {
-    return NextResponse.json({ error: "comments is required" }, { status: 400 });
+    return NextResponse.json(
+      { error: "comments is required" },
+      { status: 400 },
+    );
   }
 
   const permissions = computeFeedbackPermissions(session, assignment);
@@ -438,13 +486,22 @@ export async function PATCH(req: Request, { params }: Params) {
   const current = await loadAssignment(applicationId);
   if (!current.assignmentsAvailable) {
     return NextResponse.json(
-      { error: "Reviewer assignment columns are not available in this environment" },
+      {
+        error:
+          "Reviewer assignment columns are not available in this environment",
+      },
       { status: 503 },
     );
   }
 
-  const hasUser1 = Object.prototype.hasOwnProperty.call(body, "user1ReviewerId");
-  const hasUser2 = Object.prototype.hasOwnProperty.call(body, "user2ReviewerId");
+  const hasUser1 = Object.prototype.hasOwnProperty.call(
+    body,
+    "user1ReviewerId",
+  );
+  const hasUser2 = Object.prototype.hasOwnProperty.call(
+    body,
+    "user2ReviewerId",
+  );
   const hasHr = Object.prototype.hasOwnProperty.call(body, "hrReviewerId");
   if (!hasUser1 && !hasUser2 && !hasHr) {
     return NextResponse.json(
@@ -460,7 +517,10 @@ export async function PATCH(req: Request, { params }: Params) {
     ? body.user2ReviewerId || null
     : current.user2ReviewerId;
 
-  const validationError = await validateReviewerAssignments(nextUser1, nextUser2);
+  const validationError = await validateReviewerAssignments(
+    nextUser1,
+    nextUser2,
+  );
   if (validationError) {
     return NextResponse.json({ error: validationError }, { status: 400 });
   }
@@ -486,7 +546,10 @@ export async function PATCH(req: Request, { params }: Params) {
     });
   } catch {
     return NextResponse.json(
-      { error: "Reviewer assignment columns are not available in this environment" },
+      {
+        error:
+          "Reviewer assignment columns are not available in this environment",
+      },
       { status: 503 },
     );
   }

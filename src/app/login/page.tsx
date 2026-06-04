@@ -1,14 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { Mail, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const nextPath = searchParams?.get("next") ?? "";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -16,8 +18,10 @@ export default function LoginPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    router.prefetch("/dashboard");
-  }, [router]);
+    router.prefetch(
+      nextPath && nextPath.startsWith("/") ? nextPath : "/dashboard",
+    );
+  }, [router, nextPath]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,7 +44,14 @@ export default function LoginPage() {
       }
 
       localStorage.setItem("nuanu_user", JSON.stringify(data.user));
-      router.push("/dashboard");
+
+      // Only follow `next` if it's a safe same-origin path; otherwise fall
+      // back to the dashboard.
+      const safeNext =
+        nextPath && nextPath.startsWith("/") && !nextPath.startsWith("//")
+          ? nextPath
+          : "/dashboard";
+      router.push(safeNext);
     } catch {
       setError("Network error. Please try again.");
       setIsLoading(false);
@@ -171,7 +182,9 @@ export default function LoginPage() {
               Welcome Back
             </h2>
             <p style={{ color: "#64748B", marginTop: "6px", fontSize: "15px" }}>
-              Sign in to access your dashboard
+              {nextPath
+                ? "Sign in to continue to the interview result page"
+                : "Sign in to access your dashboard"}
             </p>
           </div>
 
@@ -511,5 +524,13 @@ export default function LoginPage() {
         }
       `}</style>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
   );
 }

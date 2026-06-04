@@ -27,6 +27,7 @@ import {
   Edit,
   LayoutGrid,
   MessageSquare,
+  Link2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -116,6 +117,8 @@ export type Candidate = {
     createdAt: string;
     updatedAt: string;
   }[];
+  /** Shareable URL slug for the public interview result page. */
+  interviewSlug?: string | null;
 };
 
 type StageNotice = {
@@ -206,6 +209,68 @@ function compareCandidatesForList(a: Candidate, b: Candidate) {
   const appliedDiff = timestampMs(b.appliedAt) - timestampMs(a.appliedAt);
   if (appliedDiff !== 0) return appliedDiff;
   return timestampMs(b.createdAt) - timestampMs(a.createdAt);
+}
+
+function InterviewShareLinkCard({ slug }: { slug: string | null }) {
+  const [copied, setCopied] = useState(false);
+
+  const shareUrl =
+    typeof window !== "undefined" && slug
+      ? `${window.location.origin}/interview-result/${slug}`
+      : slug
+        ? `/interview-result/${slug}`
+        : null;
+
+  const handleCopy = async () => {
+    if (!shareUrl) return;
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      toast.success("Link copied!");
+      window.setTimeout(() => setCopied(false), 1800);
+    } catch {
+      toast.error("Could not copy link");
+    }
+  };
+
+  return (
+    <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm space-y-3">
+      <div className="flex items-center gap-2">
+        <Link2 className="w-4 h-4 text-nuanu-navy" />
+        <p className="font-bold text-nuanu-navy">Share Interview Result</p>
+      </div>
+      <p className="text-xs text-nuanu-gray-400">
+        Copy this link to share a read-only interview assessment page with the
+        candidate or hiring team. No login is required to view the page.
+      </p>
+      {shareUrl ? (
+        <>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleCopy}
+              className="btn-primary px-4 py-2 text-sm inline-flex items-center gap-2"
+            >
+              {copied ? (
+                <Check className="w-4 h-4" />
+              ) : (
+                <Link2 className="w-4 h-4" />
+              )}
+              {copied ? "Copied!" : "Copy Interview Link"}
+            </button>
+          </div>
+          <p className="text-[11px] font-mono text-nuanu-gray-400 break-all">
+            {shareUrl}
+          </p>
+        </>
+      ) : (
+        <p className="text-xs text-nuanu-gray-400 italic">
+          Generating a shareable link… open this tab again in a moment, or
+          re-save the interviewer assignments to retry.
+        </p>
+      )}
+    </div>
+  );
 }
 
 export default function CandidatesTable({
@@ -718,6 +783,7 @@ export default function CandidatesTable({
       assignableUsers?: AssignableReviewer[];
       error?: string;
       warning?: string;
+      interviewSlug?: string | null;
     };
     if (!res.ok) {
       setFeedbackLoadError(
@@ -757,6 +823,13 @@ export default function CandidatesTable({
         canAssignReviewers: false,
       },
     );
+    if (payload.interviewSlug) {
+      setSelectedProfile((prev) =>
+        prev && prev.id === applicationId
+          ? { ...prev, interviewSlug: payload.interviewSlug ?? null }
+          : prev,
+      );
+    }
     return true;
   };
 
@@ -2096,12 +2169,13 @@ export default function CandidatesTable({
                       {feedbackPermissions.canAssignReviewers && (
                         <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm space-y-4">
                           <div>
-                            <p className="font-bold text-nuanu-navy">
+                            <p className="font-bold text-nuanu-navy break-words">
                               Assign interview reviewers
                             </p>
-                            <p className="text-xs text-nuanu-gray-400 mt-1">
+                            <p className="text-xs text-nuanu-gray-400 mt-1 break-words">
                               Choose who can fill User 1 and User 2 comments for
-                              this candidate.
+                              this candidate. HR can always fill these sections
+                              on behalf of the assigned reviewer.
                             </p>
                           </div>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -2183,6 +2257,12 @@ export default function CandidatesTable({
                         </div>
                       )}
 
+                      {feedbackPermissions.canAssignReviewers && (
+                        <InterviewShareLinkCard
+                          slug={selectedProfile.interviewSlug ?? null}
+                        />
+                      )}
+
                       {(() => {
                         const sections = [
                           {
@@ -2234,74 +2314,89 @@ export default function CandidatesTable({
                           );
                         }
 
-                        return sections.map((section) => (
-                          <div
-                            key={section.key}
-                            className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm"
-                          >
-                            <div className="flex items-start justify-between gap-3 mb-4">
-                              <div>
-                                <p className="font-bold text-nuanu-navy">
-                                  {section.title}
-                                </p>
-                                {section.key !== "HR" && (
-                                  <p className="text-xs text-nuanu-gray-400 mt-1">
-                                    {section.assignedTo
-                                      ? `Assigned to ${section.assignedTo}`
-                                      : "No reviewer assigned yet"}
+                        return sections.map((section) => {
+                          const readOnly = !section.canEdit;
+                          return (
+                            <div
+                              key={section.key}
+                              className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm space-y-3"
+                            >
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0 flex-1">
+                                  <p className="font-bold text-nuanu-navy break-words">
+                                    {section.title}
                                   </p>
+                                  {section.key !== "HR" && (
+                                    <p className="text-xs text-nuanu-gray-400 mt-1 break-words">
+                                      {section.assignedTo
+                                        ? `Assigned to ${section.assignedTo}`
+                                        : "No reviewer assigned yet"}
+                                    </p>
+                                  )}
+                                </div>
+                                {readOnly && (
+                                  <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-nuanu-gray-400 border border-gray-200 rounded-full px-2 py-0.5">
+                                    Read only
+                                  </span>
                                 )}
                               </div>
-                            </div>
 
-                            <div>
-                              <p className="text-xs text-nuanu-gray-400 mb-1">
-                                Comment
-                              </p>
-                              <textarea
-                                value={feedbackDrafts[section.key].comments}
-                                onChange={(e) =>
-                                  setFeedbackDrafts((prev) => ({
-                                    ...prev,
-                                    [section.key]: {
-                                      ...prev[section.key],
-                                      comments: e.target.value,
-                                    },
-                                  }))
-                                }
-                                disabled={!section.canEdit}
-                                rows={3}
-                                className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 resize-none"
-                                placeholder="Write comment"
-                              />
-                            </div>
+                              {readOnly ? (
+                                <div className="rounded-xl border border-gray-100 bg-gray-50/60 p-3 min-h-[88px] break-words whitespace-pre-wrap text-sm text-nuanu-gray-700 [overflow-wrap:break-word]">
+                                  {feedbackDrafts[
+                                    section.key
+                                  ].comments.trim() ||
+                                    "No comment yet for this section."}
+                                </div>
+                              ) : (
+                                <div>
+                                  <p className="text-xs text-nuanu-gray-400 mb-1">
+                                    Comment
+                                  </p>
+                                  <textarea
+                                    value={feedbackDrafts[section.key].comments}
+                                    onChange={(e) =>
+                                      setFeedbackDrafts((prev) => ({
+                                        ...prev,
+                                        [section.key]: {
+                                          ...prev[section.key],
+                                          comments: e.target.value,
+                                        },
+                                      }))
+                                    }
+                                    rows={5}
+                                    className="w-full min-h-[120px] text-sm border border-gray-200 rounded-xl px-3 py-2 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 focus:outline-none transition-colors"
+                                    placeholder="Write comment"
+                                  />
+                                </div>
+                              )}
 
-                            {section.data && (
-                              <p className="text-xs text-nuanu-gray-400 mt-3">
-                                {section.data.authorName} ·{" "}
-                                {formatDate(section.data.updatedAt)}
-                              </p>
-                            )}
+                              {section.data && (
+                                <p className="text-xs text-nuanu-gray-400 break-words">
+                                  <span className="font-semibold text-nuanu-gray-500">
+                                    {section.data.authorName}
+                                  </span>{" "}
+                                  · {formatDate(section.data.updatedAt)}
+                                </p>
+                              )}
 
-                            <div className="flex justify-end mt-4">
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  saveStructuredFeedback(section.key)
-                                }
-                                disabled={
-                                  !section.canEdit ||
-                                  savingFeedbackType === section.key
-                                }
-                                className="btn-primary px-4 py-2 text-sm"
-                              >
-                                {savingFeedbackType === section.key
-                                  ? "Saving..."
-                                  : "Save Comment"}
-                              </button>
+                              <div className="flex justify-end">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    saveStructuredFeedback(section.key)
+                                  }
+                                  disabled={readOnly}
+                                  className="btn-primary px-4 py-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  {savingFeedbackType === section.key
+                                    ? "Saving..."
+                                    : "Save Comment"}
+                                </button>
+                              </div>
                             </div>
-                          </div>
-                        ));
+                          );
+                        });
                       })()}
                     </div>
                   </div>

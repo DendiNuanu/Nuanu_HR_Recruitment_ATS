@@ -8,6 +8,7 @@ import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
 import { delCache } from "@/lib/cache";
+import { ensureInterviewSlug } from "@/lib/interview-slug";
 
 // ── GET ────────────────────────────────────────────────────────────────────
 
@@ -311,6 +312,18 @@ export async function POST(request: Request) {
       });
     }
 
+    // Shareable interview-result link — non-blocking, isolated from the
+    // main create flow so a slug failure never breaks candidate creation.
+    let interviewSlug: string | null = null;
+    try {
+      interviewSlug = await ensureInterviewSlug(user.id, user.name);
+    } catch (slugErr) {
+      console.warn(
+        "[POST /api/candidates] ensureInterviewSlug failed (ignored):",
+        slugErr,
+      );
+    }
+
     await delCache("dashboard_metrics");
     revalidatePath("/dashboard/candidates");
     revalidatePath("/dashboard");
@@ -320,6 +333,7 @@ export async function POST(request: Request) {
         success: true,
         applicationId: application.id,
         candidateName: user.name,
+        interviewSlug,
       },
       { status: 201 },
     );

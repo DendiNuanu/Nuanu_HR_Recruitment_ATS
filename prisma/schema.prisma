@@ -4,7 +4,7 @@ generator client {
 
 datasource db {
   provider  = "postgresql"
-  url       = env("DATABASE_URL")
+  url       = env("DIRECT_URL")
   directUrl = env("DIRECT_URL")
 }
 
@@ -21,6 +21,7 @@ model User {
   updatedAt           DateTime            @updatedAt
   deletedAt           DateTime?
   departmentId        String?
+  interviewSlug       String?         @unique
   activityLogs        ActivityLog[]
   applications        Application[]
   hrReviewApplications    Application[]      @relation("ApplicationHrReviewer")

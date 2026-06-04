@@ -3,13 +3,14 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "npx prisma generate && npx tsx scripts/migrate.ts && next dev --turbopack",
     "build": "npx prisma generate && npx tsx scripts/migrate.ts && next build",
     "start": "next start",
     "lint": "eslint",
     "db:push": "npx prisma db push",
     "db:seed": "npx tsx prisma/seed.ts",
     "db:studio": "npx prisma studio",
+    "db:backfill:interview-slugs": "npx tsx scripts/backfill-interview-slugs.ts",
     "postinstall": "npx prisma generate"
   },
   "prisma": {

@@ -17,11 +17,13 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/reset-password") ||
     pathname.startsWith("/assessment") ||
     pathname.startsWith("/careers") ||
+    pathname.startsWith("/interview-result") ||
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/api/careers") ||
     pathname.startsWith("/api/telegram") ||
     pathname.startsWith("/api/apply") ||
     pathname.startsWith("/api/assessment") ||
+    pathname.startsWith("/api/interview-result") ||
     pathname === "/api/candidates/import-seek" ||
     pathname.startsWith("/api/webhooks") ||
     pathname === "/"

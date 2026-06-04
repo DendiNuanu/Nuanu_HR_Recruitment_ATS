@@ -274,6 +274,22 @@ async function main() {
     console.warn("[migrate] recruitment_channel_costs table (non-fatal):", e);
   }
 
+  // Shareable interview-result link (per candidate / user)
+  try {
+    await prisma.$executeRawUnsafe(`
+      ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS "interviewSlug" TEXT
+    `);
+    await prisma.$executeRawUnsafe(`
+      CREATE UNIQUE INDEX IF NOT EXISTS "users_interviewSlug_key"
+        ON users("interviewSlug")
+        WHERE "interviewSlug" IS NOT NULL
+    `);
+    console.log("[migrate] ✅ users.interviewSlug column OK");
+  } catch (e) {
+    console.warn("[migrate] users.interviewSlug column (non-fatal):", e);
+  }
+
   console.log("[migrate] Done.");
 }
 
