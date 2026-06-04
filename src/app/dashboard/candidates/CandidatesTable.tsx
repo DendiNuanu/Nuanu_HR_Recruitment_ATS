@@ -239,10 +239,6 @@ function InterviewShareLinkCard({ slug }: { slug: string | null }) {
         <Link2 className="w-4 h-4 text-nuanu-navy" />
         <p className="font-bold text-nuanu-navy">Share Interview Result</p>
       </div>
-      <p className="text-xs text-nuanu-gray-400">
-        Copy this link to share a read-only interview assessment page with the
-        candidate or hiring team. No login is required to view the page.
-      </p>
       {shareUrl ? (
         <>
           <div className="flex items-center gap-2">
@@ -2302,12 +2298,8 @@ export default function CandidatesTable({
                                   <p>{feedbackLoadError}</p>
                                 </>
                               ) : (
-                                <p>
-                                  No interview comment sections are visible for
-                                  your account. HR Manager, Admin, and Super
-                                  Admin users see all three sections; User 1 and
-                                  User 2 reviewers only see their assigned
-                                  section.
+                                <p className="text-sm text-gray-500 italic">
+                                  No interview comments available.
                                 </p>
                               )}
                             </div>
