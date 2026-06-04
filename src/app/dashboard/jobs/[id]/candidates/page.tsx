@@ -49,7 +49,9 @@ async function getVacancyCandidates(vacancyId: string) {
             experienceYears: true,
             skills: true,
             resumeUrl: true,
+            location: true,
             domicile: true,
+            willingToRelocate: true,
             referPosition: true,
             salaryExpectation: true,
           },
@@ -68,7 +70,13 @@ async function getVacancyCandidates(vacancyId: string) {
       stage: app.currentStage,
       score: app.candidateScore?.overallScore ?? 0,
       experienceYears: profile?.experienceYears ?? 0,
-      location: app.vacancy.location ?? "Remote",
+      location:
+        profile?.domicile?.trim() ||
+        profile?.location?.trim() ||
+        app.vacancy.location ||
+        "\u2014",
+      domicile: profile?.domicile ?? undefined,
+      willingToRelocate: profile?.willingToRelocate ?? false,
       appliedAt: app.appliedAt.toISOString(),
       createdAt: app.createdAt.toISOString(),
       lastActivityAt: app.lastActivityAt.toISOString(),
@@ -76,7 +84,6 @@ async function getVacancyCandidates(vacancyId: string) {
       skills: profile?.skills ?? [],
       resumeUrl: profile?.resumeUrl ?? undefined,
       source: app.source ?? "direct",
-      domicile: profile?.domicile ?? undefined,
       referPosition: profile?.referPosition ?? vacancy.title,
       salaryExpectation: profile?.salaryExpectation ?? undefined,
       recommendations: Array.isArray(app.candidateScore?.recommendations)
@@ -115,7 +122,10 @@ export default async function VacancyCandidatesPage({
   return (
     <div className="space-y-6">
       <nav className="flex items-center gap-2 text-sm text-nuanu-gray-500 flex-wrap">
-        <Link href="/dashboard" className="hover:text-nuanu-emerald transition-colors">
+        <Link
+          href="/dashboard"
+          className="hover:text-nuanu-emerald transition-colors"
+        >
           Dashboard
         </Link>
         <ChevronRight className="w-4 h-4" />

@@ -29,8 +29,15 @@ interface ParsedData {
   email: string | null;
   phone: string | null;
   location: string | null;
+  domicile: string | null;
+  workPreference: string | null;
+  willingToRelocate: boolean | null;
+  expectedSalary: number | null;
+  expectedSalaryCurrency: string | null;
   yearsOfExperience: number | null;
   currentRole: string | null;
+  gender: string | null;
+  nationality: string | null;
   skills: string[];
   summary: string | null;
 }
@@ -188,7 +195,23 @@ export default function UploadCVButton({
           email: parsed.email,
           phone: parsed.phone || undefined,
           location: parsed.location || undefined,
+          domicile: parsed.domicile || undefined,
+          workPreference: parsed.workPreference || undefined,
+          willingToRelocate:
+            typeof parsed.willingToRelocate === "boolean"
+              ? parsed.willingToRelocate
+              : undefined,
+          expectedSalary:
+            typeof parsed.expectedSalary === "number"
+              ? parsed.expectedSalary
+              : undefined,
+          expectedSalaryCurrency: parsed.expectedSalaryCurrency || undefined,
           yearsOfExperience: parsed.yearsOfExperience ?? undefined,
+          currentRole: parsed.currentRole || undefined,
+          gender: parsed.gender || undefined,
+          nationality: parsed.nationality || undefined,
+          skills: parsed.skills?.length ? parsed.skills : undefined,
+          summary: parsed.summary || undefined,
           stage: "new",
           cvUrl: uploadedCvUrl || undefined,
           aiMatch: 50,

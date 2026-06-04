@@ -19,6 +19,7 @@ export function formatSourceLabel(source: string | null | undefined): string {
   const key = normalizeSourceKey(source);
   if (!key) return "";
   if (key === "seek") return "SEEK";
+  if (key === "linkedin") return "LinkedIn";
   if (key === "career_page" || key === "careers page") return "Careers page";
   if (key === "hr_upload" || key === "hr upload") return "HR upload";
   return key
@@ -37,6 +38,7 @@ export const CHANNEL_COST_IDR: Record<string, number> = {
   direct: 0,
   internal: 0,
   seek: 3_000_000,
+  linkedin: 4_000_000,
   loker_bali: 1_000_000,
   career_page: 0,
   other: 500_000,

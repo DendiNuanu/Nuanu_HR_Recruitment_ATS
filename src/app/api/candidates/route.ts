@@ -51,19 +51,51 @@ export async function GET(request: Request) {
     }),
   ]);
 
-  const candidates = applications.map((app) => ({
-    id: app.id,
-    candidateId: app.candidateId,
-    name: app.candidate.name,
-    email: app.candidate.email,
-    phone: app.candidate.phone,
-    vacancyTitle: app.vacancy.title,
-    location: app.vacancy.location ?? "Remote",
-    stage: app.currentStage,
-    source: app.source,
-    score: app.candidateScore?.overallScore ?? 0,
-    appliedAt: app.appliedAt.toISOString(),
-  }));
+  // The CandidateProfile model has no back-relation to User in the schema, so
+  // we have to fetch profiles in a separate query and join in memory. This is
+  // the same pattern used by the dashboard pages.
+  const candidateIds = applications.map((a) => a.candidateId);
+  const profiles =
+    candidateIds.length > 0
+      ? await prisma.candidateProfile.findMany({
+          where: { userId: { in: candidateIds } },
+          select: {
+            userId: true,
+            location: true,
+            domicile: true,
+            willingToRelocate: true,
+          },
+        })
+      : [];
+  const profileByUserId = new Map(profiles.map((p) => [p.userId, p]));
+
+  const candidates = applications.map((app) => {
+    const profile = profileByUserId.get(app.candidateId);
+    // Prefer the candidate's own location (from CV / profile) over the vacancy's
+    // job location. This is the fix for "Marindah shows 'On site' even though
+    // her CV says Prabumulih, South Sumatra" — we were returning the vacancy's
+    // location, not the candidate's.
+    const candidateLocation =
+      profile?.domicile?.trim() ||
+      profile?.location?.trim() ||
+      app.vacancy.location ||
+      "\u2014";
+    return {
+      id: app.id,
+      candidateId: app.candidateId,
+      name: app.candidate.name,
+      email: app.candidate.email,
+      phone: app.candidate.phone,
+      vacancyTitle: app.vacancy.title,
+      location: candidateLocation,
+      domicile: profile?.domicile ?? null,
+      willingToRelocate: profile?.willingToRelocate ?? false,
+      stage: app.currentStage,
+      source: app.source,
+      score: app.candidateScore?.overallScore ?? 0,
+      appliedAt: app.appliedAt.toISOString(),
+    };
+  });
 
   return NextResponse.json({
     candidates,
@@ -91,7 +123,15 @@ export async function POST(request: Request) {
     phone,
     vacancyId,
     location,
+    domicile,
+    workPreference,
+    willingToRelocate,
+    expectedSalary,
+    expectedSalaryCurrency,
     yearsOfExperience,
+    currentRole,
+    gender,
+    nationality,
     stage = "new",
     cvUrl,
     cvText,
@@ -104,7 +144,15 @@ export async function POST(request: Request) {
     phone?: string;
     vacancyId?: string;
     location?: string;
+    domicile?: string;
+    workPreference?: string;
+    willingToRelocate?: boolean;
+    expectedSalary?: number;
+    expectedSalaryCurrency?: string;
     yearsOfExperience?: number;
+    currentRole?: string;
+    gender?: string;
+    nationality?: string;
     stage?: string;
     cvUrl?: string;
     cvText?: string;
@@ -154,22 +202,49 @@ export async function POST(request: Request) {
         ...(cvUrl ? { resumeUrl: cvUrl } : {}),
         ...(cvText ? { resumeText: cvText } : {}),
         ...(location ? { location: location.trim() } : {}),
+        ...(domicile ? { domicile: domicile.trim() } : {}),
+        ...(typeof willingToRelocate === "boolean"
+          ? { willingToRelocate }
+          : {}),
+        ...(typeof expectedSalary === "number" ? { expectedSalary } : {}),
+        ...(currentRole ? { currentTitle: currentRole.trim() } : {}),
+        ...(gender ? { gender } : {}),
         ...(yearsOfExperience != null
           ? { experienceYears: Number(yearsOfExperience) }
           : {}),
         ...(skills?.length ? { skills } : {}),
         ...(summary ? { summary: summary.trim() } : {}),
+        // The schema has no dedicated columns for these — store in parsedData so
+        // we don't lose the AI's extraction. Future schema migrations can promote
+        // them to first-class columns.
+        parsedData: {
+          ...(workPreference ? { workPreference } : {}),
+          ...(expectedSalaryCurrency ? { expectedSalaryCurrency } : {}),
+          ...(nationality ? { nationality } : {}),
+        },
       },
       create: {
         userId: user.id,
         ...(cvUrl ? { resumeUrl: cvUrl } : {}),
         ...(cvText ? { resumeText: cvText } : {}),
         ...(location ? { location: location.trim() } : {}),
+        ...(domicile ? { domicile: domicile.trim() } : {}),
+        ...(typeof willingToRelocate === "boolean"
+          ? { willingToRelocate }
+          : {}),
+        ...(typeof expectedSalary === "number" ? { expectedSalary } : {}),
+        ...(currentRole ? { currentTitle: currentRole.trim() } : {}),
+        ...(gender ? { gender } : {}),
         ...(yearsOfExperience != null
           ? { experienceYears: Number(yearsOfExperience) }
           : {}),
         ...(skills?.length ? { skills } : {}),
         ...(summary ? { summary: summary.trim() } : {}),
+        parsedData: {
+          ...(workPreference ? { workPreference } : {}),
+          ...(expectedSalaryCurrency ? { expectedSalaryCurrency } : {}),
+          ...(nationality ? { nationality } : {}),
+        },
       },
     });
 
