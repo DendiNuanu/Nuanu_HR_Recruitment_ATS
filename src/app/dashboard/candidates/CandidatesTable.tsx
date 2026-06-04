@@ -672,6 +672,14 @@ export default function CandidatesTable({
     "career page": "career_page",
     "nuanu career page": "career_page",
     "nuanu careers": "career_page",
+    linkedin: "linkedin",
+    "linked-in": "linkedin",
+    "linked.in": "linkedin",
+    // Legacy: any old rows tagged "job_board" map to "other" now that
+    // the option has been removed. New scraper data should use "linkedin".
+    job_board: "other",
+    "job board": "other",
+    "job-board": "other",
   };
 
   const normalizeSourcePreset = (source: string | null | undefined) => {
@@ -903,11 +911,51 @@ export default function CandidatesTable({
         setSelectedProfile({ ...selectedProfile, source: value });
         resetSourceFields(value);
         toast.success("Source updated");
+        if (value === "seek") {
+          void autoFillSalaryFromSeek();
+        }
       } else {
         toast.error(res.error || "Failed to update Source");
       }
     } finally {
       setSavingSource(false);
+    }
+  };
+
+  /**
+   * Auto-fill the salaryExpectation field by querying the SEEK scraper
+   * checkpoint. The API persists the value when it matches, so we only
+   * need to refresh local state. The user can still override manually.
+   */
+  const autoFillSalaryFromSeek = async () => {
+    if (!selectedProfile) return;
+    try {
+      const res = await fetch("/api/seek/salary", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          candidateId: selectedProfile.userId,
+          name: selectedProfile.name,
+          email: selectedProfile.email,
+          phone: selectedProfile.phone,
+        }),
+      });
+      if (!res.ok) return;
+      const payload = (await res.json().catch(() => null)) as {
+        salaryExpectation?: string | null;
+        matched?: boolean;
+      } | null;
+      const next = payload?.salaryExpectation?.trim();
+      if (!next) {
+        toast.info("No cached SEEK salary found for this candidate");
+        return;
+      }
+      if (next === (selectedProfile.salaryExpectation ?? "").trim()) return;
+      setSelectedProfile({ ...selectedProfile, salaryExpectation: next });
+      setSalaryExpectationDraft(next);
+      toast.success(`SEEK salary auto-filled: ${next}`);
+    } catch (err) {
+      console.warn("[autoFillSalaryFromSeek] request failed:", err);
     }
   };
 
