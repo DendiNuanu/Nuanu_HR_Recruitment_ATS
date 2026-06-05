@@ -6,7 +6,10 @@ import fs from "fs";
 import path from "path";
 
 // Promisify html-pdf
-const createPdf = (html: string, options: pdf.CreateOptions): Promise<Buffer> => {
+const createPdf = (
+  html: string,
+  options: pdf.CreateOptions,
+): Promise<Buffer> => {
   return new Promise((resolve, reject) => {
     pdf.create(html, options).toBuffer((err, buffer) => {
       if (err) return reject(err);
@@ -33,14 +36,18 @@ function formatDate(date: Date) {
 
 export async function POST(
   request: Request,
-  { params }: { params: { contract_id: string } },
+  { params }: { params: Promise<{ contract_id: string }> },
 ) {
   const session = await getSession();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { contract_id } = params;
+  const { contract_id } = await params;
   if (!contract_id) {
-    return NextResponse.json({ error: "contract_id is required" }, { status: 400 });
+    return NextResponse.json(
+      { error: "contract_id is required" },
+      { status: 400 },
+    );
   }
 
   try {
@@ -54,11 +61,17 @@ export async function POST(
     });
 
     if (!contract) {
-      return NextResponse.json({ error: "Contract not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Contract not found" },
+        { status: 404 },
+      );
     }
 
     if (contract.status !== "finalized") {
-      return NextResponse.json({ error: "Cannot generate memo for draft contract" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Cannot generate memo for draft contract" },
+        { status: 400 },
+      );
     }
 
     const currentYear = new Date().getFullYear();
@@ -121,7 +134,7 @@ export async function POST(
         ${logoBase64 ? `<img src="${logoBase64}" alt="Nuanu Logo" />` : "<h1>NUANU</h1>"}
         <div class="title">MEMO HIRE / EMPLOYMENT APPOINTMENT LETTER</div>
       </div>
-      
+
       <div style="margin-bottom: 20px;">
         <table style="width: auto;">
           <tr><td style="width: 120px; font-weight: bold;">Memo Number</td><td>: ${memoNumber}</td></tr>
@@ -138,7 +151,7 @@ export async function POST(
         <tr><td class="label">Department</td><td>: ${contract.employee.department}</td></tr>
         <tr><td class="label">Employment Status</td><td>: ${contract.employmentType}</td></tr>
         <tr><td class="label">Start Date</td><td>: ${formatDate(contract.contractStart)}</td></tr>
-        <tr><td class="label">Contract Period</td><td>: ${contract.isPermanent ? "Permanent" : `${formatDate(contract.contractStart)} to ${contract.contractEnd ? formatDate(contract.contractEnd) : 'N/A'}`}</td></tr>
+        <tr><td class="label">Contract Period</td><td>: ${contract.isPermanent ? "Permanent" : `${formatDate(contract.contractStart)} to ${contract.contractEnd ? formatDate(contract.contractEnd) : "N/A"}`}</td></tr>
         <tr><td class="label">Work Location</td><td>: ${contract.workLocation}</td></tr>
         <tr><td class="label">Working Hours</td><td>: ${contract.workingHours}</td></tr>
         <tr><td class="label">Reporting To</td><td>: ${contract.reportingTo}</td></tr>
@@ -147,12 +160,12 @@ export async function POST(
       <h4 style="margin-bottom: 10px; margin-top: 30px; text-decoration: underline;">COMPENSATION PACKAGE</h4>
       <table>
         <tr><td class="label">Basic Salary</td><td>: ${formatCurrency(basicSalary)} (${contract.salaryType})</td></tr>
-        ${meal > 0 ? `<tr><td class="label">Meal Allowance</td><td>: ${formatCurrency(meal)}</td></tr>` : ''}
-        ${transport > 0 ? `<tr><td class="label">Transport Allowance</td><td>: ${formatCurrency(transport)}</td></tr>` : ''}
-        ${health > 0 ? `<tr><td class="label">Health Allowance</td><td>: ${formatCurrency(health)}</td></tr>` : ''}
-        ${other > 0 && contract.otherAllowanceLabel ? `<tr><td class="label">${contract.otherAllowanceLabel}</td><td>: ${formatCurrency(other)}</td></tr>` : ''}
+        ${meal > 0 ? `<tr><td class="label">Meal Allowance</td><td>: ${formatCurrency(meal)}</td></tr>` : ""}
+        ${transport > 0 ? `<tr><td class="label">Transport Allowance</td><td>: ${formatCurrency(transport)}</td></tr>` : ""}
+        ${health > 0 ? `<tr><td class="label">Health Allowance</td><td>: ${formatCurrency(health)}</td></tr>` : ""}
+        ${other > 0 && contract.otherAllowanceLabel ? `<tr><td class="label">${contract.otherAllowanceLabel}</td><td>: ${formatCurrency(other)}</td></tr>` : ""}
       </table>
-      
+
       <div class="divider"></div>
       <table>
         <tr><td class="label" style="font-size: 16px;">Total Package</td><td style="font-size: 16px; font-weight: bold;">: ${formatCurrency(totalPackage)}</td></tr>
@@ -160,17 +173,21 @@ export async function POST(
 
       <h4 style="margin-bottom: 10px; margin-top: 30px; text-decoration: underline;">FACILITIES</h4>
       <ul style="margin-top: 0; padding-left: 20px;">
-        <li>Laptop: ${contract.laptopProvided ? `Yes — ${contract.laptopType || ''}` : 'No'}</li>
-        <li>Company Email: ${contract.companyEmail || 'Not provided'}</li>
-        <li>Lunch: ${contract.lunchProvided ? 'Provided' : 'Not provided'}</li>
-        <li>Nametag: ${contract.nametagRequired ? 'Required' : 'Not required'}</li>
-        <li>Access Card: ${contract.accessCard ? 'Yes' : 'No'}</li>
+        <li>Laptop: ${contract.laptopProvided ? `Yes — ${contract.laptopType || ""}` : "No"}</li>
+        <li>Company Email: ${contract.companyEmail || "Not provided"}</li>
+        <li>Lunch: ${contract.lunchProvided ? "Provided" : "Not provided"}</li>
+        <li>Nametag: ${contract.nametagRequired ? "Required" : "Not required"}</li>
+        <li>Access Card: ${contract.accessCard ? "Yes" : "No"}</li>
       </ul>
 
-      ${contract.notes ? `
+      ${
+        contract.notes
+          ? `
         <h4 style="margin-bottom: 5px; margin-top: 30px; text-decoration: underline;">NOTES</h4>
         <p style="margin-top: 0;">${contract.notes}</p>
-      ` : ''}
+      `
+          : ""
+      }
 
       <div class="footer" style="page-break-inside: avoid;">
         <div class="signature-block" style="float: left;">
@@ -194,7 +211,12 @@ export async function POST(
     `;
 
     // Ensure uploads directory exists
-    const uploadsDir = path.join(process.cwd(), "public", "uploads", "memo-hires");
+    const uploadsDir = path.join(
+      process.cwd(),
+      "public",
+      "uploads",
+      "memo-hires",
+    );
     if (!fs.existsSync(uploadsDir)) {
       fs.mkdirSync(uploadsDir, { recursive: true });
     }
@@ -231,13 +253,19 @@ export async function POST(
       },
     });
 
-    return NextResponse.json({
-      memo_id: memo.id,
-      memo_number: memo.memoNumber,
-      pdf_url: memo.pdfUrl,
-    }, { status: 200 });
+    return NextResponse.json(
+      {
+        memo_id: memo.id,
+        memo_number: memo.memoNumber,
+        pdf_url: memo.pdfUrl,
+      },
+      { status: 200 },
+    );
   } catch (error: any) {
     console.error("Failed to generate memo:", error);
-    return NextResponse.json({ error: error.message || "Failed to generate memo" }, { status: 500 });
+    return NextResponse.json(
+      { error: error.message || "Failed to generate memo" },
+      { status: 500 },
+    );
   }
 }

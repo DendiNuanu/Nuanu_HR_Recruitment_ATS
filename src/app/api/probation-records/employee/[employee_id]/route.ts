@@ -4,22 +4,24 @@ import { getSession } from "@/lib/auth";
 
 export async function GET(
   request: Request,
-  { params }: { params: { employee_id: string } }
+  { params }: { params: Promise<{ employee_id: string }> },
 ) {
+  const { employee_id } = await params;
   const session = await getSession();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
     const record = await prisma.probationRecord.findUnique({
       where: { employeeId: params.employee_id },
       include: {
         evaluations: {
-          orderBy: { evaluationDate: "desc" }
+          orderBy: { evaluationDate: "desc" },
         },
         extensions: {
-          orderBy: { extendedAt: "desc" }
-        }
-      }
+          orderBy: { extendedAt: "desc" },
+        },
+      },
     });
 
     return NextResponse.json({ record }, { status: 200 });

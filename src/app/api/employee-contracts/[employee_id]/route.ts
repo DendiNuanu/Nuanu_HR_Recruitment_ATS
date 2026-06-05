@@ -4,14 +4,18 @@ import { getSession } from "@/lib/auth";
 
 export async function GET(
   request: Request,
-  { params }: { params: { employee_id: string } },
+  { params }: { params: Promise<{ employee_id: string }> },
 ) {
   const session = await getSession();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { employee_id } = params;
+  const { employee_id } = await params;
   if (!employee_id) {
-    return NextResponse.json({ error: "employee_id is required" }, { status: 400 });
+    return NextResponse.json(
+      { error: "employee_id is required" },
+      { status: 400 },
+    );
   }
 
   const contract = await prisma.employeeContract.findUnique({

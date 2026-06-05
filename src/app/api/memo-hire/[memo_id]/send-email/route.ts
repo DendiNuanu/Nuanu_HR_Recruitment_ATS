@@ -7,12 +7,13 @@ import path from "path";
 
 export async function POST(
   request: Request,
-  { params }: { params: { memo_id: string } },
+  { params }: { params: Promise<{ memo_id: string }> },
 ) {
   const session = await getSession();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { memo_id } = params;
+  const { memo_id } = await params;
   if (!memo_id) {
     return NextResponse.json({ error: "memo_id is required" }, { status: 400 });
   }
@@ -22,7 +23,10 @@ export async function POST(
     const { to_email, subject, message } = body;
 
     if (!to_email || !subject || !message) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Missing required fields" },
+        { status: 400 },
+      );
     }
 
     const memo = await prisma.memoHire.findUnique({
@@ -40,7 +44,10 @@ export async function POST(
     const pdfPath = path.join(process.cwd(), "public", memo.pdfUrl);
 
     if (!fs.existsSync(pdfPath)) {
-      return NextResponse.json({ error: "PDF file not found on disk" }, { status: 404 });
+      return NextResponse.json(
+        { error: "PDF file not found on disk" },
+        { status: 404 },
+      );
     }
 
     const pdfBuffer = fs.readFileSync(pdfPath);
@@ -67,12 +74,21 @@ export async function POST(
         },
       });
 
-      return NextResponse.json({ sent: true, sent_at: updated.sentAt }, { status: 200 });
+      return NextResponse.json(
+        { sent: true, sent_at: updated.sentAt },
+        { status: 200 },
+      );
     } else {
-      return NextResponse.json({ error: result.error || "Failed to send email" }, { status: 500 });
+      return NextResponse.json(
+        { error: result.error || "Failed to send email" },
+        { status: 500 },
+      );
     }
   } catch (error: any) {
     console.error("Failed to send memo email:", error);
-    return NextResponse.json({ error: error.message || "Failed to send email" }, { status: 500 });
+    return NextResponse.json(
+      { error: error.message || "Failed to send email" },
+      { status: 500 },
+    );
   }
 }

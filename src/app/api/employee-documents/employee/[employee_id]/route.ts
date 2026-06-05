@@ -10,19 +10,23 @@ const REQUIRED_DOCS = [
   "bpjs_ketenagakerjaan",
   "ijazah",
   "formal_photo",
-  "bank_account"
+  "bank_account",
 ];
 
 export async function GET(
   request: Request,
-  { params }: { params: { employee_id: string } }
+  { params }: { params: Promise<{ employee_id: string }> },
 ) {
   const session = await getSession();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { employee_id } = params;
+  const { employee_id } = await params;
   if (!employee_id) {
-    return NextResponse.json({ error: "employee_id is required" }, { status: 400 });
+    return NextResponse.json(
+      { error: "employee_id is required" },
+      { status: 400 },
+    );
   }
 
   try {
@@ -32,10 +36,10 @@ export async function GET(
 
     // We want to return an array of exactly 8 slots, matching REQUIRED_DOCS.
     // If a document isn't found, return a null/empty object for that slot.
-    const slots = REQUIRED_DOCS.map(type => {
-      const doc = documents.find(d => d.documentType === type);
+    const slots = REQUIRED_DOCS.map((type) => {
+      const doc = documents.find((d) => d.documentType === type);
       if (doc) return doc;
-      
+
       return {
         id: null,
         documentType: type,
@@ -48,6 +52,9 @@ export async function GET(
     return NextResponse.json({ documents: slots }, { status: 200 });
   } catch (error: any) {
     console.error("Failed to fetch documents:", error);
-    return NextResponse.json({ error: "Failed to fetch documents" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to fetch documents" },
+      { status: 500 },
+    );
   }
 }

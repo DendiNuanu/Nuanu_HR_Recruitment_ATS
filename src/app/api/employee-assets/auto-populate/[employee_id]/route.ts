@@ -4,12 +4,13 @@ import { getSession } from "@/lib/auth";
 
 export async function POST(
   request: Request,
-  { params }: { params: { employee_id: string } }
+  { params }: { params: Promise<{ employee_id: string }> },
 ) {
   const session = await getSession();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { employee_id } = params;
+  const { employee_id } = await params;
 
   try {
     // Fetch the employee's contract
@@ -23,7 +24,10 @@ export async function POST(
     });
 
     if (!contract) {
-      return NextResponse.json({ created_count: 0, assets: [], message: "No contract found" }, { status: 200 });
+      return NextResponse.json(
+        { created_count: 0, assets: [], message: "No contract found" },
+        { status: 200 },
+      );
     }
 
     // Existing asset types for this employee
@@ -36,10 +40,16 @@ export async function POST(
     const toCreate: { assetType: string; assetName: string }[] = [];
 
     if (contract.laptopProvided && !existingTypes.has("laptop")) {
-      toCreate.push({ assetType: "laptop", assetName: contract.laptopType || "Laptop" });
+      toCreate.push({
+        assetType: "laptop",
+        assetName: contract.laptopType || "Laptop",
+      });
     }
     if (contract.companyEmail && !existingTypes.has("company_email")) {
-      toCreate.push({ assetType: "company_email", assetName: contract.companyEmail });
+      toCreate.push({
+        assetType: "company_email",
+        assetName: contract.companyEmail,
+      });
     }
     if (contract.nametagRequired && !existingTypes.has("nametag")) {
       toCreate.push({ assetType: "nametag", assetName: "Nametag" });
@@ -62,13 +72,19 @@ export async function POST(
             status: "pending",
             assignedBy: session.id,
           },
-        })
-      )
+        }),
+      ),
     );
 
-    return NextResponse.json({ created_count: created.length, assets: created }, { status: 200 });
+    return NextResponse.json(
+      { created_count: created.length, assets: created },
+      { status: 200 },
+    );
   } catch (error: any) {
     console.error("Auto-populate error:", error);
-    return NextResponse.json({ error: "Failed to auto-populate assets" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to auto-populate assets" },
+      { status: 500 },
+    );
   }
 }
