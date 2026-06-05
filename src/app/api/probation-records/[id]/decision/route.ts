@@ -10,12 +10,14 @@ export async function PATCH(
   if (!session)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const { id } = await params;
+
   try {
     const body = await request.json();
     const { decision, reason, extend_months } = body;
 
     const probationRecord = await prisma.probationRecord.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!probationRecord) {
@@ -32,7 +34,7 @@ export async function PATCH(
           data: { status: "active" },
         }),
         prisma.probationRecord.update({
-          where: { id: params.id },
+          where: { id },
           data: { outcome: "passed", outcomeDate: new Date() },
         }),
       ]);
@@ -55,7 +57,7 @@ export async function PATCH(
       await prisma.$transaction([
         prisma.probationExtension.create({
           data: {
-            probationRecordId: params.id,
+            probationRecordId: id,
             extendedByMonths: parseInt(extend_months, 10),
             previousEndDate: probationRecord.probationEndDate,
             newEndDate: newEndDate,
@@ -63,7 +65,7 @@ export async function PATCH(
           },
         }),
         prisma.probationRecord.update({
-          where: { id: params.id },
+          where: { id },
           data: { probationEndDate: newEndDate },
         }),
       ]);
@@ -83,7 +85,7 @@ export async function PATCH(
           data: { status: "terminated" },
         }),
         prisma.probationRecord.update({
-          where: { id: params.id },
+          where: { id },
           data: {
             outcome: "terminated",
             outcomeDate: new Date(),

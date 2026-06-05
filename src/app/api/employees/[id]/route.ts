@@ -13,7 +13,7 @@ export async function GET(
   const { id } = await params;
   try {
     const employee = await prisma.employee.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         user: {
           select: { name: true, email: true, phone: true },
@@ -38,12 +38,14 @@ export async function PATCH(
   if (!session)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const { id } = await params;
+
   try {
     const body = await request.json();
     const { phone, department, position } = body;
 
     const employee = await prisma.employee.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: { user: true },
     });
 
@@ -63,7 +65,7 @@ export async function PATCH(
 
     if (Object.keys(empData).length > 0) {
       await prisma.employee.update({
-        where: { id: params.id },
+        where: { id },
         data: empData,
       });
     }

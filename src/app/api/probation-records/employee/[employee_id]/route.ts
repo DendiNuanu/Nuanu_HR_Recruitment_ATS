@@ -13,7 +13,7 @@ export async function GET(
 
   try {
     const record = await prisma.probationRecord.findUnique({
-      where: { employeeId: params.employee_id },
+      where: { employeeId: employee_id },
       include: {
         evaluations: {
           orderBy: { evaluationDate: "desc" },

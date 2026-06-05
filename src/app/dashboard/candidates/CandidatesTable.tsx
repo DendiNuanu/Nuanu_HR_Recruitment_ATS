@@ -602,7 +602,7 @@ export default function CandidatesTable({
       console.error(error);
       setLocalCandidates((prev) =>
         prev.map((c) =>
-          c.id === applicationId ? { ...c, stage: previousStage } : c,
+          c.id === applicationId ? { ...c, stage: currentCanonical } : c,
         ),
       );
       showStageNotice({
