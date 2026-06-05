@@ -4,14 +4,18 @@ import { getSession } from "@/lib/auth";
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await getSession();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { id } = params;
+  const { id } = await params;
   if (!id) {
-    return NextResponse.json({ error: "document id is required" }, { status: 400 });
+    return NextResponse.json(
+      { error: "document id is required" },
+      { status: 400 },
+    );
   }
 
   try {
@@ -23,16 +27,22 @@ export async function PATCH(
     }
 
     if (action === "reject" && !rejection_reason) {
-      return NextResponse.json({ error: "Rejection reason is required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Rejection reason is required" },
+        { status: 400 },
+      );
     }
 
     const doc = await prisma.employeeDocument.findUnique({
       where: { id },
-      include: { employee: true }
+      include: { employee: true },
     });
 
     if (!doc) {
-      return NextResponse.json({ error: "Document not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Document not found" },
+        { status: 404 },
+      );
     }
 
     let updatedDoc;
@@ -43,8 +53,8 @@ export async function PATCH(
           verificationStatus: "verified",
           verifiedAt: new Date(),
           verifiedBy: session.id,
-          rejectionReason: null
-        }
+          rejectionReason: null,
+        },
       });
     } else {
       updatedDoc = await prisma.employeeDocument.update({
@@ -53,17 +63,19 @@ export async function PATCH(
           verificationStatus: "rejected",
           verifiedAt: null,
           verifiedBy: null,
-          rejectionReason: rejection_reason
-        }
+          rejectionReason: rejection_reason,
+        },
       });
     }
 
     // Check if all 8 are verified
     const allDocs = await prisma.employeeDocument.findMany({
-      where: { employeeId: doc.employeeId }
+      where: { employeeId: doc.employeeId },
     });
 
-    const verifiedDocs = allDocs.filter(d => d.verificationStatus === "verified");
+    const verifiedDocs = allDocs.filter(
+      (d) => d.verificationStatus === "verified",
+    );
     const verifiedCount = verifiedDocs.length;
     let allVerified = false;
 
@@ -72,19 +84,24 @@ export async function PATCH(
       // Update onboarding status to asset_setup
       await prisma.onboarding.updateMany({
         where: { employeeId: doc.employeeId },
-        data: { onboardingStatus: "asset_setup" }
+        data: { onboardingStatus: "asset_setup" },
       });
     }
 
-    return NextResponse.json({
-      updated: true,
-      all_verified: allVerified,
-      verified_count: verifiedCount,
-      document: updatedDoc
-    }, { status: 200 });
-
+    return NextResponse.json(
+      {
+        updated: true,
+        all_verified: allVerified,
+        verified_count: verifiedCount,
+        document: updatedDoc,
+      },
+      { status: 200 },
+    );
   } catch (error: any) {
     console.error("Failed to verify document:", error);
-    return NextResponse.json({ error: "Failed to verify document" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to verify document" },
+      { status: 500 },
+    );
   }
 }

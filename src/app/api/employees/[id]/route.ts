@@ -4,22 +4,24 @@ import { getSession } from "@/lib/auth";
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   const session = await getSession();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
     const employee = await prisma.employee.findUnique({
       where: { id: params.id },
       include: {
         user: {
-          select: { name: true, email: true, phone: true }
-        }
-      }
+          select: { name: true, email: true, phone: true },
+        },
+      },
     });
 
-    if (!employee) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    if (!employee)
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
 
     return NextResponse.json({ employee }, { status: 200 });
   } catch (error) {
@@ -29,10 +31,11 @@ export async function GET(
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await getSession();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
     const body = await request.json();
@@ -40,15 +43,16 @@ export async function PATCH(
 
     const employee = await prisma.employee.findUnique({
       where: { id: params.id },
-      include: { user: true }
+      include: { user: true },
     });
 
-    if (!employee) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    if (!employee)
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
 
     if (phone !== undefined) {
       await prisma.user.update({
         where: { id: employee.userId },
-        data: { phone }
+        data: { phone },
       });
     }
 
@@ -59,7 +63,7 @@ export async function PATCH(
     if (Object.keys(empData).length > 0) {
       await prisma.employee.update({
         where: { id: params.id },
-        data: empData
+        data: empData,
       });
     }
 
