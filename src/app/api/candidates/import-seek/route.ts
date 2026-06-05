@@ -29,6 +29,12 @@ type SeekCandidateInput = {
   appliedAt?: string;
   vacancyId?: string;
   profileUrl?: string;
+  /** SEEK profile ID extracted from profileUrl (e.g. "301d56f4-d3c5-45bd-...") */
+  seekProfileId?: string;
+  /** Raw expected salary string from SEEK profile tab */
+  expectedSalaryRaw?: string;
+  /** Normalised salary display string e.g. "IDR 4,000,000 / month" */
+  salaryExpectation?: string;
 };
 
 type ImportResults = {
@@ -37,6 +43,27 @@ type ImportResults = {
   errors: number;
   details: string[];
 };
+
+// ── Status priority: higher number = higher priority (never downgrade) ─────
+// A "rejected" candidate stays rejected even if SEEK still shows them as "new"
+const STAGE_PRIORITY: Record<string, number> = {
+  hired: 6,
+  offering: 5,
+  hr_interview: 4,
+  screening: 3,
+  rejected: 2,
+  talent_bank: 1,
+  new: 0,
+};
+
+/** Returns true if newStage is allowed to overwrite existingStage */
+function stageCanOverwrite(existingStage: string, newStage: string): boolean {
+  const existPriority = STAGE_PRIORITY[existingStage] ?? 0;
+  const newPriority = STAGE_PRIORITY[newStage] ?? 0;
+  // Never downgrade: only allow if new stage is strictly higher priority
+  // Exception: allow same-priority updates (e.g. new → new keeps appliedAt fresh)
+  return newPriority >= existPriority;
+}
 
 const SEEK_STAGE_MAP: Record<string, string> = {
   New: "new",
@@ -300,7 +327,24 @@ async function resolveVacancyId(
 async function findExistingUser(
   email: string | null,
   phone: string | null,
+  seekProfileId: string | null,
 ): Promise<{ id: string; email: string } | null> {
+  // 1. Match by SEEK profile ID (most stable identity key)
+  if (seekProfileId) {
+    const bySeekId = await prisma.candidateProfile.findFirst({
+      where: { seekProfileId },
+      select: { userId: true },
+    });
+    if (bySeekId?.userId) {
+      const user = await prisma.user.findUnique({
+        where: { id: bySeekId.userId },
+        select: { id: true, email: true },
+      });
+      if (user) return user;
+    }
+  }
+
+  // 2. Match by email
   if (email) {
     const byEmail = await prisma.user.findUnique({
       where: { email },
@@ -309,6 +353,7 @@ async function findExistingUser(
     if (byEmail) return byEmail;
   }
 
+  // 3. Match by phone
   if (phone) {
     const byPhone = await prisma.user.findFirst({
       where: { phone, deletedAt: null },
@@ -393,16 +438,57 @@ function resolveImportEmail(
   return null;
 }
 
+/** Extract SEEK profile UUID from a profile URL like ...?selected=301d56f4-... */
+function extractSeekProfileId(profileUrl: string | undefined): string | null {
+  if (!profileUrl) return null;
+  const m = profileUrl.match(/[?&]selected=([0-9a-f-]{36})/i);
+  return m ? m[1] : null;
+}
+
+/** Detect email/location mismatch between SEEK profile and stored CV data */
+function detectMismatches(
+  seekEmail: string | null,
+  storedEmail: string | null,
+  seekLocation: string | null,
+  storedLocation: string | null,
+): string[] {
+  const mismatches: string[] = [];
+  if (
+    seekEmail &&
+    storedEmail &&
+    seekEmail.toLowerCase() !== storedEmail.toLowerCase() &&
+    !storedEmail.includes("@import.nuanu.local")
+  ) {
+    mismatches.push(`email: SEEK="${seekEmail}" vs stored="${storedEmail}"`);
+  }
+  if (
+    seekLocation &&
+    storedLocation &&
+    seekLocation.toLowerCase() !== storedLocation.toLowerCase()
+  ) {
+    mismatches.push(
+      `location: SEEK="${seekLocation}" vs stored="${storedLocation}"`,
+    );
+  }
+  return mismatches;
+}
+
 async function importOneCandidate(raw: SeekCandidateInput): Promise<
   | {
       status: "imported";
       vacancyCreated: boolean;
       vacancyTitle: string;
       resumeAttached: boolean;
+      stageLocked: boolean;
     }
-  | { status: "skipped"; resumeAttached: boolean }
+  | { status: "skipped"; resumeAttached: boolean; stageLocked: boolean }
 > {
+  // ── FIX 6: Validate required fields before doing anything ─────────────────
   const name = raw.name?.trim() || "Unknown";
+  if (!name || name === "Unknown") {
+    throw new Error("Candidate name is required");
+  }
+
   const phone = normalizePhone(raw.phone);
   const email = resolveImportEmail(raw, phone);
 
@@ -411,12 +497,29 @@ async function importOneCandidate(raw: SeekCandidateInput): Promise<
       "Candidate needs a phone number (email not shown on SEEK list page)",
     );
   }
+
+  // ── FIX 2: Stable identity key — prefer seekProfileId ────────────────────
+  const seekProfileId =
+    raw.seekProfileId?.trim() ||
+    extractSeekProfileId(raw.profileUrl) ||
+    null;
+
   const mappedStage = mapSeekStatus(raw.seekStatus);
   const appliedAt = parseSeekAppliedAt(raw.appliedAt);
+
+  // ── FIX 3: Store SEEK location separately from CV location ────────────────
   const seekLocation = raw.domicile?.trim() || raw.location?.trim() || null;
   const seekAppliedRole = raw.appliedRole?.trim() || null;
   const currentEmployment = raw.mostRecentRole?.trim() || null;
   const experienceYears = parseExperienceYears(raw.experience);
+
+  // ── FIX 4: Salary — normalised string from scraper ────────────────────────
+  // scraper sets `salaryExpectation` (formatted) + `expectedSalaryRaw` (raw text)
+  const salaryExpectation =
+    raw.salaryExpectation?.trim() ||
+    (raw.expectedSalaryRaw?.trim()
+      ? `RAW: ${raw.expectedSalaryRaw.trim()}`
+      : null);
 
   const ensured = await ensureVacancyForSeekRole(
     raw.vacancyId,
@@ -438,58 +541,110 @@ async function importOneCandidate(raw: SeekCandidateInput): Promise<
     raw.resumeFileName || `${name}_resume.pdf`,
   );
 
+  // ── FIX 2: Find existing user by seekProfileId → email → phone ────────────
   const existingUser = await findExistingUser(
     raw.email?.trim() && !raw.email.includes("@noemail") ? email : null,
     phone,
+    seekProfileId,
   );
 
   if (existingUser) {
     const existingApp = await prisma.application.findFirst({
       where: { candidateId: existingUser.id, vacancyId, deletedAt: null },
-      select: { id: true },
+      select: { id: true, currentStage: true },
     });
+
     if (existingApp) {
-      await prisma.application.update({
-        where: { id: existingApp.id },
-        data: {
-          currentStage: mappedStage,
-          status: applicationStatusForStage(mappedStage),
-          appliedAt,
-          ...(mappedStage === "rejected" ? { rejectedAt: new Date() } : {}),
-        },
-      });
-      if (seekLocation) {
-        await prisma.candidateProfile.upsert({
-          where: { userId: existingUser.id },
-          update: { location: seekLocation, domicile: seekLocation },
-          create: {
-            userId: existingUser.id,
-            location: seekLocation,
-            domicile: seekLocation,
+      // ── FIX 1: Status lock — never downgrade (rejected stays rejected) ────
+      const existingStage = existingApp.currentStage;
+      const stageLocked = !stageCanOverwrite(existingStage, mappedStage);
+
+      if (!stageLocked) {
+        await prisma.application.update({
+          where: { id: existingApp.id },
+          data: {
+            currentStage: mappedStage,
+            status: applicationStatusForStage(mappedStage),
+            appliedAt,
+            lastActivityAt: new Date(),
+            ...(mappedStage === "rejected" ? { rejectedAt: new Date() } : {}),
           },
         });
       }
-      let resumeAttached = false;
-      if (resumeUrl) {
-        const profile = await prisma.candidateProfile.findUnique({
-          where: { userId: existingUser.id },
-          select: { resumeUrl: true },
-        });
-        if (!profile?.resumeUrl) {
-          await attachResumeToCandidate(
-            existingUser.id,
-            existingApp.id,
-            resumeUrl,
-            name,
-            resumeMimeType,
-          );
-          resumeAttached = true;
-        }
+
+      // Always update profile metadata on re-scrape (but never downgrade location)
+      const existingProfile = await prisma.candidateProfile.findUnique({
+        where: { userId: existingUser.id },
+        select: {
+          resumeUrl: true,
+          location: true,
+          domicile: true,
+          seekProfileId: true,
+        },
+      });
+
+      // ── FIX 3: Detect email/location mismatches ───────────────────────────
+      const mismatches = detectMismatches(
+        raw.email?.trim() || null,
+        existingUser.email,
+        seekLocation,
+        existingProfile?.location || null,
+      );
+      if (mismatches.length > 0) {
+        console.warn(
+          `[SEEK import] Data mismatch for ${name}: ${mismatches.join("; ")}`,
+        );
       }
-      return { status: "skipped", resumeAttached };
+
+      const profileUpdateData: Record<string, unknown> = {
+        // Always store SEEK-side email/location for audit
+        ...(raw.email?.trim() ? { emailSeek: raw.email.trim() } : {}),
+        ...(seekLocation ? { locationSeek: seekLocation } : {}),
+        // Update location only if not already set from CV
+        ...(seekLocation && !existingProfile?.domicile
+          ? { location: seekLocation, domicile: seekLocation }
+          : {}),
+        // ── FIX 4: Always write salary when scraper provides it ────────────
+        ...(salaryExpectation ? { salaryExpectation } : {}),
+        // Store SEEK profile ID for future identity matching
+        ...(seekProfileId && !existingProfile?.seekProfileId
+          ? { seekProfileId }
+          : {}),
+      };
+
+      if (Object.keys(profileUpdateData).length > 0) {
+        await prisma.candidateProfile.upsert({
+          where: { userId: existingUser.id },
+          update: profileUpdateData,
+          create: {
+            userId: existingUser.id,
+            ...(seekLocation
+              ? { location: seekLocation, domicile: seekLocation }
+              : {}),
+            ...(seekProfileId ? { seekProfileId } : {}),
+            ...(raw.email?.trim() ? { emailSeek: raw.email.trim() } : {}),
+            ...(salaryExpectation ? { salaryExpectation } : {}),
+          },
+        });
+      }
+
+      let resumeAttached = false;
+      if (resumeUrl && !existingProfile?.resumeUrl) {
+        await attachResumeToCandidate(
+          existingUser.id,
+          existingApp.id,
+          resumeUrl,
+          name,
+          resumeMimeType,
+        );
+        resumeAttached = true;
+      }
+
+      return { status: "skipped", resumeAttached, stageLocked };
     }
   }
 
+  // ── New candidate — create user, profile, application ────────────────────
   const randomPassword = await bcrypt.hash(
     Math.random().toString(36).slice(-10),
     10,
@@ -526,6 +681,11 @@ async function importOneCandidate(raw: SeekCandidateInput): Promise<
       ...(typeof raw.experience === "string" && raw.experience.trim()
         ? { summary: raw.experience.trim() }
         : {}),
+      // ── FIX 2 + 3 + 4: seekProfileId, emailSeek, locationSeek, salary ────
+      ...(seekProfileId ? { seekProfileId } : {}),
+      ...(raw.email?.trim() ? { emailSeek: raw.email.trim() } : {}),
+      ...(seekLocation ? { locationSeek: seekLocation } : {}),
+      ...(salaryExpectation ? { salaryExpectation } : {}),
     },
     create: {
       userId: user.id,
@@ -541,17 +701,29 @@ async function importOneCandidate(raw: SeekCandidateInput): Promise<
       ...(typeof raw.experience === "string" && raw.experience.trim()
         ? { summary: raw.experience.trim() }
         : {}),
+      ...(seekProfileId ? { seekProfileId } : {}),
+      ...(raw.email?.trim() ? { emailSeek: raw.email.trim() } : {}),
+      ...(seekLocation ? { locationSeek: seekLocation } : {}),
+      ...(salaryExpectation ? { salaryExpectation } : {}),
     },
   });
+
+  // ── FIX 1: New application always starts at "new", then apply SEEK status ─
+  // Use the correct appliedAt so newest SEEK candidates appear at top (FIX 5)
+  const safeAppliedAt = Number.isNaN(appliedAt.getTime()) ? new Date() : appliedAt;
 
   const application = await prisma.application.create({
     data: {
       vacancyId,
       candidateId: user.id,
       source: "SEEK",
-      status: applicationStatusForStage("new"),
-      currentStage: "new",
-      appliedAt: Number.isNaN(appliedAt.getTime()) ? new Date() : appliedAt,
+      // Apply the mapped stage directly on creation — no need to start at "new"
+      // then flip, which was causing the two-record duplicate bug
+      status: applicationStatusForStage(mappedStage),
+      currentStage: mappedStage,
+      appliedAt: safeAppliedAt,
+      // ── FIX 5: Set createdAt = appliedAt so list sort shows newest SEEK apps first
+      createdAt: safeAppliedAt,
       ...(mappedStage === "rejected" ? { rejectedAt: new Date() } : {}),
     },
   });
@@ -582,6 +754,7 @@ async function importOneCandidate(raw: SeekCandidateInput): Promise<
     vacancyCreated,
     vacancyTitle,
     resumeAttached: Boolean(resumeUrl),
+    stageLocked: false,
   };
 }
 
@@ -630,7 +803,10 @@ export async function POST(request: NextRequest) {
       if (outcome.status === "skipped") {
         results.skipped++;
         const cvNote = outcome.resumeAttached ? ", CV attached" : "";
-        results.details.push(`SKIP: ${label} (already exists${cvNote})`);
+        const lockNote = outcome.stageLocked
+          ? ` [stage locked: kept existing status]`
+          : "";
+        results.details.push(`SKIP: ${label} (already exists${cvNote}${lockNote})`);
       } else {
         results.imported++;
         const stage = mapSeekStatus(candidate.seekStatus);

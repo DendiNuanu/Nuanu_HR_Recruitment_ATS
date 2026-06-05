@@ -26,7 +26,15 @@ async function main() {
       ALTER TABLE candidate_profiles
         ADD COLUMN IF NOT EXISTS "domicile" VARCHAR,
         ADD COLUMN IF NOT EXISTS "referPosition" VARCHAR,
-        ADD COLUMN IF NOT EXISTS "salaryExpectation" TEXT
+        ADD COLUMN IF NOT EXISTS "salaryExpectation" TEXT,
+        ADD COLUMN IF NOT EXISTS "seekProfileId" TEXT,
+        ADD COLUMN IF NOT EXISTS "emailSeek" TEXT,
+        ADD COLUMN IF NOT EXISTS "locationSeek" TEXT
+    `);
+    await prisma.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS idx_candidate_profiles_seek_profile_id
+        ON candidate_profiles ("seekProfileId")
+        WHERE "seekProfileId" IS NOT NULL
     `);
     console.log("[migrate] ✅ candidate_profiles columns OK");
   } catch (e) {

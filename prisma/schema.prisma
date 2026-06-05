@@ -342,6 +342,9 @@ model CandidateProfile {
   domicile          String?
   referPosition     String?
   salaryExpectation String?
+  seekProfileId     String?
+  emailSeek         String?
+  locationSeek      String?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
