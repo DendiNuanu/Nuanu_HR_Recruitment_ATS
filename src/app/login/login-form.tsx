@@ -60,7 +60,7 @@ export default function LoginForm() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-nuanu-green focus:border-transparent transition-all outline-none"
+              className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-nuanu-emerald focus:border-transparent transition-all outline-none"
               placeholder="admin@nuanu.com"
             />
           </div>
@@ -69,7 +69,7 @@ export default function LoginForm() {
         <div className="space-y-1.5">
           <div className="flex justify-between items-center ml-1">
             <label className="text-xs font-semibold text-gray-700">Password</label>
-            <a href="#" className="text-xs text-nuanu-green hover:underline font-medium">Forgot password?</a>
+            <a href="/forgot-password" className="text-xs text-nuanu-emerald hover:underline font-medium">Forgot password?</a>
           </div>
           <div className="relative">
             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -78,7 +78,7 @@ export default function LoginForm() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full pl-10 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-nuanu-green focus:border-transparent transition-all outline-none"
+              className="w-full pl-10 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-nuanu-emerald focus:border-transparent transition-all outline-none"
               placeholder="••••••••"
             />
             <button
@@ -97,7 +97,7 @@ export default function LoginForm() {
             id="remember"
             checked={rememberMe}
             onChange={(e) => setRememberMe(e.target.checked)}
-            className="w-4 h-4 rounded border-gray-300 text-nuanu-green focus:ring-nuanu-green"
+            className="w-4 h-4 rounded border-gray-300 text-nuanu-emerald focus:ring-nuanu-emerald"
           />
           <label htmlFor="remember" className="text-xs text-gray-600 cursor-pointer select-none">Keep me signed in</label>
         </div>
@@ -105,7 +105,7 @@ export default function LoginForm() {
         <button
           type="submit"
           disabled={isPending}
-          className="w-full py-3 bg-nuanu-green text-white font-bold rounded-xl hover:bg-nuanu-green-dark transition-all active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          className="w-full py-3 bg-nuanu-emerald text-white font-bold rounded-xl hover:bg-nuanu-emerald-dark transition-all active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           {isPending ? (
             <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />

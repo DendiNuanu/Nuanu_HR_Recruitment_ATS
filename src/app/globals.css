@@ -17,6 +17,9 @@
   --color-nuanu-emerald: #10B981;
   --color-nuanu-emerald-light: #D1FAE5;
   --color-nuanu-emerald-dark: #059669;
+  /* Aliases for backward compatibility */
+  --color-nuanu-green: #10B981;
+  --color-nuanu-green-dark: #059669;
   --color-nuanu-teal: #14B8A6;
   --color-nuanu-success: #22C55E;
   --color-nuanu-warning: #F59E0B;

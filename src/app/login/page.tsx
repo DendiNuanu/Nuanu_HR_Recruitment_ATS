@@ -16,7 +16,7 @@ export default function LoginPage() {
     >
       {/* Background Decor - CSS based to avoid image load delays */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] rounded-full bg-nuanu-green/10 blur-[120px]" />
+        <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] rounded-full bg-nuanu-emerald/10 blur-[120px]" />
         <div className="absolute -bottom-[10%] -right-[10%] w-[40%] h-[40%] rounded-full bg-nuanu-navy/20 blur-[120px]" />
       </div>
 
@@ -25,7 +25,7 @@ export default function LoginPage() {
         <div className="mb-8 flex flex-col items-center animate-in fade-in slide-in-from-top-4 duration-700">
           <div className="relative w-20 h-20 mb-4 rounded-3xl bg-white shadow-2xl overflow-hidden">
             <Image
-              src="/logo.png"
+              src="/nuanu-logo.png"
               alt="Nuanu Logo"
               fill
               priority
