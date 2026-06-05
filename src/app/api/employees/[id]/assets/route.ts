@@ -13,7 +13,7 @@ export async function GET(
 
   try {
     const assets = await prisma.employeeAsset.findMany({
-      where: { employeeId: params.id },
+      where: { employeeId: id },
       orderBy: { createdAt: "desc" },
     });
 

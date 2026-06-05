@@ -13,7 +13,7 @@ export async function GET(
 
   try {
     const documents = await prisma.employeeDocument.findMany({
-      where: { employeeId: params.id },
+      where: { employeeId: id },
       orderBy: { createdAt: "desc" },
     });
 

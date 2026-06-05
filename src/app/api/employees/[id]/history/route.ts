@@ -20,7 +20,7 @@ export async function GET(
     }> = [];
 
     const employee = await prisma.employee.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         employeeContract: true,
         memoHires: true,

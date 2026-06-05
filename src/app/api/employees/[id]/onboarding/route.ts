@@ -13,7 +13,7 @@ export async function GET(
 
   try {
     const onboarding = await prisma.onboarding.findUnique({
-      where: { employeeId: params.id },
+      where: { employeeId: id },
     });
 
     return NextResponse.json({ onboarding }, { status: 200 });

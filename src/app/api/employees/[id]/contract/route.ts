@@ -13,7 +13,7 @@ export async function GET(
 
   try {
     const contract = await prisma.employeeContract.findUnique({
-      where: { employeeId: params.id },
+      where: { employeeId: id },
     });
 
     return NextResponse.json({ contract }, { status: 200 });
