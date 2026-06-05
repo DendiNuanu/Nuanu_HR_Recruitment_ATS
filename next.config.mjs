@@ -8,7 +8,6 @@ const nextConfig = {
     deviceSizes: [640, 750, 828, 1080, 1200, 1920],
   },
   experimental: {
-    cacheComponents: true,
     optimizePackageImports: ["lucide-react", "bcryptjs", "@prisma/client"],
   },
   async headers() {
