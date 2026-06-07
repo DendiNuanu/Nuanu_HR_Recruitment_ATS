@@ -40,7 +40,9 @@ export default function LoginPage() {
       }
 
       localStorage.setItem("nuanu_user", JSON.stringify(data.user));
-      router.push("/dashboard");
+      // Hard-navigate so the browser handles the redirect immediately without
+      // waiting for Next.js client-side rendering of the dashboard.
+      window.location.href = "/dashboard";
     } catch {
       setError("Network error. Please try again.");
       setIsLoading(false);

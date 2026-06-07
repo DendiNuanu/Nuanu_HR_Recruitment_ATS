@@ -14,27 +14,38 @@ export async function POST(request: Request) {
       );
     }
 
-    // Connect to actual Prisma Database
+    // Normalize email to avoid case-sensitivity index misses
+    const normalizedEmail = email.trim().toLowerCase();
+
+    // Fetch only the columns needed for auth — avoids deserializing large rows
     const user = await prisma.user.findUnique({
-      where: { email },
-      include: {
+      where: { email: normalizedEmail },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        password: true,
+        departmentId: true,
+        deletedAt: true,
+        isActive: true,
         userRoles: {
-          include: { role: true },
+          select: {
+            role: {
+              select: { slug: true },
+            },
+          },
         },
       },
     });
 
-    if (!user) {
-      return NextResponse.json(
-        { error: "Invalid email or password" },
-        { status: 401 },
-      );
-    }
+    // Always run bcrypt.compare even on missing user to prevent timing attacks,
+    // but use a cheap dummy hash so it exits quickly.
+    const DUMMY_HASH =
+      "$2a$10$abcdefghijklmnopqrstuuABCDEFGHIJKLMNOPQRSTUVWXYZ123456";
+    const hashToCompare = user?.password ?? DUMMY_HASH;
+    const passwordMatch = await bcrypt.compare(password, hashToCompare);
 
-    // Verify hashed password
-    const passwordMatch = await bcrypt.compare(password, user.password);
-
-    if (!passwordMatch) {
+    if (!user || !passwordMatch || user.deletedAt || user.isActive === false) {
       return NextResponse.json(
         { error: "Invalid email or password" },
         { status: 401 },
@@ -46,7 +57,7 @@ export async function POST(request: Request) {
       id: user.id,
       email: user.email,
       name: user.name,
-      roles: user.userRoles.map((ur) => ur.role.slug), // Use slugs for consistency
+      roles: user.userRoles.map((ur) => ur.role.slug),
       departmentId: user.departmentId,
     };
 
