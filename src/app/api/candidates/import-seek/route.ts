@@ -418,7 +418,7 @@ async function attachResumeToCandidate(
   }
 }
 
-/** Stable id from phone when SEEK list has no email — not a random throwaway per import. */
+/** @deprecated — logic inlined into importOneCandidate for clarity */
 function resolveImportEmail(
   raw: SeekCandidateInput,
   phone: string | null,
@@ -483,38 +483,55 @@ async function importOneCandidate(raw: SeekCandidateInput): Promise<
     }
   | { status: "skipped"; resumeAttached: boolean; stageLocked: boolean }
 > {
-  // ── FIX 6: Validate required fields before doing anything ─────────────────
+  // ── FIX 6: Validate required fields ──────────────────────────────────────
   const name = raw.name?.trim() || "Unknown";
   if (!name || name === "Unknown") {
     throw new Error("Candidate name is required");
   }
 
   const phone = normalizePhone(raw.phone);
-  const email = resolveImportEmail(raw, phone);
 
-  if (!email) {
+  // ── FIX: Separate raw SEEK email from resolved identity email ─────────────
+  // rawSeekEmail = what SEEK actually shows on the profile tab (may be null)
+  // identityEmail = what we use to look up / create the DB record
+  const rawSeekEmail = raw.email?.trim().toLowerCase() || null;
+  const isRealEmail =
+    rawSeekEmail &&
+    !rawSeekEmail.includes("@noemail") &&
+    !rawSeekEmail.includes("@import.");
+
+  // Build a STABLE synthetic email from phone (used when no real email yet)
+  const syntheticEmail =
+    phone && phone.replace(/\D/g, "").length >= 10
+      ? `seek+${phone.replace(/\D/g, "")}@import.nuanu.local`
+      : null;
+
+  // The canonical identity email is: real email > synthetic > null
+  const identityEmail = isRealEmail ? rawSeekEmail : syntheticEmail;
+
+  if (!identityEmail) {
     throw new Error(
       "Candidate needs a phone number (email not shown on SEEK list page)",
     );
   }
 
-  // ── FIX 2: Stable identity key — prefer seekProfileId ────────────────────
+  console.log(`[SEEK EMAIL] ${name}: rawSeekEmail=${rawSeekEmail ?? "null"} identityEmail=${identityEmail}`);
+
+  // ── FIX 2: Stable identity key ────────────────────────────────────────────
   const seekProfileId =
     raw.seekProfileId?.trim() ||
     extractSeekProfileId(raw.profileUrl) ||
     null;
 
+  console.log(`[SEEK PROFILE ID] ${name}: ${seekProfileId ?? "null"}`);
+
   const mappedStage = mapSeekStatus(raw.seekStatus);
   const appliedAt = parseSeekAppliedAt(raw.appliedAt);
-
-  // ── FIX 3: Store SEEK location separately from CV location ────────────────
   const seekLocation = raw.domicile?.trim() || raw.location?.trim() || null;
   const seekAppliedRole = raw.appliedRole?.trim() || null;
   const currentEmployment = raw.mostRecentRole?.trim() || null;
   const experienceYears = parseExperienceYears(raw.experience);
 
-  // ── FIX 4: Salary — normalised string from scraper ────────────────────────
-  // scraper sets `salaryExpectation` (formatted) + `expectedSalaryRaw` (raw text)
   const salaryExpectation =
     raw.salaryExpectation?.trim() ||
     (raw.expectedSalaryRaw?.trim()
@@ -541,11 +558,62 @@ async function importOneCandidate(raw: SeekCandidateInput): Promise<
     raw.resumeFileName || `${name}_resume.pdf`,
   );
 
-  // ── FIX 2: Find existing user by seekProfileId → email → phone ────────────
-  const existingUser = await findExistingUser(
-    raw.email?.trim() && !raw.email.includes("@noemail") ? email : null,
+  // ── FIX: Find existing user — seekProfileId is PRIMARY key ────────────────
+  // Order: seekProfileId → real email → synthetic email → phone
+  // This prevents the bug where a new user is created with the real email
+  // when the old record has a synthetic email for the same person.
+  let existingUser = await findExistingUser(
+    isRealEmail ? rawSeekEmail : null,
     phone,
     seekProfileId,
+  );
+
+  // Extra fallback: if we have a real email but didn't find by seekProfileId,
+  // also try finding by the synthetic email so we can UPGRADE it
+  if (!existingUser && isRealEmail && syntheticEmail) {
+    const bySynthetic = await prisma.user.findUnique({
+      where: { email: syntheticEmail },
+      select: { id: true, email: true },
+    });
+    if (bySynthetic) {
+      existingUser = bySynthetic;
+      console.log(
+        `[SEEK UPSERT KEY] ${name}: found via synthetic email, upgrading to real email ${rawSeekEmail}`,
+      );
+    }
+  }
+
+  // ── FIX: If we found an existing user and have their REAL email, upgrade ──
+  // This fixes the Debora case: old record had irfansyach…@gmail.com (wrong),
+  // now we correct it to the real email from the SEEK profile tab.
+  if (existingUser && isRealEmail && rawSeekEmail) {
+    const storedEmail = existingUser.email;
+    const isSynthetic = storedEmail.includes("@import.nuanu.local");
+    const isWrongRealEmail =
+      !isSynthetic &&
+      storedEmail.toLowerCase() !== rawSeekEmail.toLowerCase();
+
+    if (isSynthetic) {
+      // Safe to upgrade synthetic → real email
+      console.log(
+        `[SEEK UPSERT KEY] ${name}: upgrading synthetic email ${storedEmail} → ${rawSeekEmail}`,
+      );
+      await prisma.user.update({
+        where: { id: existingUser.id },
+        data: { email: rawSeekEmail, name },
+      });
+      existingUser = { id: existingUser.id, email: rawSeekEmail };
+    } else if (isWrongRealEmail) {
+      // Different real email — log mismatch but do NOT overwrite
+      // (the stored email might have been verified/corrected manually)
+      console.warn(
+        `[EMAIL MISMATCH DETECTED] ${name}: stored="${storedEmail}" SEEK="${rawSeekEmail}" — keeping stored email`,
+      );
+    }
+  }
+
+  console.log(
+    `[ATS UPSERT KEY] ${name}: seekProfileId=${seekProfileId ?? "null"} userId=${existingUser?.id ?? "new"}`,
   );
 
   if (existingUser) {
@@ -555,7 +623,7 @@ async function importOneCandidate(raw: SeekCandidateInput): Promise<
     });
 
     if (existingApp) {
-      // ── FIX 1: Status lock — never downgrade (rejected stays rejected) ────
+      // ── FIX 1: Status lock — never downgrade ─────────────────────────────
       const existingStage = existingApp.currentStage;
       const stageLocked = !stageCanOverwrite(existingStage, mappedStage);
 
@@ -570,9 +638,12 @@ async function importOneCandidate(raw: SeekCandidateInput): Promise<
             ...(mappedStage === "rejected" ? { rejectedAt: new Date() } : {}),
           },
         });
+      } else {
+        console.log(
+          `[SEEK import] Stage locked for ${name}: keeping "${existingStage}", ignoring "${mappedStage}"`,
+        );
       }
 
-      // Always update profile metadata on re-scrape (but never downgrade location)
       const existingProfile = await prisma.candidateProfile.findUnique({
         where: { userId: existingUser.id },
         select: {
@@ -583,9 +654,9 @@ async function importOneCandidate(raw: SeekCandidateInput): Promise<
         },
       });
 
-      // ── FIX 3: Detect email/location mismatches ───────────────────────────
+      // Log mismatches for audit
       const mismatches = detectMismatches(
-        raw.email?.trim() || null,
+        rawSeekEmail,
         existingUser.email,
         seekLocation,
         existingProfile?.location || null,
@@ -597,16 +668,13 @@ async function importOneCandidate(raw: SeekCandidateInput): Promise<
       }
 
       const profileUpdateData: Record<string, unknown> = {
-        // Always store SEEK-side email/location for audit
-        ...(raw.email?.trim() ? { emailSeek: raw.email.trim() } : {}),
+        ...(rawSeekEmail ? { emailSeek: rawSeekEmail } : {}),
         ...(seekLocation ? { locationSeek: seekLocation } : {}),
-        // Update location only if not already set from CV
+        // Only write location if no CV-sourced location is stored yet
         ...(seekLocation && !existingProfile?.domicile
           ? { location: seekLocation, domicile: seekLocation }
           : {}),
-        // ── FIX 4: Always write salary when scraper provides it ────────────
         ...(salaryExpectation ? { salaryExpectation } : {}),
-        // Store SEEK profile ID for future identity matching
         ...(seekProfileId && !existingProfile?.seekProfileId
           ? { seekProfileId }
           : {}),
@@ -622,7 +690,7 @@ async function importOneCandidate(raw: SeekCandidateInput): Promise<
               ? { location: seekLocation, domicile: seekLocation }
               : {}),
             ...(seekProfileId ? { seekProfileId } : {}),
-            ...(raw.email?.trim() ? { emailSeek: raw.email.trim() } : {}),
+            ...(rawSeekEmail ? { emailSeek: rawSeekEmail } : {}),
             ...(salaryExpectation ? { salaryExpectation } : {}),
           },
         });
@@ -642,22 +710,70 @@ async function importOneCandidate(raw: SeekCandidateInput): Promise<
 
       return { status: "skipped", resumeAttached, stageLocked };
     }
+
+    // User exists but no application for this vacancy yet — create app only
+    // (do NOT create a new user — this was the duplicate-creation bug)
+    const safeAppliedAt = Number.isNaN(appliedAt.getTime())
+      ? new Date()
+      : appliedAt;
+
+    const application = await prisma.application.create({
+      data: {
+        vacancyId,
+        candidateId: existingUser.id,
+        source: "SEEK",
+        status: applicationStatusForStage(mappedStage),
+        currentStage: mappedStage,
+        appliedAt: safeAppliedAt,
+        createdAt: safeAppliedAt,
+        ...(mappedStage === "rejected" ? { rejectedAt: new Date() } : {}),
+      },
+    });
+
+    const existingScore = await prisma.candidateScore.findUnique({
+      where: { applicationId: application.id },
+    });
+    if (!existingScore) {
+      await prisma.candidateScore.create({
+        data: { applicationId: application.id, overallScore: 50 },
+      });
+    }
+
+    if (resumeUrl) {
+      await prisma.document.create({
+        data: {
+          applicationId: application.id,
+          name: `CV - ${name}`,
+          type: "resume",
+          fileUrl: resumeUrl,
+          mimeType: resumeMimeType,
+        },
+      });
+    }
+
+    return {
+      status: "imported",
+      vacancyCreated,
+      vacancyTitle,
+      resumeAttached: Boolean(resumeUrl),
+      stageLocked: false,
+    };
   }
 
-  // ── New candidate — create user, profile, application ────────────────────
+  // ── Brand new candidate — create user + profile + application ─────────────
   const randomPassword = await bcrypt.hash(
     Math.random().toString(36).slice(-10),
     10,
   );
 
   const user = await prisma.user.upsert({
-    where: { email },
+    where: { email: identityEmail },
     update: {
       name,
       ...(phone ? { phone } : {}),
     },
     create: {
-      email,
+      email: identityEmail,
       password: randomPassword,
       name,
       ...(phone ? { phone } : {}),
@@ -681,9 +797,8 @@ async function importOneCandidate(raw: SeekCandidateInput): Promise<
       ...(typeof raw.experience === "string" && raw.experience.trim()
         ? { summary: raw.experience.trim() }
         : {}),
-      // ── FIX 2 + 3 + 4: seekProfileId, emailSeek, locationSeek, salary ────
       ...(seekProfileId ? { seekProfileId } : {}),
-      ...(raw.email?.trim() ? { emailSeek: raw.email.trim() } : {}),
+      ...(rawSeekEmail ? { emailSeek: rawSeekEmail } : {}),
       ...(seekLocation ? { locationSeek: seekLocation } : {}),
       ...(salaryExpectation ? { salaryExpectation } : {}),
     },
@@ -702,14 +817,12 @@ async function importOneCandidate(raw: SeekCandidateInput): Promise<
         ? { summary: raw.experience.trim() }
         : {}),
       ...(seekProfileId ? { seekProfileId } : {}),
-      ...(raw.email?.trim() ? { emailSeek: raw.email.trim() } : {}),
+      ...(rawSeekEmail ? { emailSeek: rawSeekEmail } : {}),
       ...(seekLocation ? { locationSeek: seekLocation } : {}),
       ...(salaryExpectation ? { salaryExpectation } : {}),
     },
   });
 
-  // ── FIX 1: New application always starts at "new", then apply SEEK status ─
-  // Use the correct appliedAt so newest SEEK candidates appear at top (FIX 5)
   const safeAppliedAt = Number.isNaN(appliedAt.getTime()) ? new Date() : appliedAt;
 
   const application = await prisma.application.create({
@@ -717,12 +830,9 @@ async function importOneCandidate(raw: SeekCandidateInput): Promise<
       vacancyId,
       candidateId: user.id,
       source: "SEEK",
-      // Apply the mapped stage directly on creation — no need to start at "new"
-      // then flip, which was causing the two-record duplicate bug
       status: applicationStatusForStage(mappedStage),
       currentStage: mappedStage,
       appliedAt: safeAppliedAt,
-      // ── FIX 5: Set createdAt = appliedAt so list sort shows newest SEEK apps first
       createdAt: safeAppliedAt,
       ...(mappedStage === "rejected" ? { rejectedAt: new Date() } : {}),
     },
