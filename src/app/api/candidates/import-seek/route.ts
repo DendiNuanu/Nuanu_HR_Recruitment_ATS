@@ -491,33 +491,41 @@ async function importOneCandidate(raw: SeekCandidateInput): Promise<
 
   const phone = normalizePhone(raw.phone);
 
-  // ── FIX: Separate raw SEEK email from resolved identity email ─────────────
-  // rawSeekEmail = what SEEK actually shows on the profile tab (may be null)
-  // identityEmail = what we use to look up / create the DB record
+  // TASK 1: STRICT email logic — NEVER generate fake email from phone
+  // Priority: real email from SEEK profile tab → null
+  // A synthetic seek+phone@import.nuanu.local is NOT a valid email
   const rawSeekEmail = raw.email?.trim().toLowerCase() || null;
   const isRealEmail =
     rawSeekEmail &&
     !rawSeekEmail.includes("@noemail") &&
-    !rawSeekEmail.includes("@import.");
+    !rawSeekEmail.includes("@import.") &&
+    /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(rawSeekEmail);
 
-  // Build a STABLE synthetic email from phone (used when no real email yet)
+  // identityEmail: real email if available, otherwise null (seekProfileId/phone will identify)
+  const identityEmail = isRealEmail ? rawSeekEmail : null;
+
+  // Synthetic email as LAST fallback for DB upsert key only — never shown to users
   const syntheticEmail =
     phone && phone.replace(/\D/g, "").length >= 10
       ? `seek+${phone.replace(/\D/g, "")}@import.nuanu.local`
       : null;
 
-  // The canonical identity email is: real email > synthetic > null
-  const identityEmail = isRealEmail ? rawSeekEmail : syntheticEmail;
-
-  if (!identityEmail) {
+  // We MUST have at least email or phone to identify the candidate
+  if (!identityEmail && !phone) {
     throw new Error(
-      "Candidate needs a phone number (email not shown on SEEK list page)",
+      `Candidate "${name}" has no email and no phone — cannot import`,
     );
   }
 
-  console.log(`[SEEK EMAIL] ${name}: rawSeekEmail=${rawSeekEmail ?? "null"} identityEmail=${identityEmail}`);
+  // DB key: real email > seekProfileId-based lookup > synthetic phone email
+  const dbEmail = identityEmail ?? syntheticEmail;
+  if (!dbEmail) {
+    throw new Error(`Candidate "${name}" needs a phone number when no real email is available`);
+  }
 
-  // ── FIX 2: Stable identity key ────────────────────────────────────────────
+  console.log(`[SEEK EMAIL] ${name}: raw=${rawSeekEmail ?? "null"} isReal=${isRealEmail} dbKey=${dbEmail}`);
+
+  // ── Stable identity key — seekProfileId is the PRIMARY dedup key ──────────
   const seekProfileId =
     raw.seekProfileId?.trim() ||
     extractSeekProfileId(raw.profileUrl) ||
@@ -558,18 +566,15 @@ async function importOneCandidate(raw: SeekCandidateInput): Promise<
     raw.resumeFileName || `${name}_resume.pdf`,
   );
 
-  // ── FIX: Find existing user — seekProfileId is PRIMARY key ────────────────
-  // Order: seekProfileId → real email → synthetic email → phone
-  // This prevents the bug where a new user is created with the real email
-  // when the old record has a synthetic email for the same person.
+  // ── Find existing user: seekProfileId → real email → synthetic email ────
   let existingUser = await findExistingUser(
     isRealEmail ? rawSeekEmail : null,
     phone,
     seekProfileId,
   );
 
-  // Extra fallback: if we have a real email but didn't find by seekProfileId,
-  // also try finding by the synthetic email so we can UPGRADE it
+  // If we have a real email but found nothing, try to find by synthetic email
+  // so we can upgrade that old synthetic record to the real email
   if (!existingUser && isRealEmail && syntheticEmail) {
     const bySynthetic = await prisma.user.findUnique({
       where: { email: syntheticEmail },
@@ -583,9 +588,7 @@ async function importOneCandidate(raw: SeekCandidateInput): Promise<
     }
   }
 
-  // ── FIX: If we found an existing user and have their REAL email, upgrade ──
-  // This fixes the Debora case: old record had irfansyach…@gmail.com (wrong),
-  // now we correct it to the real email from the SEEK profile tab.
+  // Upgrade synthetic → real email, or detect real-email mismatch
   if (existingUser && isRealEmail && rawSeekEmail) {
     const storedEmail = existingUser.email;
     const isSynthetic = storedEmail.includes("@import.nuanu.local");
@@ -594,9 +597,8 @@ async function importOneCandidate(raw: SeekCandidateInput): Promise<
       storedEmail.toLowerCase() !== rawSeekEmail.toLowerCase();
 
     if (isSynthetic) {
-      // Safe to upgrade synthetic → real email
       console.log(
-        `[SEEK UPSERT KEY] ${name}: upgrading synthetic email ${storedEmail} → ${rawSeekEmail}`,
+        `[SEEK UPSERT KEY] ${name}: upgrading synthetic ${storedEmail} → ${rawSeekEmail}`,
       );
       await prisma.user.update({
         where: { id: existingUser.id },
@@ -604,10 +606,8 @@ async function importOneCandidate(raw: SeekCandidateInput): Promise<
       });
       existingUser = { id: existingUser.id, email: rawSeekEmail };
     } else if (isWrongRealEmail) {
-      // Different real email — log mismatch but do NOT overwrite
-      // (the stored email might have been verified/corrected manually)
       console.warn(
-        `[EMAIL MISMATCH DETECTED] ${name}: stored="${storedEmail}" SEEK="${rawSeekEmail}" — keeping stored email`,
+        `[EMAIL MISMATCH DETECTED] ${name}: stored="${storedEmail}" SEEK="${rawSeekEmail}" — keeping stored`,
       );
     }
   }
@@ -767,13 +767,13 @@ async function importOneCandidate(raw: SeekCandidateInput): Promise<
   );
 
   const user = await prisma.user.upsert({
-    where: { email: identityEmail },
+    where: { email: dbEmail },
     update: {
       name,
       ...(phone ? { phone } : {}),
     },
     create: {
-      email: identityEmail,
+      email: dbEmail,
       password: randomPassword,
       name,
       ...(phone ? { phone } : {}),
