@@ -1,22 +1,36 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { Mail, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
-export default function LoginPage() {
+// Inner component — uses useSearchParams, must be inside <Suspense>
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // Determine where to send the user after a successful login.
+  // If a `?next=` param exists and points to a safe internal path, use it.
+  // Otherwise fall back to /dashboard.
+  const getRedirectUrl = (): string => {
+    const next = searchParams.get("next");
+    if (next && next.startsWith("/") && !next.startsWith("//")) {
+      return next;
+    }
+    return "/dashboard";
+  };
+
   useEffect(() => {
-    router.prefetch("/dashboard");
+    const dest = getRedirectUrl();
+    router.prefetch(dest);
   }, [router]);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -41,8 +55,8 @@ export default function LoginPage() {
 
       localStorage.setItem("nuanu_user", JSON.stringify(data.user));
       // Hard-navigate so the browser handles the redirect immediately without
-      // waiting for Next.js client-side rendering of the dashboard.
-      window.location.href = "/dashboard";
+      // waiting for Next.js client-side rendering of the target page.
+      window.location.href = getRedirectUrl();
     } catch {
       setError("Network error. Please try again.");
       setIsLoading(false);
@@ -513,5 +527,15 @@ export default function LoginPage() {
         }
       `}</style>
     </div>
+  );
+}
+
+// Exported page wraps LoginForm in Suspense so useSearchParams works correctly
+// in Next.js App Router (required for static shell rendering).
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
   );
 }
