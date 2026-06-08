@@ -591,20 +591,33 @@ async function importOneCandidate(raw: SeekCandidateInput): Promise<
   // Upgrade synthetic → real email, or detect real-email mismatch
   if (existingUser && isRealEmail && rawSeekEmail) {
     const storedEmail = existingUser.email;
-    const isSynthetic = storedEmail.includes("@import.nuanu.local");
+    const isSynthetic =
+      storedEmail.includes("@import.nuanu.local") ||
+      storedEmail.includes("@noemail");
     const isWrongRealEmail =
       !isSynthetic &&
       storedEmail.toLowerCase() !== rawSeekEmail.toLowerCase();
 
     if (isSynthetic) {
-      console.log(
-        `[SEEK UPSERT KEY] ${name}: upgrading synthetic ${storedEmail} → ${rawSeekEmail}`,
-      );
-      await prisma.user.update({
-        where: { id: existingUser.id },
-        data: { email: rawSeekEmail, name },
+      // Check if the real email is already taken by a different user
+      const conflict = await prisma.user.findUnique({
+        where: { email: rawSeekEmail },
+        select: { id: true },
       });
-      existingUser = { id: existingUser.id, email: rawSeekEmail };
+      if (!conflict || conflict.id === existingUser.id) {
+        console.log(
+          `[SEEK UPSERT KEY] ${name}: upgrading synthetic ${storedEmail} → ${rawSeekEmail}`,
+        );
+        await prisma.user.update({
+          where: { id: existingUser.id },
+          data: { email: rawSeekEmail, name },
+        });
+        existingUser = { id: existingUser.id, email: rawSeekEmail };
+      } else {
+        console.warn(
+          `[SEEK EMAIL CONFLICT] ${name}: real email ${rawSeekEmail} already taken by user ${conflict.id} — keeping synthetic`,
+        );
+      }
     } else if (isWrongRealEmail) {
       console.warn(
         `[EMAIL MISMATCH DETECTED] ${name}: stored="${storedEmail}" SEEK="${rawSeekEmail}" — keeping stored`,
@@ -670,14 +683,15 @@ async function importOneCandidate(raw: SeekCandidateInput): Promise<
       const profileUpdateData: Record<string, unknown> = {
         ...(rawSeekEmail ? { emailSeek: rawSeekEmail } : {}),
         ...(seekLocation ? { locationSeek: seekLocation } : {}),
-        // Only write location if no CV-sourced location is stored yet
-        ...(seekLocation && !existingProfile?.domicile
+        // Always overwrite location/domicile when the scraper has fresh data
+        // from the SEEK profile tab (seekLocation comes from the profile visit).
+        // Only skip if we genuinely have no location from SEEK at all.
+        ...(seekLocation
           ? { location: seekLocation, domicile: seekLocation }
           : {}),
         ...(salaryExpectation ? { salaryExpectation } : {}),
-        ...(seekProfileId && !existingProfile?.seekProfileId
-          ? { seekProfileId }
-          : {}),
+        // Always write seekProfileId once we have it (stable dedup key)
+        ...(seekProfileId ? { seekProfileId } : {}),
       };
 
       if (Object.keys(profileUpdateData).length > 0) {
