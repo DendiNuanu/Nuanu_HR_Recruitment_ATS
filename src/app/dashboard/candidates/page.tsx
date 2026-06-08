@@ -79,10 +79,11 @@ async function fetchCandidatesList() {
       stage: app.currentStage,
       score: app.candidateScore?.overallScore ?? 0,
       experienceYears: profile?.experienceYears ?? 0,
+      // Never fall back to vacancy.location — that is the job's location
+      // (e.g. "On site") not the candidate's home city.
       location:
         profile?.domicile?.trim() ||
         profile?.location?.trim() ||
-        app.vacancy.location ||
         "—",
       appliedAt: app.appliedAt.toISOString(),
       createdAt: app.createdAt.toISOString(),

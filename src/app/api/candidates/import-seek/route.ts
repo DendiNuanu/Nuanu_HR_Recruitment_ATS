@@ -543,7 +543,7 @@ async function importOneCandidate(raw: SeekCandidateInput): Promise<
   const salaryExpectation =
     raw.salaryExpectation?.trim() ||
     (raw.expectedSalaryRaw?.trim()
-      ? `RAW: ${raw.expectedSalaryRaw.trim()}`
+      ? raw.expectedSalaryRaw.trim()
       : null);
 
   const ensured = await ensureVacancyForSeekRole(

@@ -1818,7 +1818,7 @@ export default function CandidatesTable({
                       </div>
                       <div>
                         <p className="text-[11px] font-bold text-nuanu-gray-400 uppercase tracking-[0.1em] mb-2">
-                          Salary Expectation
+                          Expected Monthly Salary
                         </p>
                         <div className="flex gap-2 -ml-2">
                           <input

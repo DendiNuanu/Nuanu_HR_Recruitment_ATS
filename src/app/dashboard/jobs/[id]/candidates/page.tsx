@@ -70,10 +70,11 @@ async function getVacancyCandidates(vacancyId: string) {
       stage: app.currentStage,
       score: app.candidateScore?.overallScore ?? 0,
       experienceYears: profile?.experienceYears ?? 0,
+      // Never fall back to vacancy.location — that is the job's location
+      // (e.g. "On site") not the candidate's home city.
       location:
         profile?.domicile?.trim() ||
         profile?.location?.trim() ||
-        app.vacancy.location ||
         "\u2014",
       domicile: profile?.domicile ?? undefined,
       willingToRelocate: profile?.willingToRelocate ?? false,

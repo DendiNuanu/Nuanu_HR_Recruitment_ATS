@@ -279,7 +279,7 @@ export default function CandidateProfile360({
                 />
                 <StatBox
                   icon={CircleDollarSign}
-                  label="Expected salary"
+                  label="Expected monthly salary"
                   value={candidate.salaryExpectation || "—"}
                 />
                 <StatBox icon={Clock} label="Notice period" value={"—"} />
