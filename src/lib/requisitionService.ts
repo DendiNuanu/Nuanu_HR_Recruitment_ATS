@@ -105,6 +105,24 @@ export async function createRequisitionWithVacancy(data: {
   requiredSkills: string[];
   certifications?: string;
 }) {
+  // ── Duplicate title prevention (outside transaction for fast fail) ─────────
+  if (data.title?.trim()) {
+    const existing = await prisma.vacancy.findFirst({
+      where: {
+        title: { equals: data.title.trim(), mode: "insensitive" },
+        deletedAt: null,
+        status: { notIn: ["closed", "cancelled"] },
+      },
+      select: { id: true, title: true, status: true, code: true },
+    });
+    if (existing) {
+      throw new Error(
+        `A vacancy named "${existing.title}" already exists (${existing.code}, status: ${existing.status}). ` +
+        `Please update the existing vacancy instead of creating a new one.`
+      );
+    }
+  }
+
   const { requisition, notifyUserId } = await prisma.$transaction(
     async (tx) => {
       // 1. Create Vacancy

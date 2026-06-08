@@ -1,8 +1,9 @@
 import { prisma } from "@/lib/prisma";
-import { ArrowLeft, Save, Webhook, LayoutTemplate } from "lucide-react";
+import { ArrowLeft, Webhook, LayoutTemplate } from "lucide-react";
 import Link from "next/link";
 import { createVacancy } from "@/app/actions/jobs";
 import DepartmentCombobox from "./DepartmentCombobox";
+import SubmitButton from "./SubmitButton";
 
 export const dynamic = "force-dynamic";
 
@@ -203,12 +204,7 @@ export default async function CreateVacancyPage() {
             </div>
 
             <div className="pt-4 border-t border-nuanu-gray-100">
-              <button
-                type="submit"
-                className="w-full btn-primary py-3 justify-center text-sm shadow-lg shadow-emerald-500/20"
-              >
-                <Save className="w-4 h-4" /> Create & Submit for Approval
-              </button>
+              <SubmitButton />
             </div>
           </div>
         </div>
