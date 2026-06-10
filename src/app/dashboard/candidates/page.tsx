@@ -1,4 +1,3 @@
-import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import CandidatesTable from "./CandidatesTable";
 import ExportButton from "./ExportButton";
@@ -6,12 +5,42 @@ import UploadCVButton from "./UploadCVButton";
 
 export const dynamic = "force-dynamic";
 
-const LIST_TAKE = 500;
+type SearchParams = { [key: string]: string | string[] | undefined };
 
-async function fetchCandidatesList() {
+function pickString(value: string | string[] | undefined): string | undefined {
+  if (Array.isArray(value)) return value[0];
+  return value;
+}
+
+/**
+ * Fetch the full list of active applications. We do NOT cap the result set
+ * with a hard `take` limit because that silently hides older candidates from
+ * the list and from client-side search — Ikhsan Maulana (applied 2026-05-13)
+ * dropped off the page once total active applications crossed 500. The
+ * frontend paginates the view in 50-row pages, so loading all rows from the
+ * DB is fine for the current scale. If the table grows past a few thousand
+ * rows, switch to cursor-based pagination driven by URL params.
+ *
+ * Optional `?search=...` runs the filter server-side using a Postgres
+ * case-insensitive `ILIKE` against name/email/vacancy, so search always sees
+ * the full database even when the in-memory list would otherwise be capped.
+ */
+async function fetchCandidatesList(searchTerm: string) {
+  const trimmedSearch = searchTerm.trim();
+  const where: Record<string, unknown> = { deletedAt: null };
+
+  if (trimmedSearch) {
+    where.OR = [
+      { candidate: { name: { contains: trimmedSearch, mode: "insensitive" } } },
+      {
+        candidate: { email: { contains: trimmedSearch, mode: "insensitive" } },
+      },
+      { vacancy: { title: { contains: trimmedSearch, mode: "insensitive" } } },
+    ];
+  }
+
   const applications = await prisma.application.findMany({
-    where: { deletedAt: null },
-    take: LIST_TAKE,
+    where,
     select: {
       id: true,
       candidateId: true,
@@ -81,10 +110,7 @@ async function fetchCandidatesList() {
       experienceYears: profile?.experienceYears ?? 0,
       // Never fall back to vacancy.location — that is the job's location
       // (e.g. "On site") not the candidate's home city.
-      location:
-        profile?.domicile?.trim() ||
-        profile?.location?.trim() ||
-        "—",
+      location: profile?.domicile?.trim() || profile?.location?.trim() || "—",
       appliedAt: app.appliedAt.toISOString(),
       createdAt: app.createdAt.toISOString(),
       lastActivityAt: app.lastActivityAt.toISOString(),
@@ -109,15 +135,15 @@ async function fetchCandidatesList() {
   });
 }
 
-const getCachedCandidatesList = unstable_cache(
-  fetchCandidatesList,
-  ["candidates-list"],
-  { revalidate: 30, tags: ["applications", "candidates"] },
-);
+export default async function CandidatesPage({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
+  const search = pickString(searchParams.search) ?? "";
 
-export default async function CandidatesPage() {
   const [candidates, vacancies] = await Promise.all([
-    getCachedCandidatesList(),
+    fetchCandidatesList(search),
     prisma.vacancy.findMany({
       where: { status: { in: ["published", "approved"] } },
       select: { id: true, title: true, status: true },
@@ -140,7 +166,7 @@ export default async function CandidatesPage() {
         </div>
       </div>
 
-      <CandidatesTable candidates={candidates} />
+      <CandidatesTable candidates={candidates} initialSearch={search} />
     </div>
   );
 }

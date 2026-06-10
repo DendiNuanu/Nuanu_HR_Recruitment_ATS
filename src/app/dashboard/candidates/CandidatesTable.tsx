@@ -272,14 +272,17 @@ function InterviewShareLinkCard({ slug }: { slug: string | null }) {
 export default function CandidatesTable({
   candidates,
   vacancyTitle,
+  initialSearch = "",
 }: {
   candidates: Candidate[];
   /** When opened from Jobs → Candidates, pins Applied For in 360° profile */
   vacancyTitle?: string;
+  /** Initial value for the search box, sourced from ?search= URL param. */
+  initialSearch?: string;
 }) {
   const router = useRouter();
   const [localCandidates, setLocalCandidates] = useState(candidates);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(initialSearch);
   const deferredSearch = useDeferredValue(search);
   const [stageFilter, setStageFilter] = useState("all");
   const [page, setPage] = useState(1);
@@ -302,6 +305,25 @@ export default function CandidatesTable({
   useEffect(() => {
     setPage(1);
   }, [deferredSearch, stageFilter]);
+
+  // Keep the URL in sync with the search box so a server-side reload (or
+  // sharing the URL) re-runs the search in the database query, instead of
+  // being limited to whatever subset was loaded into memory. We update the
+  // URL via window.history (not useSearchParams) to avoid the Suspense
+  // boundary requirement in Next.js 15+/16.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    if (search) {
+      url.searchParams.set("search", search);
+    } else {
+      url.searchParams.delete("search");
+    }
+    // Only push to history if the URL actually changed to avoid extra entries.
+    if (url.search !== window.location.search) {
+      window.history.replaceState(null, "", url.toString());
+    }
+  }, [search]);
 
   // Profile tab
   const [profileTab, setProfileTab] = useState<
