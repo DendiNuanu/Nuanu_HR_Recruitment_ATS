@@ -520,16 +520,18 @@ async function importOneCandidate(raw: SeekCandidateInput): Promise<
   // DB key: real email > seekProfileId-based lookup > synthetic phone email
   const dbEmail = identityEmail ?? syntheticEmail;
   if (!dbEmail) {
-    throw new Error(`Candidate "${name}" needs a phone number when no real email is available`);
+    throw new Error(
+      `Candidate "${name}" needs a phone number when no real email is available`,
+    );
   }
 
-  console.log(`[SEEK EMAIL] ${name}: raw=${rawSeekEmail ?? "null"} isReal=${isRealEmail} dbKey=${dbEmail}`);
+  console.log(
+    `[SEEK EMAIL] ${name}: raw=${rawSeekEmail ?? "null"} isReal=${isRealEmail} dbKey=${dbEmail}`,
+  );
 
   // ── Stable identity key — seekProfileId is the PRIMARY dedup key ──────────
   const seekProfileId =
-    raw.seekProfileId?.trim() ||
-    extractSeekProfileId(raw.profileUrl) ||
-    null;
+    raw.seekProfileId?.trim() || extractSeekProfileId(raw.profileUrl) || null;
 
   console.log(`[SEEK PROFILE ID] ${name}: ${seekProfileId ?? "null"}`);
 
@@ -542,9 +544,7 @@ async function importOneCandidate(raw: SeekCandidateInput): Promise<
 
   const salaryExpectation =
     raw.salaryExpectation?.trim() ||
-    (raw.expectedSalaryRaw?.trim()
-      ? raw.expectedSalaryRaw.trim()
-      : null);
+    (raw.expectedSalaryRaw?.trim() ? raw.expectedSalaryRaw.trim() : null);
 
   const ensured = await ensureVacancyForSeekRole(
     raw.vacancyId,
@@ -595,8 +595,7 @@ async function importOneCandidate(raw: SeekCandidateInput): Promise<
       storedEmail.includes("@import.nuanu.local") ||
       storedEmail.includes("@noemail");
     const isWrongRealEmail =
-      !isSynthetic &&
-      storedEmail.toLowerCase() !== rawSeekEmail.toLowerCase();
+      !isSynthetic && storedEmail.toLowerCase() !== rawSeekEmail.toLowerCase();
 
     if (isSynthetic) {
       // Check if the real email is already taken by a different user
@@ -619,9 +618,47 @@ async function importOneCandidate(raw: SeekCandidateInput): Promise<
         );
       }
     } else if (isWrongRealEmail) {
-      console.warn(
-        `[EMAIL MISMATCH DETECTED] ${name}: stored="${storedEmail}" SEEK="${rawSeekEmail}" — keeping stored`,
-      );
+      // CASE: stored email is a *real* email (not synthetic) but differs from
+      // the SEEK email. This usually means an earlier run picked up the wrong
+      // contact (e.g. cross-contamination from a sibling row that shared a
+      // phone number). The seekProfileId is the most reliable identity key,
+      // so when it matches an existing CandidateProfile we trust SEEK's email
+      // and overwrite the stored one. We still log the change for audit.
+      //
+      // `seekProfileId` is not declared @unique in the schema, so we use
+      // findFirst to look up the matching CandidateProfile.
+      const profileBySeekId = seekProfileId
+        ? await prisma.candidateProfile.findFirst({
+            where: { seekProfileId },
+            select: { userId: true, emailSeek: true },
+          })
+        : null;
+      const safeToOverwrite = profileBySeekId?.userId === existingUser.id;
+
+      if (safeToOverwrite) {
+        const conflict = await prisma.user.findUnique({
+          where: { email: rawSeekEmail },
+          select: { id: true },
+        });
+        if (!conflict || conflict.id === existingUser.id) {
+          console.warn(
+            `[EMAIL CORRECTION] ${name}: seekProfileId matches — overwriting stored "${storedEmail}" with SEEK "${rawSeekEmail}"`,
+          );
+          await prisma.user.update({
+            where: { id: existingUser.id },
+            data: { email: rawSeekEmail, name },
+          });
+          existingUser = { id: existingUser.id, email: rawSeekEmail };
+        } else {
+          console.warn(
+            `[SEEK EMAIL CONFLICT] ${name}: real email ${rawSeekEmail} already taken by user ${conflict.id} — keeping stored ${storedEmail}`,
+          );
+        }
+      } else {
+        console.warn(
+          `[EMAIL MISMATCH DETECTED] ${name}: stored="${storedEmail}" SEEK="${rawSeekEmail}" — keeping stored (no matching seekProfileId)`,
+        );
+      }
     }
   }
 
@@ -837,7 +874,9 @@ async function importOneCandidate(raw: SeekCandidateInput): Promise<
     },
   });
 
-  const safeAppliedAt = Number.isNaN(appliedAt.getTime()) ? new Date() : appliedAt;
+  const safeAppliedAt = Number.isNaN(appliedAt.getTime())
+    ? new Date()
+    : appliedAt;
 
   const application = await prisma.application.create({
     data: {
@@ -930,7 +969,9 @@ export async function POST(request: NextRequest) {
         const lockNote = outcome.stageLocked
           ? ` [stage locked: kept existing status]`
           : "";
-        results.details.push(`SKIP: ${label} (already exists${cvNote}${lockNote})`);
+        results.details.push(
+          `SKIP: ${label} (already exists${cvNote}${lockNote})`,
+        );
       } else {
         results.imported++;
         const stage = mapSeekStatus(candidate.seekStatus);

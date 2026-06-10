@@ -11,6 +11,7 @@
     "db:seed": "npx tsx prisma/seed.ts",
     "db:studio": "npx prisma studio",
     "db:backfill:interview-slugs": "npx tsx scripts/backfill-interview-slugs.ts",
+    "fix:nur-islami": "npx tsx scripts/fix-nur-islami.ts",
     "postinstall": "npx prisma generate"
   },
   "prisma": {
