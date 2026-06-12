@@ -1,0 +1,21 @@
+{
+  "name": "Nuanu HR Recruitment ATS",
+  "short_name": "Nuanu ATS",
+  "description": "Enterprise AI-Powered Applicant Tracking System by Nuanu",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0A1628",
+  "theme_color": "#10B981",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
