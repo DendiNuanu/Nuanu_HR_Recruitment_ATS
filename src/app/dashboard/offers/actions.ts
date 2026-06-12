@@ -112,30 +112,14 @@ export async function sendOffer(offerId: string) {
       notes: offer.notes ?? undefined,
     });
 
-    // Upload the generated PDF to Supabase storage and persist the URL
+    // Upload the generated PDF to local filesystem and persist the URL
     let documentUrl = "";
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (supabaseUrl && supabaseKey) {
-      try {
-        const { getSupabaseAdmin } = await import("@/lib/supabase");
-        const supabase = getSupabaseAdmin();
-        const filename = `offers/offer-${offerId}-${Date.now()}.pdf`;
-        const { error } = await supabase.storage
-          .from("resumes")
-          .upload(filename, pdfBuffer, {
-            contentType: "application/pdf",
-            upsert: true,
-          });
-        if (!error) {
-          const { data } = supabase.storage
-            .from("resumes")
-            .getPublicUrl(filename);
-          documentUrl = data.publicUrl;
-        }
-      } catch {
-        /* non-fatal — email will still be sent */
-      }
+    try {
+      const { uploadResumeBuffer } = await import("@/lib/resume-storage");
+      const filename = `offers/offer-${offerId}-${Date.now()}.pdf`;
+      documentUrl = await uploadResumeBuffer(pdfBuffer, filename, "application/pdf") || "";
+    } catch {
+      /* non-fatal — email will still be sent */
     }
     if (documentUrl) {
       await prisma.offer.update({

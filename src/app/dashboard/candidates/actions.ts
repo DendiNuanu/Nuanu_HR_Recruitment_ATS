@@ -6,7 +6,6 @@ import { createNotification } from "@/lib/notifications";
 import { sendEmail } from "@/lib/email";
 import { delCache } from "@/lib/cache";
 import { getSession } from "@/lib/auth";
-import { getSupabaseAdmin } from "@/lib/supabase";
 import { normalizePipelineStage } from "@/lib/utils";
 import { deleteCandidatesByEmails } from "@/lib/delete-candidate";
 
@@ -583,25 +582,12 @@ export async function uploadCandidateResume(
     let resumeUrl = "";
     let resumeText = "";
 
-    // Upload to Supabase Storage
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (supabaseUrl && supabaseKey) {
-      const supabase = getSupabaseAdmin();
-      const safeFilename = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
-      const storagePath = `resumes/${safeFilename}`;
-      const { error: uploadError } = await supabase.storage
-        .from("resumes")
-        .upload(storagePath, buffer, {
-          contentType: file.type || "application/octet-stream",
-          upsert: false,
-        });
-      if (!uploadError) {
-        const { data } = supabase.storage
-          .from("resumes")
-          .getPublicUrl(storagePath);
-        resumeUrl = data.publicUrl;
-      }
+    // Upload to local filesystem
+    try {
+      const { uploadResumeBuffer } = await import("@/lib/resume-storage");
+      resumeUrl = await uploadResumeBuffer(buffer, file.name, file.type) || "";
+    } catch {
+      /* non-fatal */
     }
 
     // Extract text if PDF

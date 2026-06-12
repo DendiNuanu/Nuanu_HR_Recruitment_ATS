@@ -72,7 +72,7 @@ export async function POST(request: Request) {
     // Set auth cookie
     response.cookies.set("nuanu_token", token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: (process.env.NEXT_PUBLIC_APP_URL || "").startsWith("https://"),
       sameSite: "lax",
       maxAge: 60 * 60 * 24 * 7,
       path: "/",

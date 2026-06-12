@@ -26,12 +26,11 @@ export default async function CareersPage() {
       <header className="relative h-[500px] flex items-center justify-center overflow-hidden">
         {/* Background Image */}
         <div className="absolute inset-0 z-0">
-          <Image
-            src="https://www.nuanu.com/_next/image?url=https%3A%2F%2Fadmin.cockpit.nuanu.com%2Fassets%2F0aa79909-46c6-4e29-a2ec-7bde786960ab.webp&w=1920&q=75"
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="https://www.nuanu.com/_next/image?url=https%3A%2F%2Fadmin.cockpit.nuanu.com%2Fassets%2F6cbe8b92-183a-4426-934a-569ae11980a1&w=3840&q=75"
             alt="Nuanu Background"
-            fill
-            className="object-cover"
-            priority
+            className="absolute inset-0 w-full h-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-b from-nuanu-navy/80 via-nuanu-navy/70 to-nuanu-navy/90"></div>
         </div>

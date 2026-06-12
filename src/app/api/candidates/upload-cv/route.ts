@@ -61,40 +61,14 @@ export async function POST(request: Request) {
   const bytes = await file.arrayBuffer();
   const buffer = Buffer.from(bytes);
 
-  // ── Upload to Supabase Storage (fully optional — never crashes the route) ──
+  // ── Upload to local filesystem ─────────────────────────────────────────────
   let cvUrl = "";
   try {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    if (supabaseUrl && supabaseKey) {
-      const { getSupabaseAdmin } = await import("@/lib/supabase");
-      const supabase = getSupabaseAdmin();
-      const safeFilename = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
-      const storagePath = `resumes/${safeFilename}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from("resumes")
-        .upload(storagePath, buffer, {
-          contentType: file.type || "application/octet-stream",
-          upsert: false,
-        });
-
-      if (!uploadError) {
-        const { data } = supabase.storage
-          .from("resumes")
-          .getPublicUrl(storagePath);
-        cvUrl = data.publicUrl;
-        console.log("[upload-cv] Supabase upload OK:", cvUrl);
-      } else {
-        console.warn("[upload-cv] Supabase upload failed:", uploadError.message);
-      }
-    } else {
-      console.info("[upload-cv] Supabase not configured — skipping file storage");
-    }
+    const { uploadResumeBuffer } = await import("@/lib/resume-storage");
+    cvUrl = await uploadResumeBuffer(buffer, file.name, file.type) || "";
+    if (cvUrl) console.log("[upload-cv] Local upload OK:", cvUrl);
   } catch (err) {
-    // Never let storage failure crash the route
-    console.warn("[upload-cv] Supabase error (non-fatal):", err);
+    console.warn("[upload-cv] Upload error (non-fatal):", err);
   }
 
   // ── Extract text ───────────────────────────────────────────────────────────

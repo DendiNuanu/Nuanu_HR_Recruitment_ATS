@@ -90,46 +90,13 @@ export async function POST(request: Request) {
     const bytes = await resumeFile.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // ── Resume Upload (Supabase Storage — optional) ────────────────────────────
-    // If Supabase env vars are not configured the upload is skipped gracefully.
-    // The application is ALWAYS created; only the file URL may be absent.
+    // ── Resume Upload (local filesystem) ──────────────────────────────────────
     let resumeUrl = "";
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    if (supabaseUrl && supabaseKey) {
-      try {
-        const { getSupabaseAdmin } = await import("@/lib/supabase");
-        const supabase = getSupabaseAdmin();
-
-        const safeFilename = `${Date.now()}-${resumeFile.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
-        const storagePath = `resumes/${safeFilename}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from("resumes")
-          .upload(storagePath, buffer, {
-            contentType: resumeFile.type || "application/octet-stream",
-            upsert: false,
-          });
-
-        if (!uploadError) {
-          const { data } = supabase.storage
-            .from("resumes")
-            .getPublicUrl(storagePath);
-          resumeUrl = data.publicUrl;
-        } else {
-          console.warn(
-            "Supabase Storage upload failed (non-fatal):",
-            uploadError.message,
-          );
-        }
-      } catch (storageErr) {
-        console.warn("Supabase Storage unavailable (non-fatal):", storageErr);
-      }
-    } else {
-      console.info(
-        "Supabase Storage not configured — resume file URL skipped.",
-      );
+    try {
+      const { uploadResumeBuffer } = await import("@/lib/resume-storage");
+      resumeUrl = await uploadResumeBuffer(buffer, resumeFile.name, resumeFile.type) || "";
+    } catch (storageErr) {
+      console.warn("Resume upload failed (non-fatal):", storageErr);
     }
 
     // ── PDF Text Extraction ────────────────────────────────────────────────────
