@@ -1,7 +1,16 @@
 import path from "path";
 import fs from "fs/promises";
 
-const UPLOADS_DIR = path.join(process.cwd(), "public", "uploads", "resumes");
+/**
+ * Configurable upload directory.
+ *
+ * Set UPLOAD_DIR to an absolute path in production so nginx can serve
+ * the files directly (e.g. UPLOAD_DIR=/var/www/nuanu-uploads/resumes).
+ * When omitted, defaults to public/uploads/resumes inside the app.
+ */
+const UPLOADS_DIR =
+  process.env.UPLOAD_DIR ||
+  path.join(process.cwd(), "public", "uploads", "resumes");
 
 async function ensureUploadsDir(): Promise<void> {
   await fs.mkdir(UPLOADS_DIR, { recursive: true });
@@ -30,6 +39,9 @@ export async function uploadResumeBuffer(
     const safeFilename = `${Date.now()}-${fileName.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
     const filePath = path.join(UPLOADS_DIR, safeFilename);
     await fs.writeFile(filePath, buffer);
+    // Always use NEXT_PUBLIC_APP_URL + /uploads/resumes/{file} so nginx
+    // (or Next.js if no nginx) can serve the file regardless of where it
+    // was physically written.
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
     return `${appUrl}/uploads/resumes/${safeFilename}`;
   } catch (err: any) {
