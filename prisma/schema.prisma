@@ -345,6 +345,11 @@ model CandidateProfile {
   seekProfileId     String?
   emailSeek         String?
   locationSeek      String?
+  seekCareerHistory             Json?   @map("seek_career_history")
+  seekEducation                 Json?   @map("seek_education")
+  seekLicencesAndCertifications Json?   @map("seek_licences_and_certifications")
+  seekApplicationQuestions      Json?   @map("seek_application_questions")
+  seekSkills                    Json?   @map("seek_skills")
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 

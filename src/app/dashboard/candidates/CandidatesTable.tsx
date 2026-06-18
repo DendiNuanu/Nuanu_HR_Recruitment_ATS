@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, useDeferredValue } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import {
@@ -1380,18 +1381,14 @@ export default function CandidatesTable({
                   </td>
                   <td className="min-w-[300px] text-right pr-4">
                     <div className="flex flex-wrap items-center justify-end gap-2">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openProfile(candidate);
-                        }}
-                        className="p-2 text-nuanu-gray-400 hover:text-nuanu-emerald bg-nuanu-gray-50 hover:bg-emerald-50 rounded-lg transition-all hover:scale-110"
-                        title="View Profile"
-                        aria-label={`View profile for ${candidate.name}`}
+                      <Link
+                        href={`/dashboard/candidates/${candidate.id}`}
+                        className="p-2 text-nuanu-gray-400 hover:text-nuanu-emerald bg-nuanu-gray-50 hover:bg-emerald-50 rounded-lg transition-all hover:scale-110 inline-flex"
+                        title="View Full Profile"
+                        aria-label={`View full profile for ${candidate.name}`}
                       >
                         <Eye className="w-4 h-4" />
-                      </button>
+                      </Link>
                       {/* Email button + persistent sent badge */}
                       {(() => {
                         const sentAt = emailSentTimestamp;

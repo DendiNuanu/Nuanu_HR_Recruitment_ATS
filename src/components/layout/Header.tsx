@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useSidebarStore, useNotificationStore } from "@/stores";
 import { demoNotifications } from "@/lib/demo-data";
 import { useRouter } from "next/navigation";
+import { useBreadcrumb } from "@/lib/breadcrumb-context";
 import {
   Menu,
   Search,
@@ -164,10 +165,13 @@ export default function Header() {
     await markAllNotificationsAsRead(userId);
   };
 
+  const { labelOverrides } = useBreadcrumb();
   const breadcrumbs = pathname.split("/").filter(Boolean);
+  const lastRaw = breadcrumbs[breadcrumbs.length - 1];
   const pageTitle =
     pageTitles[pathname] ||
-    breadcrumbs[breadcrumbs.length - 1]?.replace(/-/g, " ") ||
+    labelOverrides.get(lastRaw) ||
+    lastRaw?.replace(/-/g, " ") ||
     "Dashboard";
 
   return (
@@ -185,22 +189,28 @@ export default function Header() {
           <div>
             {/* Breadcrumbs */}
             <div className="hidden md:flex items-center gap-1.5 text-xs text-nuanu-gray-400 mb-0.5">
-              {breadcrumbs.map((crumb, i) => (
-                <span key={i} className="flex items-center gap-1.5">
-                  {i > 0 && <ChevronRight className="w-3 h-3" />}
-                  <span
-                    className={
-                      i === breadcrumbs.length - 1
-                        ? "text-nuanu-gray-600 font-medium"
-                        : ""
-                    }
-                  >
-                    {crumb
-                      .replace(/-/g, " ")
-                      .replace(/\b\w/g, (c) => c.toUpperCase())}
+              {breadcrumbs.map((crumb, i) => {
+                const isLast = i === breadcrumbs.length - 1;
+                const display = isLast
+                  ? (labelOverrides.get(crumb) ?? crumb)
+                  : crumb;
+                return (
+                  <span key={i} className="flex items-center gap-1.5">
+                    {i > 0 && <ChevronRight className="w-3 h-3" />}
+                    <span
+                      className={
+                        isLast
+                          ? "text-nuanu-gray-600 font-medium"
+                          : ""
+                      }
+                    >
+                      {display
+                        .replace(/-/g, " ")
+                        .replace(/\b\w/g, (c: string) => c.toUpperCase())}
+                    </span>
                   </span>
-                </span>
-              ))}
+                );
+              })}
             </div>
             <h1 className="text-lg font-bold text-nuanu-navy capitalize">
               {pageTitle}

@@ -11,6 +11,32 @@ import { guessResumeMimeType, uploadResumeBase64 } from "@/lib/resume-storage";
 
 const IMPORT_SECRET = process.env.SEEK_IMPORT_KEY;
 
+type SeekCareerHistoryEntry = {
+  title: string;
+  company: string;
+  dateRange: string;
+  description: string;
+};
+
+type SeekEducationEntry = {
+  degree: string;
+  institution: string;
+  status: string;
+  description: string;
+};
+
+type SeekLicenceEntry = {
+  name: string;
+  organization: string;
+  dateRange: string;
+  description: string;
+};
+
+type SeekApplicationQuestion = {
+  question: string;
+  answer: string;
+};
+
 type SeekCandidateInput = {
   name?: string;
   email?: string;
@@ -35,6 +61,16 @@ type SeekCandidateInput = {
   expectedSalaryRaw?: string;
   /** Normalised salary display string e.g. "IDR 4,000,000 / month" */
   salaryExpectation?: string;
+  /** Career history from SEEK profile tab */
+  careerHistory?: SeekCareerHistoryEntry[];
+  /** Education entries from SEEK profile tab */
+  education?: SeekEducationEntry[];
+  /** Licences & certifications from SEEK profile tab */
+  licencesAndCertifications?: SeekLicenceEntry[];
+  /** Application questions & answers from SEEK */
+  applicationQuestions?: SeekApplicationQuestion[];
+  /** Skills list from SEEK profile tab */
+  skills?: string[];
 };
 
 type ImportResults = {
@@ -729,6 +765,15 @@ async function importOneCandidate(raw: SeekCandidateInput): Promise<
         ...(salaryExpectation ? { salaryExpectation } : {}),
         // Always write seekProfileId once we have it (stable dedup key)
         ...(seekProfileId ? { seekProfileId } : {}),
+        ...(raw.careerHistory ? { seekCareerHistory: raw.careerHistory } : {}),
+        ...(raw.education ? { seekEducation: raw.education } : {}),
+        ...(raw.licencesAndCertifications
+          ? { seekLicencesAndCertifications: raw.licencesAndCertifications }
+          : {}),
+        ...(raw.applicationQuestions
+          ? { seekApplicationQuestions: raw.applicationQuestions }
+          : {}),
+        ...(raw.skills ? { seekSkills: raw.skills } : {}),
       };
 
       if (Object.keys(profileUpdateData).length > 0) {
@@ -743,6 +788,17 @@ async function importOneCandidate(raw: SeekCandidateInput): Promise<
             ...(seekProfileId ? { seekProfileId } : {}),
             ...(rawSeekEmail ? { emailSeek: rawSeekEmail } : {}),
             ...(salaryExpectation ? { salaryExpectation } : {}),
+            ...(raw.careerHistory
+              ? { seekCareerHistory: raw.careerHistory }
+              : {}),
+            ...(raw.education ? { seekEducation: raw.education } : {}),
+            ...(raw.licencesAndCertifications
+              ? { seekLicencesAndCertifications: raw.licencesAndCertifications }
+              : {}),
+            ...(raw.applicationQuestions
+              ? { seekApplicationQuestions: raw.applicationQuestions }
+              : {}),
+            ...(raw.skills ? { seekSkills: raw.skills } : {}),
           },
         });
       }
@@ -852,6 +908,17 @@ async function importOneCandidate(raw: SeekCandidateInput): Promise<
       ...(rawSeekEmail ? { emailSeek: rawSeekEmail } : {}),
       ...(seekLocation ? { locationSeek: seekLocation } : {}),
       ...(salaryExpectation ? { salaryExpectation } : {}),
+      ...(raw.careerHistory
+        ? { seekCareerHistory: raw.careerHistory }
+        : {}),
+      ...(raw.education ? { seekEducation: raw.education } : {}),
+      ...(raw.licencesAndCertifications
+        ? { seekLicencesAndCertifications: raw.licencesAndCertifications }
+        : {}),
+      ...(raw.applicationQuestions
+        ? { seekApplicationQuestions: raw.applicationQuestions }
+        : {}),
+      ...(raw.skills ? { seekSkills: raw.skills } : {}),
     },
     create: {
       userId: user.id,
@@ -871,6 +938,17 @@ async function importOneCandidate(raw: SeekCandidateInput): Promise<
       ...(rawSeekEmail ? { emailSeek: rawSeekEmail } : {}),
       ...(seekLocation ? { locationSeek: seekLocation } : {}),
       ...(salaryExpectation ? { salaryExpectation } : {}),
+      ...(raw.careerHistory
+        ? { seekCareerHistory: raw.careerHistory }
+        : {}),
+      ...(raw.education ? { seekEducation: raw.education } : {}),
+      ...(raw.licencesAndCertifications
+        ? { seekLicencesAndCertifications: raw.licencesAndCertifications }
+        : {}),
+      ...(raw.applicationQuestions
+        ? { seekApplicationQuestions: raw.applicationQuestions }
+        : {}),
+      ...(raw.skills ? { seekSkills: raw.skills } : {}),
     },
   });
 
