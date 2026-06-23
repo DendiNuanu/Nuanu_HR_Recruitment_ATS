@@ -291,6 +291,11 @@ export default function CandidatesTable({
   const [loadingActionId, setLoadingActionId] = useState<string | null>(null);
   const [stageNotice, setStageNotice] = useState<StageNotice | null>(null);
   const [loadingProfileDetails, setLoadingProfileDetails] = useState(false);
+  const [hasMounted, setHasMounted] = useState(false);
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
 
   useEffect(() => {
     setLocalCandidates(candidates);
@@ -531,11 +536,8 @@ export default function CandidatesTable({
         isRejectedStage(result.newStage) &&
         result.rejectionEmailFailed
       ) {
-        const detail = result.rejectionEmailError
-          ? ` ${result.rejectionEmailError}`
-          : "";
         toast.error(
-          `Stage updated, but rejection email could not be sent.${detail} Configure SMTP in Settings or use Send Email.`,
+          "Candidate stage updated successfully. Email notification could not be sent.",
           { duration: 8000 },
         );
       }
@@ -1489,7 +1491,7 @@ export default function CandidatesTable({
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                disabled={page <= 1}
+                disabled={hasMounted ? page <= 1 : undefined}
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 className="px-3 py-1.5 text-sm font-medium rounded-lg border border-nuanu-gray-200 disabled:opacity-40 hover:bg-nuanu-gray-50"
               >
@@ -1500,7 +1502,7 @@ export default function CandidatesTable({
               </span>
               <button
                 type="button"
-                disabled={page >= totalPages}
+                disabled={hasMounted ? page >= totalPages : undefined}
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 className="px-3 py-1.5 text-sm font-medium rounded-lg border border-nuanu-gray-200 disabled:opacity-40 hover:bg-nuanu-gray-50"
               >

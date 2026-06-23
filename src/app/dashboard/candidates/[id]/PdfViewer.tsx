@@ -33,6 +33,10 @@ function resolvePdfUrl(rawUrl: string): string {
 
 export default function PdfViewer({ pdfUrl }: PdfViewerProps) {
   const resolvedUrl = useMemo(() => resolvePdfUrl(pdfUrl), [pdfUrl]);
+  const documentFile = useMemo(
+    () => ({ url: resolvedUrl, withCredentials: true }),
+    [resolvedUrl],
+  );
   const [numPages, setNumPages] = useState<number>(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerHeight, setContainerHeight] = useState<number>(600);
@@ -58,8 +62,14 @@ export default function PdfViewer({ pdfUrl }: PdfViewerProps) {
     <div ref={containerRef} className="flex-1 min-h-0 bg-gray-100 overflow-y-auto">
       <div className="flex flex-col items-center py-4">
         <Document
-          file={resolvedUrl}
-          onLoadSuccess={({ numPages: loaded }) => setNumPages(loaded)}
+          file={documentFile}
+          onLoadSuccess={({ numPages: loaded }) => {
+            console.log("[PdfViewer] PDF loaded", { url: resolvedUrl, numPages: loaded });
+            setNumPages(loaded);
+          }}
+          onLoadError={(error) => {
+            console.error("[PdfViewer] PDF load failed", { url: resolvedUrl, error });
+          }}
           loading={
             <div className="flex items-center justify-center py-20">
               <Loader2 className="w-8 h-8 animate-spin text-nuanu-gray-400" />

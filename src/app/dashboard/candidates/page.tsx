@@ -5,7 +5,7 @@ import UploadCVButton from "./UploadCVButton";
 
 export const dynamic = "force-dynamic";
 
-type SearchParams = { [key: string]: string | string[] | undefined };
+type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
 
 function pickString(value: string | string[] | undefined): string | undefined {
   if (Array.isArray(value)) return value[0];
@@ -163,7 +163,8 @@ export default async function CandidatesPage({
 }: {
   searchParams: SearchParams;
 }) {
-  const search = pickString(searchParams.search) ?? "";
+  const resolvedSearchParams = await searchParams;
+  const search = pickString(resolvedSearchParams.search) ?? "";
 
   const [candidates, vacancies] = await Promise.all([
     fetchCandidatesList(search),

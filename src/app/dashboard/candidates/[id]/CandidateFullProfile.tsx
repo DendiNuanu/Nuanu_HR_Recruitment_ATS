@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import {
+  AlertCircle,
   ArrowLeft,
   Briefcase,
   Calendar,
@@ -37,6 +38,7 @@ import {
   User,
   UserCheck,
   X,
+  XCircle,
 } from "lucide-react";
 import { formatDate, formatDateTime, SOURCE_PRESET_OPTIONS } from "@/lib/utils";
 import { useBreadcrumb } from "@/lib/breadcrumb-context";
@@ -302,6 +304,76 @@ function displayEmail(
     userEmail.includes("@import.nuanu.local") ||
     userEmail.includes("@noemail");
   return isSynthetic ? (emailSeek?.trim() || "—") : userEmail;
+}
+
+function dedupeRepeatedDescription(value: unknown): string {
+  if (typeof value !== "string") return "";
+
+  const trimmed = value.trim();
+  if (trimmed.length < 20) return trimmed;
+
+  for (const midpoint of [Math.floor(trimmed.length / 2), Math.ceil(trimmed.length / 2)]) {
+    const first = trimmed.slice(0, midpoint).trim();
+    const second = trimmed.slice(midpoint).trim();
+
+    if (first && first.replace(/\s+/g, " ") === second.replace(/\s+/g, " ")) {
+      return first;
+    }
+  }
+
+  return trimmed;
+}
+
+function getRecommendationMeta(rec: string | null) {
+  if (!rec) {
+    return {
+      label: "No Recommendation",
+      color: "text-slate-600",
+      bg: "bg-slate-100",
+      border: "border-slate-200",
+      icon: <AlertCircle className="h-4 w-4" />,
+    };
+  }
+
+  const v = rec.toLowerCase();
+
+  if (
+    v.includes("no") ||
+    v.includes("reject") ||
+    v.includes("decline") ||
+    v.includes("not")
+  ) {
+    return {
+      label: rec,
+      color: "text-rose-700",
+      bg: "bg-rose-50",
+      border: "border-rose-200",
+      icon: <XCircle className="h-4 w-4" />,
+    };
+  }
+
+  if (
+    v.includes("maybe") ||
+    v.includes("hold") ||
+    v.includes("consider") ||
+    v.includes("undecided")
+  ) {
+    return {
+      label: rec,
+      color: "text-amber-700",
+      bg: "bg-amber-50",
+      border: "border-amber-200",
+      icon: <Clock className="h-4 w-4" />,
+    };
+  }
+
+  return {
+    label: rec,
+    color: "text-emerald-700",
+    bg: "bg-emerald-50",
+    border: "border-emerald-200",
+    icon: <CheckCircle2 className="h-4 w-4" />,
+  };
 }
 
 const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
@@ -831,8 +903,8 @@ export default function CandidateFullProfile({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           reviewerType,
-          rating: null,
-          recommendation: null,
+          rating: interviewFeedback[reviewerType === "HR" ? "hr" : reviewerType === "USER_1" ? "user1" : "user2"]?.rating ?? null,
+          recommendation: interviewFeedback[reviewerType === "HR" ? "hr" : reviewerType === "USER_1" ? "user1" : "user2"]?.recommendation ?? null,
           comments: draft.comments.trim(),
         }),
       });
@@ -1361,9 +1433,9 @@ export default function CandidateFullProfile({
                               {edu.status}
                             </span>
                           )}
-                          {edu.description && (
+                          {dedupeRepeatedDescription(edu.description) && (
                             <p className="text-sm text-[#404848] mt-2 leading-relaxed max-w-3xl">
-                              {edu.description}
+                              {dedupeRepeatedDescription(edu.description)}
                             </p>
                           )}
                         </div>
@@ -1402,9 +1474,9 @@ export default function CandidateFullProfile({
                             </span>
                           )}
                         </div>
-                        {job.description && (
+                        {dedupeRepeatedDescription(job.description) && (
                           <p className="text-sm text-[#404848] leading-relaxed">
-                            {job.description}
+                            {dedupeRepeatedDescription(job.description)}
                           </p>
                         )}
                       </div>
@@ -1935,15 +2007,67 @@ export default function CandidateFullProfile({
                         )}
                       </div>
 
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <div>
+                          <p className="mb-2 text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">
+                            Rating
+                          </p>
+                          <div className="flex flex-wrap items-center gap-2">
+                            {[1, 2, 3, 4, 5].map((n) => (
+                              <Star
+                                key={n}
+                                className={
+                                  section.data?.rating != null && n <= section.data.rating
+                                    ? "h-7 w-7 fill-amber-400 text-amber-400"
+                                    : "h-7 w-7 text-slate-200"
+                                }
+                                strokeWidth={1.8}
+                              />
+                            ))}
+                            {section.data?.rating != null ? (
+                              <span className="rounded-full bg-slate-100 px-3 py-1 text-sm font-black text-slate-700">
+                                {section.data.rating}/5
+                              </span>
+                            ) : (
+                              <span className="text-sm italic text-slate-400">Not set</span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div>
+                          <p className="mb-2 text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">
+                            Recommendation
+                          </p>
+                          {section.data?.recommendation ? (
+                            (() => {
+                              const rec = getRecommendationMeta(section.data.recommendation);
+                              return (
+                                <span className={`inline-flex w-fit max-w-full items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-black ${rec.bg} ${rec.color} ${rec.border}`}>
+                                  {rec.icon}
+                                  <span className="break-words">{rec.label}</span>
+                                </span>
+                              );
+                            })()
+                          ) : (
+                            <span className="text-sm italic text-slate-400">Not set</span>
+                          )}
+                        </div>
+                      </div>
+
                       {readOnly ? (
-                        <div className="rounded-xl border border-gray-100 bg-gray-50/60 p-4 min-h-[88px] break-words whitespace-pre-wrap text-sm text-nuanu-gray-700 leading-relaxed [overflow-wrap:break-word]">
-                          {feedbackDrafts[section.key].comments.trim() ||
-                            "No comment yet for this section."}
+                        <div>
+                          <p className="text-xs text-nuanu-gray-400 mb-2">
+                            Comments
+                          </p>
+                          <div className="rounded-xl border border-gray-100 bg-gray-50/60 p-4 min-h-[88px] break-words whitespace-pre-wrap text-sm text-nuanu-gray-700 leading-relaxed [overflow-wrap:break-word]">
+                            {feedbackDrafts[section.key].comments.trim() ||
+                              "No comment yet for this section."}
+                          </div>
                         </div>
                       ) : (
                         <div>
                           <p className="text-xs text-nuanu-gray-400 mb-2">
-                            Comment
+                            Comments
                           </p>
                           <textarea
                             value={feedbackDrafts[section.key].comments}
