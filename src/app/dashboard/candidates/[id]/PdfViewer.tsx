@@ -7,15 +7,16 @@ interface PdfViewerProps {
 }
 
 /**
- * If the resume URL points to a different origin (e.g. production domain
- * while developing on localhost), rewrite it through the server-side proxy
- * to avoid CORS errors. In production the URL is same-origin so no rewrite
- * occurs — the proxy is only used when genuinely cross-origin.
+ * Uploaded resumes are served by Nginx from /uploads, so keep them as direct
+ * iframe URLs instead of routing them through the resume proxy.
  */
 function resolvePdfUrl(rawUrl: string): string {
   if (typeof window === "undefined") return rawUrl;
   try {
     const target = new URL(rawUrl, window.location.origin);
+    if (target.pathname.startsWith("/uploads/")) {
+      return `${target.pathname}${target.search}${target.hash}`;
+    }
     if (target.origin !== window.location.origin) {
       return `/api/proxy-resume?url=${encodeURIComponent(rawUrl)}`;
     }
