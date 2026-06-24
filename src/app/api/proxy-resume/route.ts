@@ -72,23 +72,26 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const contentType =
-      response.headers.get("content-type") || "application/pdf";
     const contentLength = response.headers.get("content-length");
 
-    // Stream the PDF bytes directly to the client
+    // Stream the PDF bytes directly to the client without iframe-blocking headers.
     const headers: Record<string, string> = {
-      "Content-Type": contentType,
+      "Content-Type": "application/pdf",
+      "Content-Disposition": "inline",
       "Cache-Control": "public, max-age=3600",
     };
     if (contentLength) {
       headers["Content-Length"] = contentLength;
     }
 
-    return new NextResponse(response.body, {
+    const proxiedResponse = new NextResponse(response.body, {
       status: 200,
       headers,
     });
+    proxiedResponse.headers.set("X-Frame-Options", "");
+    proxiedResponse.headers.delete("X-Frame-Options");
+
+    return proxiedResponse;
   } catch (err) {
     console.error("[proxy-resume] Fetch failed:", err);
     return NextResponse.json(
