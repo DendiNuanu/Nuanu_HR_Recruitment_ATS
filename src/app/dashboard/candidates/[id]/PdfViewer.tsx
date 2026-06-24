@@ -1,12 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from "react";
-import { Document, Page, pdfjs } from "react-pdf";
-import "react-pdf/dist/Page/AnnotationLayer.css";
-import "react-pdf/dist/Page/TextLayer.css";
-import { Loader2, FileText } from "lucide-react";
-
-pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
+import { useMemo } from "react";
 
 interface PdfViewerProps {
   pdfUrl: string;
@@ -33,68 +27,33 @@ function resolvePdfUrl(rawUrl: string): string {
 
 export default function PdfViewer({ pdfUrl }: PdfViewerProps) {
   const resolvedUrl = useMemo(() => resolvePdfUrl(pdfUrl), [pdfUrl]);
-  const documentFile = useMemo(
-    () => ({ url: resolvedUrl, withCredentials: true }),
-    [resolvedUrl],
-  );
-  const [numPages, setNumPages] = useState<number>(0);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [containerHeight, setContainerHeight] = useState<number>(600);
-
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    const observer = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        if (entry.contentRect.height > 0) {
-          setContainerHeight(entry.contentRect.height);
-        }
-      }
-    });
-    observer.observe(el);
-    if (el.clientHeight > 0) {
-      setContainerHeight(el.clientHeight);
-    }
-    return () => observer.disconnect();
-  }, []);
 
   return (
-    <div ref={containerRef} className="flex-1 min-h-0 bg-gray-100 overflow-y-auto">
-      <div className="flex flex-col items-center py-4">
-        <Document
-          file={documentFile}
-          onLoadSuccess={({ numPages: loaded }) => {
-            console.log("[PdfViewer] PDF loaded", { url: resolvedUrl, numPages: loaded });
-            setNumPages(loaded);
-          }}
-          onLoadError={(error) => {
-            console.error("[PdfViewer] PDF load failed", { url: resolvedUrl, error });
-          }}
-          loading={
-            <div className="flex items-center justify-center py-20">
-              <Loader2 className="w-8 h-8 animate-spin text-nuanu-gray-400" />
-            </div>
-          }
-          error={
-            <div className="flex flex-col items-center justify-center py-20 gap-3">
-              <FileText className="w-12 h-12 text-nuanu-gray-300" />
-              <p className="text-sm text-nuanu-gray-500">
-                Failed to load PDF. Try opening in a new tab.
-              </p>
-            </div>
-          }
+    <div className="flex-1 min-h-0 bg-gray-100 overflow-y-auto p-4">
+      <div className="mb-4 flex flex-wrap gap-3">
+        <a
+          href={resolvedUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center justify-center rounded-lg bg-nuanu-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-nuanu-primary/90"
         >
-          {Array.from(new Array(numPages), (_, index) => (
-            <Page
-              key={`page_${index + 1}`}
-              pageNumber={index + 1}
-              height={containerHeight}
-              className="mb-4 shadow-lg"
-              renderTextLayer={true}
-              renderAnnotationLayer={true}
-            />
-          ))}
-        </Document>
+          Open in new tab
+        </a>
+        <a
+          href={resolvedUrl}
+          download
+          className="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-nuanu-gray-700 transition-colors hover:bg-gray-50"
+        >
+          Download
+        </a>
+      </div>
+      <div className="w-full" style={{ height: "80vh" }}>
+        <iframe
+          src={resolvedUrl}
+          className="h-full w-full rounded-lg border border-gray-200 bg-white"
+          style={{ minHeight: "600px" }}
+          title="Resume / CV"
+        />
       </div>
     </div>
   );
