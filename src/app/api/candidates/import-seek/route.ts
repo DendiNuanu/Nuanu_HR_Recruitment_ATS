@@ -719,7 +719,9 @@ async function importOneCandidate(raw: SeekCandidateInput): Promise<
           data: {
             currentStage: mappedStage,
             status: applicationStatusForStage(mappedStage),
-            appliedAt,
+            // Preserve original appliedAt — only set on INSERT (create), never on UPDATE.
+            // Overwriting it here would reset every candidate's apply date to the
+            // scrape date, breaking the "newest first" sort on /dashboard/candidates.
             lastActivityAt: new Date(),
             ...(mappedStage === "rejected" ? { rejectedAt: new Date() } : {}),
           },
