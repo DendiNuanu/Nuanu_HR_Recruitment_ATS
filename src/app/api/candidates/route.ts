@@ -46,7 +46,7 @@ export async function GET(request: Request) {
         vacancy: { select: { title: true, location: true } },
         candidateScore: { select: { overallScore: true } },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ appliedAt: "desc" }, { createdAt: "desc" }],
       skip: (page - 1) * limit,
       take: limit,
     }),
