@@ -19,7 +19,6 @@ import {
   Edit,
   ExternalLink,
   FileText,
-  GraduationCap,
   LayoutGrid,
   Link2,
   Loader2,
@@ -1405,47 +1404,6 @@ export default function CandidateFullProfile({
               </div>
             )}
 
-            {/* ── SEEK Education ─────────────────────────────────────────── */}
-            {Array.isArray(profile?.seekEducation) &&
-              (profile!.seekEducation as any[]).length > 0 && (
-              <div className="bg-white rounded-xl border border-[#c0c8c7] shadow-sm overflow-hidden">
-                <div className="bg-[#eff4ff] px-6 py-3 border-b border-[#c0c8c7]">
-                  <span className="text-[11px] font-bold uppercase tracking-widest text-[#404848]">Education</span>
-                </div>
-                <div className="p-6 space-y-6">
-                  {(profile!.seekEducation as any[]).map(
-                    (edu: any, i: number) => (
-                      <div key={i} className="flex gap-4">
-                        <div className="w-12 h-12 bg-[#beebea] rounded-xl flex items-center justify-center text-[#002626] flex-shrink-0">
-                          <GraduationCap className="w-6 h-6" />
-                        </div>
-                        <div>
-                          <p className="text-base font-bold text-[#0b1c30]">
-                            {edu.degree || "N/A"}
-                          </p>
-                          {edu.institution && (
-                            <p className="text-sm text-[#404848] mt-1 font-medium">
-                              {edu.institution}
-                            </p>
-                          )}
-                          {edu.status && (
-                            <span className="inline-block mt-1.5 px-2 py-0.5 rounded-full bg-[#e5eeff] text-[#006b57] text-[10px] font-bold">
-                              {edu.status}
-                            </span>
-                          )}
-                          {dedupeRepeatedDescription(edu.description) && (
-                            <p className="text-sm text-[#404848] mt-2 leading-relaxed max-w-3xl">
-                              {dedupeRepeatedDescription(edu.description)}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    ),
-                  )}
-                </div>
-              </div>
-            )}
-
             {/* ── SEEK Career History ────────────────────────────────────── */}
             {Array.isArray(profile?.seekCareerHistory) &&
               (profile!.seekCareerHistory as any[]).length > 0 && (
@@ -1453,34 +1411,89 @@ export default function CandidateFullProfile({
                 <div className="bg-[#eff4ff] px-6 py-3 border-b border-[#c0c8c7]">
                   <span className="text-[11px] font-bold uppercase tracking-widest text-[#404848]">Career History</span>
                 </div>
-                <div className="p-6 space-y-4">
+                <div className="divide-y divide-[#f0f0f0]">
                   {(profile!.seekCareerHistory as any[]).map(
-                    (job: any, i: number) => (
-                      <div key={i} className="bg-white rounded-xl border border-[#c0c8c7] p-5 shadow-sm">
-                        <div className="flex items-start justify-between mb-3">
-                          <div>
-                            <p className="text-base font-bold text-[#0b1c30]">
-                              {job.title || "N/A"}
+                    (job: any, i: number) => {
+                      const description = dedupeRepeatedDescription(job.description);
+                      return (
+                        <div key={i} className="px-6 py-5">
+                          {/* Job Title */}
+                          <h4 className="text-[15px] font-bold text-[#0b1c30] mb-1">
+                            {job.title || "N/A"}
+                          </h4>
+                          {/* Company */}
+                          {job.company && (
+                            <p className="text-[14px] text-[#404848] mb-1">
+                              {job.company}
                             </p>
-                            {job.company && (
-                              <p className="text-sm font-semibold text-[#006b57] mt-0.5">
-                                {job.company}
-                              </p>
-                            )}
-                          </div>
+                          )}
+                          {/* Date Range */}
                           {job.dateRange && (
-                            <span className="text-xs font-medium text-[#404848] bg-[#eff4ff] px-3 py-1 rounded-full">
+                            <p className="text-[13px] font-semibold text-[#006b5f] mb-3">
                               {job.dateRange}
-                            </span>
+                            </p>
+                          )}
+                          {/* Description — split into bullets */}
+                          {description && (
+                            <div className="text-[14px] text-[#404848] leading-relaxed space-y-1.5">
+                              {description
+                                .split(/\s*[•\-]\s+/)
+                                .map((s: string) => s.trim())
+                                .filter((s: string) => s.length > 0)
+                                .map((bullet: string, bIdx: number) => (
+                                  <div key={bIdx} className="flex gap-2">
+                                    <span className="text-[#006b5f] flex-shrink-0 mt-0.5">•</span>
+                                    <span>{bullet}</span>
+                                  </div>
+                                ))}
+                            </div>
                           )}
                         </div>
-                        {dedupeRepeatedDescription(job.description) && (
-                          <p className="text-sm text-[#404848] leading-relaxed">
-                            {dedupeRepeatedDescription(job.description)}
-                          </p>
-                        )}
-                      </div>
-                    ),
+                      );
+                    },
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* ── SEEK Education ─────────────────────────────────────────── */}
+            {Array.isArray(profile?.seekEducation) &&
+              (profile!.seekEducation as any[]).length > 0 && (
+              <div className="bg-white rounded-xl border border-[#c0c8c7] shadow-sm overflow-hidden">
+                <div className="bg-[#eff4ff] px-6 py-3 border-b border-[#c0c8c7]">
+                  <span className="text-[11px] font-bold uppercase tracking-widest text-[#404848]">Education</span>
+                </div>
+                <div className="divide-y divide-[#f0f0f0]">
+                  {(profile!.seekEducation as any[]).map(
+                    (edu: any, i: number) => {
+                      const description = dedupeRepeatedDescription(edu.description);
+                      return (
+                        <div key={i} className="px-6 py-5">
+                          {/* Degree */}
+                          <h4 className="text-[15px] font-bold text-[#0b1c30] mb-1">
+                            {edu.degree || "N/A"}
+                          </h4>
+                          {/* Institution */}
+                          {edu.institution && (
+                            <p className="text-[14px] text-[#404848] mb-1">
+                              {edu.institution}
+                            </p>
+                          )}
+                          {/* Status (no year field in SEEK data) */}
+                          {edu.status && (
+                            <p className="text-[13px] font-semibold text-[#006b5f] mb-3">
+                              {edu.status}
+                            </p>
+                          )}
+                          {/* Description — deduped */}
+                          {description && (
+                            <p className="text-[14px] text-[#404848] leading-relaxed">
+                              {description}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    },
                   )}
                 </div>
               </div>
@@ -1493,35 +1506,37 @@ export default function CandidateFullProfile({
                 <div className="bg-[#eff4ff] px-6 py-3 border-b border-[#c0c8c7]">
                   <span className="text-[11px] font-bold uppercase tracking-widest text-[#404848]">Licences & Certifications</span>
                 </div>
-                <div className="p-6 space-y-6">
+                <div className="divide-y divide-[#f0f0f0]">
                   {(profile!.seekLicencesAndCertifications as any[]).map(
-                    (lic: any, i: number) => (
-                      <div key={i} className="flex gap-4">
-                        <div className="w-12 h-12 bg-[#beebea] rounded-xl flex items-center justify-center text-[#002626] flex-shrink-0">
-                          <ClipboardList className="w-6 h-6" />
-                        </div>
-                        <div>
-                          <p className="text-base font-bold text-[#0b1c30]">
+                    (lic: any, i: number) => {
+                      const description = dedupeRepeatedDescription(lic.description);
+                      return (
+                        <div key={i} className="px-6 py-5">
+                          {/* Cert Name */}
+                          <h4 className="text-[15px] font-bold text-[#0b1c30] mb-1">
                             {lic.name || "N/A"}
-                          </p>
+                          </h4>
+                          {/* Issuer */}
                           {lic.organization && (
-                            <p className="text-sm text-[#404848] mt-1 font-medium">
+                            <p className="text-[14px] text-[#404848] mb-1">
                               {lic.organization}
                             </p>
                           )}
+                          {/* Date */}
                           {lic.dateRange && (
-                            <p className="text-sm text-[#006b57] font-bold mt-1">
+                            <p className="text-[13px] font-semibold text-[#006b5f] mb-3">
                               {lic.dateRange}
                             </p>
                           )}
-                          {lic.description && (
-                            <p className="text-sm text-[#404848] mt-2 leading-relaxed max-w-3xl">
-                              {lic.description}
+                          {/* Description — deduped */}
+                          {description && (
+                            <p className="text-[14px] text-[#404848] leading-relaxed">
+                              {description}
                             </p>
                           )}
                         </div>
-                      </div>
-                    ),
+                      );
+                    },
                   )}
                 </div>
               </div>
@@ -1532,7 +1547,6 @@ export default function CandidateFullProfile({
                 </div>
                 <div className="p-8 flex items-center justify-center text-[#404848] py-12">
                   <div className="text-center">
-                    <ClipboardList className="w-10 h-10 mx-auto mb-3 text-[#c0c8c7]" />
                     <p className="text-sm font-medium">No licences or certifications on file</p>
                   </div>
                 </div>
