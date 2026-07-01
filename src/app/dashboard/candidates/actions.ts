@@ -8,6 +8,7 @@ import { delCache } from "@/lib/cache";
 import { getSession } from "@/lib/auth";
 import { normalizePipelineStage } from "@/lib/utils";
 import { deleteCandidatesByEmails } from "@/lib/delete-candidate";
+import { parseCVWithAI, extractTextFromFile } from "@/lib/cv-parser";
 
 function buildRejectionEmailBodies(params: {
   candidateName: string;
@@ -43,16 +44,25 @@ function buildRejectionEmailBodies(params: {
 /**
  * Update editable overview fields on a candidate profile/application.
  * applicationId = Application.id, userId = User.id (candidateId)
+ *
+ * `referPosition` is stored as a JSON-encoded array string supporting up to
+ * MAX_REFER_POSITIONS positions (see src/lib/utils.ts). Callers may pass
+ * either a pre-serialized string or rely on the array overload below.
+ * `appliedFor` is stored on the Application record and is independent of
+ * referPosition (it is the role the candidate applied to, editable by HR).
  */
 export async function updateCandidateOverviewDetails(
   applicationId: string,
   userId: string,
   data: {
-    referPosition?: string;
+    /** JSON array string, e.g. '["Legal Admin","HR Admin"]' */
+    referPosition?: string | null;
     domicile?: string;
     salaryExpectation?: string;
     source?: string;
     appliedAt?: string;
+    /** The role the candidate applied for (editable, independent of Refer As). */
+    appliedFor?: string;
   },
 ) {
   try {
@@ -87,13 +97,20 @@ export async function updateCandidateOverviewDetails(
         });
       }
 
-      if (data.source !== undefined || data.appliedAt !== undefined) {
+      if (
+        data.source !== undefined ||
+        data.appliedAt !== undefined ||
+        data.appliedFor !== undefined
+      ) {
         await tx.application.update({
           where: { id: applicationId },
           data: {
             ...(data.source !== undefined && { source: data.source }),
             ...(data.appliedAt !== undefined && {
               appliedAt: new Date(data.appliedAt),
+            }),
+            ...(data.appliedFor !== undefined && {
+              appliedFor: data.appliedFor.trim() || null,
             }),
           },
         });
@@ -590,19 +607,12 @@ export async function uploadCandidateResume(
       /* non-fatal */
     }
 
-    // Extract text if PDF
-    if (
-      file.type === "application/pdf" ||
-      file.name.toLowerCase().endsWith(".pdf")
-    ) {
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const pdfParse = require("pdf-parse");
-        const parsed = await pdfParse(buffer);
-        resumeText = parsed.text || "";
-      } catch {
-        /* non-fatal */
-      }
+    // Extract text from PDF or DOCX using the shared helper
+    try {
+      resumeText = await extractTextFromFile(buffer, file.name, file.type);
+    } catch (err) {
+      console.warn("[uploadCandidateResume] text extraction failed:", err);
+      /* non-fatal — we still save the file */
     }
 
     // Create Document record
@@ -617,22 +627,111 @@ export async function uploadCandidateResume(
       },
     });
 
-    // Update CandidateProfile
+    // ── AI parsing via Groq ────────────────────────────────────────────────
+    // If parsing fails, we still save the file + raw text (non-fatal).
+    let parsedFullName: string | null = null;
+    let parsedFields: Record<string, unknown> = {};
+
+    if (resumeText.trim()) {
+      try {
+        console.log(
+          `[uploadCandidateResume] running AI parse for ${applicationId}...`,
+        );
+        const { data, aiWorked, engine } = await parseCVWithAI(resumeText);
+
+        if (aiWorked || engine !== "none") {
+          parsedFullName = data.fullName;
+
+          // Build the update object with only non-null / non-empty values.
+          // IMPORTANT: We do NOT touch application.vacancy ("Applied For").
+          // Only referPosition ("Refer As") is updated from currentRole.
+          if (data.currentRole) {
+            parsedFields.referPosition = data.currentRole;
+          }
+          if (data.domicile) {
+            parsedFields.domicile = data.domicile;
+          }
+          if (data.location && !data.domicile) {
+            // Fall back to location if domicile wasn't explicitly stated
+            parsedFields.domicile = data.location;
+          }
+          if (data.expectedSalary != null) {
+            const salaryStr = String(data.expectedSalary);
+            parsedFields.salaryExpectation = salaryStr;
+          }
+          if (data.careerHistory.length > 0) {
+            parsedFields.seekCareerHistory = data.careerHistory;
+          }
+          if (data.education.length > 0) {
+            parsedFields.seekEducation = data.education;
+          }
+          if (data.skills.length > 0) {
+            parsedFields.seekSkills = data.skills;
+          }
+          if (data.licences.length > 0) {
+            parsedFields.seekLicencesAndCertifications = data.licences;
+          }
+
+          console.log(
+            `[uploadCandidateResume] AI parse OK — engine: ${engine}, ` +
+              `name: ${data.fullName}, referPosition: ${data.currentRole}, ` +
+              `careerHistory: ${data.careerHistory.length}, ` +
+              `education: ${data.education.length}, ` +
+              `skills: ${data.skills.length}, ` +
+              `licences: ${data.licences.length}`,
+          );
+        } else {
+          console.warn(
+            "[uploadCandidateResume] AI parse returned no usable data",
+          );
+        }
+      } catch (err) {
+        console.error("[uploadCandidateResume] AI parse error:", err);
+        /* non-fatal — file is still saved below */
+      }
+    } else {
+      console.warn(
+        "[uploadCandidateResume] no resume text extracted — skipping AI parse",
+      );
+    }
+
+    // Update CandidateProfile with file URL, raw text, and parsed fields
     await prisma.candidateProfile.upsert({
       where: { userId: app.candidateId },
       update: {
         ...(resumeUrl && { resumeUrl }),
         ...(resumeText && { resumeText }),
+        ...parsedFields,
       },
       create: {
         userId: app.candidateId,
         ...(resumeUrl && { resumeUrl }),
         ...(resumeText && { resumeText }),
+        ...parsedFields,
       },
     });
 
+    // Update the user's name if we extracted a full name from the CV
+    if (parsedFullName && parsedFullName.trim()) {
+      try {
+        await prisma.user.update({
+          where: { id: app.candidateId },
+          data: { name: parsedFullName.trim() },
+        });
+      } catch (err) {
+        console.warn("[uploadCandidateResume] user.name update failed:", err);
+        /* non-fatal */
+      }
+    }
+
     revalidatePath("/dashboard/candidates");
-    return { success: true, resumeUrl };
+    revalidatePath(`/dashboard/candidates/${applicationId}`);
+    return {
+      success: true,
+      resumeUrl,
+      parsed: Object.keys(parsedFields).length > 0,
+      parsedName: parsedFullName,
+    };
   } catch (e) {
     console.error("Resume upload error:", e);
     return { success: false, error: "Upload failed" };

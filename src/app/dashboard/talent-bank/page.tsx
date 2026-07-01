@@ -19,6 +19,7 @@ async function fetchTalentBankCandidates() {
       lastActivityAt: true,
       source: true,
       coverLetter: true,
+      appliedFor: true,
       emailSentAt: true,
       emailSentSubject: true,
       candidate: {
@@ -73,7 +74,8 @@ async function fetchTalentBankCandidates() {
       userId: app.candidateId,
       name: app.candidate.name,
       email: app.candidate.email,
-      vacancyTitle: profile?.referPosition ?? app.vacancy.title,
+      vacancyTitle: app.appliedFor ?? app.vacancy.title,
+      appliedFor: app.appliedFor ?? null,
       stage: app.currentStage,
       score: app.candidateScore?.overallScore ?? 0,
       experienceYears: profile?.experienceYears ?? 0,

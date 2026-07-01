@@ -23,6 +23,7 @@ async function getVacancyCandidates(vacancyId: string) {
         createdAt: true,
         lastActivityAt: true,
         source: true,
+        appliedFor: true,
         candidate: {
           select: { id: true, name: true, email: true, phone: true },
         },
@@ -66,7 +67,8 @@ async function getVacancyCandidates(vacancyId: string) {
       userId: app.candidateId,
       name: app.candidate.name,
       email: app.candidate.email,
-      vacancyTitle: profile?.referPosition ?? vacancy.title,
+      vacancyTitle: app.appliedFor ?? vacancy.title,
+      appliedFor: app.appliedFor ?? null,
       stage: app.currentStage,
       score: app.candidateScore?.overallScore ?? 0,
       experienceYears: profile?.experienceYears ?? 0,
@@ -85,7 +87,7 @@ async function getVacancyCandidates(vacancyId: string) {
       skills: profile?.skills ?? [],
       resumeUrl: profile?.resumeUrl ?? undefined,
       source: app.source ?? "direct",
-      referPosition: profile?.referPosition ?? vacancy.title,
+      referPosition: profile?.referPosition ?? undefined,
       salaryExpectation: profile?.salaryExpectation ?? undefined,
       recommendations: Array.isArray(app.candidateScore?.recommendations)
         ? app.candidateScore.recommendations

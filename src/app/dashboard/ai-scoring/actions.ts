@@ -29,7 +29,7 @@ export async function scanResumes() {
       const profile = await prisma.candidateProfile.findUnique({ where: { userId: app.candidateId } });
       const resumeText = profile?.resumeText;
       const isFallback = Boolean(profile?.referPosition) || app.vacancy.title.toLowerCase().includes("open application") || app.vacancy.title.toLowerCase().includes("general");
-      const vacancyTitle = profile?.referPosition || app.vacancy.title;
+      const vacancyTitle = app.appliedFor || app.vacancy.title;
       const vacancyDesc = isFallback ? "General candidate profiling based on CV" : (app.vacancy.description || vacancyTitle);
 
       if (!resumeText || resumeText.length < 50) {

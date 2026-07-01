@@ -24,12 +24,25 @@ export async function generateMetadata({
   };
 }
 
+type SearchParams = Promise<{
+  [key: string]: string | string[] | undefined;
+}>;
+
+function pickString(value: string | string[] | undefined): string | undefined {
+  if (Array.isArray(value)) return value[0];
+  return value;
+}
+
 export default async function CandidateDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: SearchParams;
 }) {
   const { id } = await params;
+  const resolvedSearchParams = await searchParams;
+  const fromPage = pickString(resolvedSearchParams.fromPage) ?? "1";
 
   const application = await prisma.application.findUnique({
     where: { id },
@@ -94,6 +107,7 @@ export default async function CandidateDetailPage({
     <CandidateFullProfile
       application={JSON.parse(JSON.stringify(application))}
       candidateProfile={candidateProfile ? JSON.parse(JSON.stringify(candidateProfile)) : null}
+      fromPage={fromPage}
     />
   );
 }

@@ -48,6 +48,8 @@ import {
   SOURCE_PRESET_OPTIONS,
   normalizePipelineStage,
   resolvePipelineColumn,
+  parseReferPositions,
+  serializeReferPositions,
   type PipelineStageId,
 } from "@/lib/utils";
 import { toast } from "sonner";
@@ -82,6 +84,7 @@ export type Candidate = {
   name: string;
   email: string;
   vacancyTitle: string;
+  appliedFor?: string | null;
   stage: string;
   score: number;
   experienceYears: number;
@@ -331,6 +334,37 @@ export default function CandidatesTable({
     }
   }, [search]);
 
+  // Read the `page` URL param on mount so that returning from a candidate
+  // profile (via the Back button, which navigates to ?page=N) lands on the
+  // same page the user was viewing before opening the profile.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const pageParam = params.get("page");
+    if (pageParam) {
+      const parsed = parseInt(pageParam, 10);
+      if (Number.isFinite(parsed) && parsed > 0) {
+        setPage(parsed);
+      }
+    }
+  }, []);
+
+  // Keep the `page` URL param in sync with the active page so the Back button
+  // can restore it. Uses window.history (not useSearchParams) to avoid the
+  // Suspense boundary requirement in Next.js 15+/16.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    if (page > 1) {
+      url.searchParams.set("page", String(page));
+    } else {
+      url.searchParams.delete("page");
+    }
+    if (url.search !== window.location.search) {
+      window.history.replaceState(null, "", url.toString());
+    }
+  }, [page]);
+
   // Profile tab
   const [profileTab, setProfileTab] = useState<
     "overview" | "resume" | "interview_results" | "notes"
@@ -404,11 +438,17 @@ export default function CandidatesTable({
   const [sourcePreset, setSourcePreset] = useState("direct");
   const [savingSource, setSavingSource] = useState(false);
 
-  // Refer As / Domicile field state
-  const [referAsDraft, setReferAsDraft] = useState("");
+  // Refer As / Domicile / Applied For field state
+  const [referPositionsDraft, setReferPositionsDraft] = useState<string[]>([
+    "",
+    "",
+    "",
+  ]);
+  const [appliedForDraft, setAppliedForDraft] = useState("");
   const [domicileDraft, setDomicileDraft] = useState("");
   const [salaryExpectationDraft, setSalaryExpectationDraft] = useState("");
   const [savingReferAs, setSavingReferAs] = useState(false);
+  const [savingAppliedFor, setSavingAppliedFor] = useState(false);
   const [savingDomicile, setSavingDomicile] = useState(false);
   const [savingSalaryExpectation, setSavingSalaryExpectation] = useState(false);
 
@@ -886,7 +926,8 @@ export default function CandidatesTable({
     setReviewerAssignmentDraft({ user1ReviewerId: "", user2ReviewerId: "" });
     setFeedbackLoadError(null);
     resetSourceFields(normalized.source);
-    setReferAsDraft(normalized.referPosition || "");
+    setReferPositionsDraft(parseReferPositions(normalized.referPosition));
+    setAppliedForDraft(normalized.appliedFor ?? "");
     setDomicileDraft(normalized.domicile || "");
     setSalaryExpectationDraft(normalized.salaryExpectation || "");
     setCvFile(null);
@@ -924,24 +965,50 @@ export default function CandidatesTable({
 
   const handleSaveReferAs = async () => {
     if (!selectedProfile) return;
-    const val = referAsDraft.trim();
-    if (!val || val === (selectedProfile.referPosition || "")) return;
+    const serialized = serializeReferPositions(referPositionsDraft);
+    if (serialized === (selectedProfile.referPosition ?? null)) return;
     setSavingReferAs(true);
     try {
       const res = await updateCandidateOverviewDetails(
         selectedProfile.id,
         selectedProfile.userId,
-        { referPosition: val },
+        { referPosition: serialized },
       );
       if (res.success) {
-        setSelectedProfile({ ...selectedProfile, referPosition: val });
-        setReferAsDraft(val);
+        setSelectedProfile({
+          ...selectedProfile,
+          referPosition: serialized ?? undefined,
+        });
+        setReferPositionsDraft(parseReferPositions(serialized));
         toast.success("Refer As updated");
       } else {
         toast.error(res.error || "Failed to update Refer As");
       }
     } finally {
       setSavingReferAs(false);
+    }
+  };
+
+  const handleSaveAppliedFor = async () => {
+    if (!selectedProfile) return;
+    const val = appliedForDraft.trim();
+    if (val === (selectedProfile.appliedFor ?? "")) return;
+    setSavingAppliedFor(true);
+    try {
+      const res = await updateCandidateOverviewDetails(
+        selectedProfile.id,
+        selectedProfile.userId,
+        { appliedFor: val },
+      );
+      if (res.success) {
+        setSelectedProfile({ ...selectedProfile, appliedFor: val });
+        setAppliedForDraft(val);
+        toast.success("Applied For updated");
+      } else {
+        toast.error(res.error || "Failed to update Applied For");
+      }
+    } finally {
+      setSavingAppliedFor(false);
     }
   };
 
@@ -1327,7 +1394,7 @@ export default function CandidatesTable({
                   </td>
                   <td>
                     <p className="font-medium text-nuanu-navy leading-tight">
-                      {candidate.vacancyTitle}
+                      {candidate.appliedFor || candidate.vacancyTitle}
                     </p>
                     {candidate.location && candidate.location !== "—" ? (
                       <p className="text-[11px] text-nuanu-gray-400 mt-0.5">
@@ -1384,7 +1451,7 @@ export default function CandidatesTable({
                   <td className="min-w-[300px] text-right pr-4">
                     <div className="flex flex-wrap items-center justify-end gap-2">
                       <Link
-                        href={`/dashboard/candidates/${candidate.id}`}
+                        href={`/dashboard/candidates/${candidate.id}?fromPage=${page}`}
                         className="p-2 text-nuanu-gray-400 hover:text-nuanu-emerald bg-nuanu-gray-50 hover:bg-emerald-50 rounded-lg transition-all hover:scale-110 inline-flex"
                         title="View Full Profile"
                         aria-label={`View full profile for ${candidate.name}`}
@@ -1710,44 +1777,83 @@ export default function CandidatesTable({
                         <p className="text-[11px] font-bold text-nuanu-gray-400 uppercase tracking-[0.1em] mb-2">
                           Applied For
                         </p>
-                        <p className="text-lg font-bold text-nuanu-navy leading-snug">
-                          {selectedProfile.referPosition ||
-                            selectedProfile.vacancyTitle}
-                        </p>
-                      </div>
-                      {/* Change 1: Refer As */}
-                      <div>
-                        <p className="text-[11px] font-bold text-nuanu-gray-400 uppercase tracking-[0.1em] mb-2">
-                          Refer As
-                        </p>
                         <div className="flex gap-2 -ml-2">
                           <input
                             type="text"
-                            value={referAsDraft}
-                            onChange={(e) => setReferAsDraft(e.target.value)}
+                            value={appliedForDraft}
+                            onChange={(e) => setAppliedForDraft(e.target.value)}
                             onKeyDown={(e) =>
-                              e.key === "Enter" && handleSaveReferAs()
+                              e.key === "Enter" && handleSaveAppliedFor()
                             }
                             placeholder={selectedProfile.vacancyTitle}
                             className="flex-1 input-field text-lg font-bold text-nuanu-navy leading-snug py-1 px-2"
                           />
                           <button
-                            onClick={handleSaveReferAs}
+                            onClick={handleSaveAppliedFor}
                             disabled={
-                              savingReferAs ||
-                              !referAsDraft.trim() ||
-                              referAsDraft.trim() ===
-                                (selectedProfile.referPosition || "")
+                              savingAppliedFor ||
+                              appliedForDraft.trim() ===
+                                (selectedProfile.appliedFor ?? "")
                             }
                             className="btn-primary px-3 py-1.5 text-xs flex items-center gap-1.5 shrink-0"
                           >
-                            {savingReferAs ? (
+                            {savingAppliedFor ? (
                               <Loader2 className="w-3.5 h-3.5 animate-spin" />
                             ) : (
                               <Check className="w-3.5 h-3.5" />
                             )}
                             Apply
                           </button>
+                        </div>
+                      </div>
+                      {/* Change 1: Refer As (up to 3 positions) */}
+                      <div>
+                        <p className="text-[11px] font-bold text-nuanu-gray-400 uppercase tracking-[0.1em] mb-2">
+                          Refer As
+                        </p>
+                        <div className="space-y-2 -ml-2">
+                          {referPositionsDraft.map((pos, idx) => (
+                            <div key={idx} className="flex gap-2">
+                              <input
+                                type="text"
+                                value={pos}
+                                onChange={(e) =>
+                                  setReferPositionsDraft((prev) =>
+                                    prev.map((p, i) =>
+                                      i === idx ? e.target.value : p,
+                                    ),
+                                  )
+                                }
+                                onKeyDown={(e) =>
+                                  e.key === "Enter" && handleSaveReferAs()
+                                }
+                                placeholder={
+                                  idx === 0
+                                    ? selectedProfile.vacancyTitle
+                                    : `Position ${idx + 1}`
+                                }
+                                className="flex-1 input-field text-lg font-bold text-nuanu-navy leading-snug py-1 px-2"
+                              />
+                              {idx === referPositionsDraft.length - 1 && (
+                                <button
+                                  onClick={handleSaveReferAs}
+                                  disabled={
+                                    savingReferAs ||
+                                    serializeReferPositions(referPositionsDraft) ===
+                                      (selectedProfile.referPosition ?? null)
+                                  }
+                                  className="btn-primary px-3 py-1.5 text-xs flex items-center gap-1.5 shrink-0"
+                                >
+                                  {savingReferAs ? (
+                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                  ) : (
+                                    <Check className="w-3.5 h-3.5" />
+                                  )}
+                                  Apply
+                                </button>
+                              )}
+                            </div>
+                          ))}
                         </div>
                       </div>
                       <div>

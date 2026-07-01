@@ -143,6 +143,74 @@ export function resolvePipelineColumn(stage: string): PipelineStageId {
   return "new";
 }
 
+/**
+ * Maximum number of "Refer As" positions HR can assign to a candidate.
+ * Stored as a JSON-encoded array string in CandidateProfile.referPosition.
+ */
+export const MAX_REFER_POSITIONS = 3;
+
+/**
+ * Parse the stored `referPosition` value (a JSON array string, e.g.
+ * '["Legal Admin","HR Admin"]') into a string array. Backward compatible:
+ * legacy single-string values (e.g. "Legal Admin") are wrapped into a
+ * one-element array. Always returns an array padded/truncated to
+ * MAX_REFER_POSITIONS so the UI can render a fixed number of inputs.
+ */
+export function parseReferPositions(
+  raw: string | null | undefined,
+): string[] {
+  const fallback = Array(MAX_REFER_POSITIONS).fill("");
+  if (!raw) return [...fallback];
+
+  const trimmed = raw.trim();
+  if (!trimmed) return [...fallback];
+
+  // New format: JSON array
+  if (trimmed.startsWith("[")) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed)) {
+        const positions = parsed
+          .map((p) => (typeof p === "string" ? p : String(p ?? "")))
+          .map((p) => p.trim());
+        const padded = [...positions];
+        while (padded.length < MAX_REFER_POSITIONS) padded.push("");
+        return padded.slice(0, MAX_REFER_POSITIONS);
+      }
+    } catch {
+      // fall through to legacy handling
+    }
+  }
+
+  // Legacy format: a single position string
+  return [trimmed, "", ""].slice(0, MAX_REFER_POSITIONS);
+}
+
+/**
+ * Serialize a string array of positions into the JSON array string stored in
+ * `CandidateProfile.referPosition`. Empty/whitespace-only entries are
+ * dropped. Returns `null` when no positions remain so the DB column stays
+ * nullable (and legacy readers treat null as "not set").
+ */
+export function serializeReferPositions(positions: string[]): string | null {
+  const cleaned = (positions ?? [])
+    .map((p) => (typeof p === "string" ? p.trim() : ""))
+    .filter((p) => p.length > 0);
+  if (cleaned.length === 0) return null;
+  return JSON.stringify(cleaned);
+}
+
+/**
+ * Return the first non-empty "Refer As" position, or null. Useful for places
+ * that only need a single display label (e.g. list tables, AI scoring).
+ */
+export function firstReferPosition(
+  raw: string | null | undefined,
+): string | null {
+  const positions = parseReferPositions(raw);
+  return positions.find((p) => p.trim().length > 0) ?? null;
+}
+
 export const SOURCE_PRESET_OPTIONS = [
   { value: "seek", label: "SEEK" },
   { value: "career_page", label: "Career Page" },

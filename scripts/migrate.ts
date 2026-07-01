@@ -14,6 +14,7 @@ async function main() {
       ALTER TABLE applications
         ADD COLUMN IF NOT EXISTS "emailSentAt" TIMESTAMP,
         ADD COLUMN IF NOT EXISTS "emailSentSubject" VARCHAR,
+        ADD COLUMN IF NOT EXISTS "appliedFor" VARCHAR,
         ALTER COLUMN "currentStage" SET DEFAULT 'new'
     `);
     console.log("[migrate] ✅ applications columns OK");

@@ -73,7 +73,7 @@ export default function CandidateProfile360({
   onCloseAction: () => void;
 }) {
   const appliedFor =
-    candidate.referPosition ||
+    candidate.appliedFor ||
     candidate.vacancyTitle ||
     vacancyTitle ||
     "Role not specified";

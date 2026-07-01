@@ -3,13 +3,37 @@
  *
  * Text extraction: pdf-parse (PDF) + mammoth (DOCX)
  * AI parsing:
- *   1st — Groq API  (AI_API_KEY already in .env — uses llama-3.3-70b-versatile
- *                    which reliably returns JSON; falls back to AI_MODEL if set)
+ *   1st — Groq API  (GROQ_API_KEY preferred, falls back to AI_API_KEY —
+ *                    uses llama-3.3-70b-versatile which reliably returns JSON)
  *   2nd — Ollama    (http://localhost:11434 — local fallback, skipped on Vercel)
  *   3rd — empty     (user fills manually)
  *
- * NOTE: We use AI_API_KEY (not GROQ_API_KEY) — that is the key name in .env.
+ * NOTE: GROQ_API_KEY is the preferred env var. AI_API_KEY is kept as a
+ *       fallback for backward compatibility with existing deployments.
  */
+
+export interface CareerHistoryEntry {
+  title: string;
+  company: string;
+  startDate: string;
+  endDate: string;
+  dateRange: string;
+  description: string;
+}
+
+export interface EducationEntry {
+  degree: string;
+  institution: string;
+  graduationYear: string;
+  description: string | null;
+}
+
+export interface LicenceEntry {
+  name: string;
+  issuer: string;
+  startDate: string;
+  endDate: string;
+}
 
 export interface ParsedCVData {
   fullName: string | null;
@@ -29,10 +53,18 @@ export interface ParsedCVData {
   expectedSalaryCurrency: string | null;
   yearsOfExperience: number | null;
   currentRole: string | null;
+  /** Most recent company name (companion to currentRole). */
+  currentCompany: string | null;
   gender: string | null;
   nationality: string | null;
   skills: string[];
   summary: string | null;
+  /** Structured career history extracted from the CV. */
+  careerHistory: CareerHistoryEntry[];
+  /** Structured education entries extracted from the CV. */
+  education: EducationEntry[];
+  /** Licences / certifications extracted from the CV. */
+  licences: LicenceEntry[];
 }
 
 export type ParseEngine = "groq" | "ollama" | "none";
@@ -55,10 +87,14 @@ const EMPTY_DATA: ParsedCVData = {
   expectedSalaryCurrency: null,
   yearsOfExperience: null,
   currentRole: null,
+  currentCompany: null,
   gender: null,
   nationality: null,
   skills: [],
   summary: null,
+  careerHistory: [],
+  education: [],
+  licences: [],
 };
 
 // ── JSON helpers ────────────────────────────────────────────────────────────
@@ -104,6 +140,66 @@ function safeParseJSON(raw: string): ParsedCVData | null {
 
     const p = JSON.parse(match[0]);
 
+    const careerHistory: CareerHistoryEntry[] = Array.isArray(p.careerHistory)
+      ? (p.careerHistory as unknown[])
+          .map((entry) => {
+            if (!entry || typeof entry !== "object") return null;
+            const e = entry as Record<string, unknown>;
+            return {
+              title: typeof e.title === "string" ? e.title : "",
+              company: typeof e.company === "string" ? e.company : "",
+              startDate: typeof e.startDate === "string" ? e.startDate : "",
+              endDate: typeof e.endDate === "string" ? e.endDate : "",
+              dateRange: typeof e.dateRange === "string" ? e.dateRange : "",
+              description: typeof e.description === "string" ? e.description : "",
+            };
+          })
+          .filter(
+            (e): e is CareerHistoryEntry =>
+              !!e && (!!e.title || !!e.company),
+          )
+      : [];
+
+    const education: EducationEntry[] = Array.isArray(p.education)
+      ? (p.education as unknown[])
+          .map((entry) => {
+            if (!entry || typeof entry !== "object") return null;
+            const e = entry as Record<string, unknown>;
+            return {
+              degree: typeof e.degree === "string" ? e.degree : "",
+              institution:
+                typeof e.institution === "string" ? e.institution : "",
+              graduationYear:
+                typeof e.graduationYear === "string"
+                  ? e.graduationYear
+                  : e.graduationYear != null
+                    ? String(e.graduationYear)
+                    : "",
+              description:
+                typeof e.description === "string" ? e.description : null,
+            };
+          })
+          .filter(
+            (e): e is EducationEntry =>
+              !!e && (!!e.degree || !!e.institution),
+          )
+      : [];
+
+    const licences: LicenceEntry[] = Array.isArray(p.licences)
+      ? (p.licences as unknown[])
+          .map((entry) => {
+            if (!entry || typeof entry !== "object") return null;
+            const e = entry as Record<string, unknown>;
+            return {
+              name: typeof e.name === "string" ? e.name : "",
+              issuer: typeof e.issuer === "string" ? e.issuer : "",
+              startDate: typeof e.startDate === "string" ? e.startDate : "",
+              endDate: typeof e.endDate === "string" ? e.endDate : "",
+            };
+          })
+          .filter((e): e is LicenceEntry => !!e && !!e.name)
+      : [];
+
     return {
       fullName:
         typeof p.fullName === "string" && p.fullName ? p.fullName : null,
@@ -135,6 +231,10 @@ function safeParseJSON(raw: string): ParsedCVData | null {
         typeof p.currentRole === "string" && p.currentRole
           ? p.currentRole
           : null,
+      currentCompany:
+        typeof p.currentCompany === "string" && p.currentCompany
+          ? p.currentCompany
+          : null,
       gender: typeof p.gender === "string" && p.gender ? p.gender : null,
       nationality:
         typeof p.nationality === "string" && p.nationality
@@ -144,6 +244,9 @@ function safeParseJSON(raw: string): ParsedCVData | null {
         ? (p.skills as string[]).filter(Boolean)
         : [],
       summary: typeof p.summary === "string" && p.summary ? p.summary : null,
+      careerHistory,
+      education,
+      licences,
     };
   } catch (err) {
     console.error("[CV Parser] JSON parse error:", err);
@@ -207,7 +310,13 @@ const SYSTEM_PROMPT =
   "You are an expert HR assistant that extracts structured information from resumes. " +
   "Always respond with a single raw JSON object — no markdown, no code fences, no commentary. " +
   "Use null for any field you cannot find in the resume. Never invent values. " +
-  "Be precise: a 'location' is a city/region/country, not a job title or work arrangement.";
+  "Be precise: a 'location' is a city/region/country, not a job title or work arrangement. " +
+  "For arrays (careerHistory, education, skills, licences), extract every relevant entry " +
+  "you can find in the CV — do not stop after the first one. " +
+  "For careerHistory, list jobs in reverse-chronological order (most recent first). " +
+  "For each job, include a concise description of responsibilities and achievements. " +
+  "For education, include degree, institution, and graduation year. " +
+  "For licences, include the certification name and issuing organisation.";
 
 function buildUserPrompt(cvText: string): string {
   return (
@@ -224,17 +333,47 @@ function buildUserPrompt(cvText: string): string {
     `  "expectedSalaryCurrency": "3-letter currency code if salary is mentioned, e.g. 'IDR' or 'USD'. null otherwise."\n` +
     `  "yearsOfExperience": total years of relevant professional experience as an integer, or null\n` +
     `  "currentRole": "candidate's most recent job title (the position, not the company), or null",\n` +
+    `  "currentCompany": "the company name for the candidate's most recent job, or null",\n` +
     `  "gender": "male, female, or other — only if explicitly stated, otherwise null",\n` +
     `  "nationality": "candidate's nationality if stated, otherwise null",\n` +
-    `  "skills": ["array", "of", "distinct", "skill", "strings"]\n` +
-    `  "summary": "1-2 sentence professional summary of the candidate, or null"\n` +
+    `  "skills": ["array", "of", "distinct", "skill", "strings"],\n` +
+    `  "summary": "1-2 sentence professional summary of the candidate, or null",\n` +
+    `  "careerHistory": [\n` +
+    `    {\n` +
+    `      "title": "job title for this position",\n` +
+    `      "company": "company name",\n` +
+    `      "startDate": "start date or month/year, e.g. 'Jan 2020' — null if not stated",\n` +
+    `      "endDate": "end date or 'Present' — null if not stated",\n` +
+    `      "dateRange": "the full date range string as written on the CV, e.g. 'Jan 2020 – Present'",\n` +
+    `      "description": "concise summary of responsibilities and achievements for this role"\n` +
+    `    }\n` +
+    `  ],\n` +
+    `  "education": [\n` +
+    `    {\n` +
+    `      "degree": "degree or qualification name, e.g. 'Bachelor of Computer Science'",\n` +
+    `      "institution": "school or university name",\n` +
+    `      "graduationYear": "graduation year as a string, e.g. '2018' — null if not stated",\n` +
+    `      "description": "any additional detail (GPA, honours, relevant coursework) or null"\n` +
+    `    }\n` +
+    `  ],\n` +
+    `  "licences": [\n` +
+    `    {\n` +
+    `      "name": "name of the licence or certification",\n` +
+    `      "issuer": "issuing organisation or institution",\n` +
+    `      "startDate": "issue date or null",\n` +
+    `      "endDate": "expiry date or null"\n` +
+    `    }\n` +
+    `  ]\n` +
     `}\n\n` +
     `CRITICAL RULES:\n` +
     `- "location" MUST be a geographic place. Never put "On-site", "Remote", or "Hybrid" there.\n` +
     `- "workPreference" is a separate field. Don't confuse it with location.\n` +
     `- If a value is not in the CV, return null for that field. Do NOT guess.\n` +
+    `- For arrays (careerHistory, education, licences), extract ALL entries found in the CV.\n` +
+    `- List careerHistory in reverse-chronological order (most recent job first).\n` +
+    `- "currentRole" and "currentCompany" should match the first entry in careerHistory.\n` +
     `- Output ONLY the JSON object, no other text.\n\n` +
-    `CV TEXT:\n---\n${cvText.slice(0, 5000)}\n---\n\n` +
+    `CV TEXT:\n---\n${cvText.slice(0, 8000)}\n---\n\n` +
     `JSON:`
   );
 }
@@ -242,10 +381,14 @@ function buildUserPrompt(cvText: string): string {
 // ── PRIMARY: Groq via AI_API_KEY (already in .env) ────────────────────────
 
 async function parseWithGroq(cvText: string): Promise<ParsedCVData | null> {
-  const aiKey = process.env.AI_API_KEY || "";
+  // GROQ_API_KEY is the preferred env var. AI_API_KEY is kept as a fallback
+  // for backward compatibility with existing deployments.
+  const aiKey = process.env.GROQ_API_KEY || process.env.AI_API_KEY || "";
 
   if (!aiKey) {
-    console.warn("[CV Parser] AI_API_KEY not set — skipping Groq");
+    console.warn(
+      "[CV Parser] GROQ_API_KEY (or AI_API_KEY) not set — skipping Groq",
+    );
     return null;
   }
 
@@ -260,7 +403,7 @@ async function parseWithGroq(cvText: string): Promise<ParsedCVData | null> {
     console.log(`[CV Parser] Calling Groq (${cvModel})...`);
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30_000);
+    const timeoutId = setTimeout(() => controller.abort(), 45_000);
 
     const response = await fetch(groqUrl, {
       method: "POST",
@@ -275,7 +418,9 @@ async function parseWithGroq(cvText: string): Promise<ParsedCVData | null> {
           { role: "user", content: buildUserPrompt(cvText) },
         ],
         temperature: 0.1,
-        max_tokens: 1024,
+        // Increased from 1024 to 4096 — we now extract structured arrays
+        // (careerHistory, education, licences) which require more tokens.
+        max_tokens: 4096,
         stream: false,
         // Force valid JSON output — eliminates markdown-fence wrapping and
         // dramatically reduces parse failures.
@@ -305,7 +450,10 @@ async function parseWithGroq(cvText: string): Promise<ParsedCVData | null> {
     const result = safeParseJSON(raw);
     if (result && (result.fullName || result.email || result.currentRole)) {
       console.log(
-        `[CV Parser] ✅ Groq succeeded — name: ${result.fullName}, email: ${result.email}`,
+        `[CV Parser] ✅ Groq succeeded — name: ${result.fullName}, email: ${result.email}, ` +
+          `careerHistory: ${result.careerHistory.length} entries, ` +
+          `education: ${result.education.length} entries, ` +
+          `licences: ${result.licences.length} entries`,
       );
       return result;
     }
